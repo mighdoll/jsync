@@ -1,0 +1,9 @@
+Welcome to jsync - transparent object replication for javascript
+
+This is a technlogy preview release -- you can see the api and peek at the code,
+but you can't use it (the server side is not yet implemented).
+
+Getting Started:
+* See the doc directory for a summary of the the api design.
+* Run the tests in test/test.html
+* Poke around, there are more comments in the code.
