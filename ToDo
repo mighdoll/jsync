@@ -1,6 +1,5 @@
-* revise documentation
-   * document internals
-* publish on github
+* send json text up
+* document internals
 
 later:
 * move array utilities out of array, it's rude.  $util or $sync.util instead.
@@ -32,6 +31,8 @@ done:
 * use field_() istead of setField()
 * set prototype fields, not object itself
 * don't create fields for id and kind
+* publish on github
+* revise documentation
 
 
 

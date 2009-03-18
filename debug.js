@@ -30,20 +30,18 @@ $debug = (function() {
     that.assert = function(val, msg) {
         if (!val) {
             that.log("ASSERT: " + (msg || ""));
-            debugger;
-        }
-    };
+            debugger; } };
 
     that.warn = function(msg) {
-        that.log("WARN: " + msg);
-    };
+        that.log("WARN: " + msg); };
+
+    that.error = function(msg) {
+        that.log("ERROR: " + msg); };
 
     that.fail = function(msg) {
-        that.log("FAIL: " + msg);
-        debugger;
-    };
+        that.log("FAIL: " + msg); debugger; };
 
-    /* setop $debug.log() function.
+    /* setup $debug.log() function.
      *
      * use firefox console if available,
      * otherwise create a div named #console.
@@ -51,7 +49,6 @@ $debug = (function() {
      * LATER - log these to the server.
      */
     var initConsole = function() {
-
         if (typeof window.console !== "undefined") {
             that.log = function() { 
                 console.log.apply( console, arguments )

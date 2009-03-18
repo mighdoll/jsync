@@ -15,36 +15,62 @@
 var $sync = $sync || {};      // namespace
 
 /* maintains a network connection to a server feed containing the jsonsync protocol.
- * @param jsonSyncFeed - url of the jsonsync protocol endpoint
+ * @param feedUrl - url of the jsonsync protocol endpoint
  * @param params - optional options { testMode: true/false
  */
-$sync.connect = function(jsonSyncFeed, params) {
+$sync.connect = function(feedUrl, params) {
     var that = {},
         receivedTransaction = 0, // protocol sequence number
         sentTransaction = 0,
         testModeOut,
+        isConnected,
         subscriptions;  // object trees we're mirroring from the server
-		
+		    
     var init = function() {
       $sync.manager.registerConnection(that);
       subscriptions = $sync.set({$syncId:"#subscriptions"});
       if (!params || !params.testMode) {
-        start(jsonSyncFeed); } };
+        start(); } };
 
+    var connected = function(data) {
+        console.log("connected");
+        isConnected = true;
+        if (params && params.connected)
+            params.connected();
+        parseFeed(data);
+    };
+
+    that.isConnected = function() { return isConnected }
+    
     /* start reading data from the network
      * TODO open and maintain a persistent connection to the server */
-    var start = function(jsonFeed) {
+    var start = function() {
         $.ajax({
-            url: jsonFeed,
+            url: feedUrl,
             type:"POST",
             dataType:"json",
-            success:parseFeed,
+            contentType:"application/json",
+            success:connected,
             error:syncFail,
-            data: {sessionId: "sessionId"} });  };
+            data: "[]" });  };
 
     var syncFail = function(XMLHttpRequest, textStatus, errorThrown) {
-        $debug.log("$sync protocol request failed: " + errorThrown); };
+        $debug.log("$sync protocol request failed: " + textStatus); };
 
+    /* send message up to the server 
+     * (for now, we send it over a separate reuest) */
+    var send = function(xact) {
+       var xactStr = JSON.stringify(xact);
+        $.ajax({
+            url: feedUrl,
+            type:"POST",
+            dataType:"json",
+            contentType:"application/json",
+            success:parseFeed,
+            error: syncFail,
+            data: xactStr }); };
+
+    
     /** accept a feed for testing as if it came from the server */
     that.testFeed = function(jsonFeed) {
         parseFeed(jsonFeed);
@@ -60,9 +86,10 @@ $sync.connect = function(jsonSyncFeed, params) {
                 xact.push(changed.obj);
             }
         });
-        if (params && params.testMode) {
+        if (params && params.testMode)
             testModeOut = xact;
-        }
+        else 
+            send(xact);
     };
 
     that.testOutput = function() {
@@ -77,7 +104,7 @@ $sync.connect = function(jsonSyncFeed, params) {
      * @param name - well known name shared by the server to identify this
      *  tree of subscribed objects
      * @param watchFunc - called when the subscribed root object arrives,
-     *  and fires again in the unlikely event the root is subsequently changed.
+     *  (and fires again in the unlikely event the root is subsequently changed.)
      * @return a subscription object: {name: "string", root: rootObject}
      */
     that.subscribe = function(name, watchFunc) {
@@ -99,9 +126,15 @@ $sync.connect = function(jsonSyncFeed, params) {
      */
     var parseFeed = function(jsonFeed){
         var i, obj, toUpdate = [], toMetaSync = [], incomingTransaction;
-		
-        $debug.assert(jsonFeed.length >= 2);
+
+        if (jsonFeed.length === 0)
+            return;
+
         incomingTransaction = jsonFeed[0].transaction;
+        if (!incomingTransaction) {
+            $debug.error("parseFeed transaction not found: " + toJSON(jsonFeed));
+            return;
+        }
         if (incomingTransaction === receivedTransaction + 1) {
             receivedTransaction += 1;
         }

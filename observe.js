@@ -26,7 +26,6 @@ var $sync = $sync || {};
  * description object.  See below for examples.
  *
  * TODO rename this to observation.
- * TODO finish everyWatchers
  */
 $sync.notification = function() {
     var that = {},
