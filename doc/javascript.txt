@@ -18,7 +18,7 @@ Here's what it looks like:
       // This function is called once when the notes collection arrives
       notesViewer(notes); });
 
-  // make arbitrary changes to the notes (note use of field mutator: x_() )
+  // make arbitrary changes to the notes (use field mutate func: .x_() )
   notes.each(function(note) {
       note.position.x_(note.position.x + 5); });
 
@@ -43,9 +43,9 @@ Advantages for the client over RPC.
   persisted to the server.
 * Reverse CRUD (server push) is nearly effortless.  Just watch() for changes.
 * Clean api, fully asynchronous.
-* The transfer protocol is more efficient: instead of sending all
-  relevant objects to an operation, only unchanged objects and unchanged
-  fields don't need to be sent.
+* The transfer protocol is more efficient: instead of sending all relevant 
+  objects to an operation, only unchanged objects and unchanged fields don't 
+  need to be sent.
 * Atomic groups of changes allows for easier consistency management.
 
 Disadvantages

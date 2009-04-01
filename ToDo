@@ -1,9 +1,8 @@
-* send json text up
 * document internals
 
 later:
 * move array utilities out of array, it's rude.  $util or $sync.util instead.
-* rename id and kind to $syncId and $syncKind to reduce conflict with user classes
+* rename id and kind to $jsyncId and $jsyncKind to reduce conflict with user classes
 * override field = to warn on firefox
 * redo linked list modifications to send as edits?  reconsider design..
 * better use of public namespace
@@ -20,6 +19,8 @@ much later:
 * one way syncing (e.g. dropbox)
 * support for inheritance in syncable objects
 
+-------------------
+
 done:
 * replace "Lee." namespace: ($sync, $debug, $util for now?)
 * reformat to 8 space tabs everywhere
@@ -33,6 +34,4 @@ done:
 * don't create fields for id and kind
 * publish on github
 * revise documentation
-
-
-
+* send json text up
