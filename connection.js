@@ -20,7 +20,7 @@ var $sync = $sync || {};      // namespace
  */
 $sync.connect = function(feedUrl, params) {
     var that = {},
-        receivedTransaction = 0, // protocol sequence number
+        receivedTransaction, // protocol sequence number
         sentTransaction = 0,
         testModeOut,
         isConnected,
@@ -33,7 +33,7 @@ $sync.connect = function(feedUrl, params) {
         start(); } };
 
     var connected = function(data) {
-        console.log("connected");
+        $debug.log("connected");
         isConnected = true;
         if (params && params.connected)
             params.connected();
@@ -58,7 +58,7 @@ $sync.connect = function(feedUrl, params) {
         $debug.log("$sync protocol request failed: " + textStatus); };
 
     /* send message up to the server 
-     * (for now, we send it over a separate reuest) */
+     * (for now, we send it over a separate request) */
     var send = function(xact) {
        var xactStr = JSON.stringify(xact);
         $.ajax({
@@ -131,12 +131,12 @@ $sync.connect = function(feedUrl, params) {
             return;
 
         incomingTransaction = jsonFeed[0].transaction;
-        if (!incomingTransaction) {
-            $debug.error("parseFeed transaction not found: " + toJSON(jsonFeed));
+        if (incomingTransaction == undefined) {
+            $debug.error("parseFeed transaction not found: " + JSON.stringify(jsonFeed));
             return;
         }
-        if (incomingTransaction === receivedTransaction + 1) {
-            receivedTransaction += 1;
+        if (receivedTransaction == undefined || incomingTransaction === (receivedTransaction + 1)) {
+        	receivedTransaction = incomingTransaction
         }
         else {
             // TODO advise the server that we missed a transaction, and reissue.

@@ -12,6 +12,17 @@ connection.subscribe("$sync/test/oneName", function(oneName) {
 $sync.manager.commit();
 */
 
+var $sync = $sync || {};
+$sync.test = $sync.test || {};
+
+/** test object for tests */
+$sync.test.nameObj = function(params) {
+    var that = $sync.manager.createSyncable("$sync.test.nameObj", null, params);
+    that.name = "";
+    
+    return that;
+}
+
 test("sync.connect", function() {
    expect(1);
    var connected = function() {
