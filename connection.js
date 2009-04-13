@@ -150,7 +150,10 @@ $sync.connect = function(feedUrl, params) {
         // 1st pass through through the contents of the entire transaction
         for (i = 1; i < jsonFeed.length; i++) {
             obj = jsonFeed[i];
-            if (obj.hasOwnProperty("#edit")) {
+            if (obj == undefined) {
+            	$debug.warn("empty object in JSON stream");
+            	// be robust to empty elements in the protocol
+            } else if (obj.hasOwnProperty("#edit")) {
                 // handle collection changes a little later
                 toMetaSync.push(obj);
             } else {
@@ -194,7 +197,7 @@ $sync.connect = function(feedUrl, params) {
         var prop, arrayDex, arrayVal;
 
         if (typeof obj !== 'object') {
-            $debug.assert(false);	// shouldn't happen
+            $debug.warn("resolveRefs can't resolve obj: " + obj);	// shouldn't happen
             return obj;
         }
 		
