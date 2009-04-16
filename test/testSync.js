@@ -65,7 +65,7 @@ test("json-sync.$sync.set", function() {
             $sync.manager.reset();
         });
         connection.testFeed(
-            [{  "transaction": 1 } ,
+            [{  "#transaction": 1 } ,
             { "id" : sub.id,
               "root" : {"$ref": 1} },
             { "#edit" : 1,
@@ -101,7 +101,7 @@ test("json-sync.$ref", function() {
             verifyRefs(root);
             $sync.manager.reset(); });
         connection.testFeed(
-            [{  "transaction": 1 } ,
+            [{  "#transaction": 1 } ,
             { "id" : sub.id,
               "root" : {"$ref": 4} },
             { "id" : 4,
@@ -135,7 +135,7 @@ test("json-sync.send-obj", function() {
     obj = $sync.manager.createSyncable(null, model);
     $sync.manager.commit();
     out = connection.testOutput();
-    ok(out[0].transaction === 0);
+    ok(out[0]['#transaction'] === 0);
 
     leonardo = out.eachCheck(function(elem) {
         if (elem.id === obj.id)
