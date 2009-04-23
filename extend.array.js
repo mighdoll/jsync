@@ -13,6 +13,9 @@
  *   limitations under the License.
  */
 
+/* TODO Get rid of these... It seems presumptions to extend core objects
+ * like Array in a library intended for others to use. */
+
 /* extend Array with some handy functions */
 (function() {
     var method = function(cls, methodName, func) {

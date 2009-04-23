@@ -25,18 +25,22 @@ var $sync = $sync || {};      // namespace
  */
 $sync.connect = function(feedUrl, params) {
     var that = {},
-        receivedTransaction, // protocol sequence number
-        sentTransaction = 0,
-        testModeOut,
-        isConnected,
-        subscriptions;  // object trees we're mirroring from the server
+    receivedTransaction, // protocol sequence number
+    sentTransaction = 0,
+    testModeOut,
+    isConnected,
+    subscriptions;  // object trees we're mirroring from the server
 		
     /** open a connection to the server */
     var init = function() {
-      $sync.manager.registerConnection(that);
-      subscriptions = $sync.set({$syncId:"#subscriptions"});
-      if (!params || !params.testMode) {
-        start(); } };
+        $sync.manager.registerConnection(that);
+        subscriptions = $sync.set({
+            $syncId:"#subscriptions"
+        });
+        if (!params || !params.testMode) {
+            start();
+        }
+    };
 
     /** called when the sync connection to the server is opened
      * -- we've heard a response from the server in response to our initial connection attempt */
@@ -49,16 +53,20 @@ $sync.connect = function(feedUrl, params) {
     };
 
     /** @return true if we've an active sync connection to the server */
-    that.isConnected = function() { return isConnected }
+    that.isConnected = function() { 
+        return isConnected
+    }
     
     /** start reading data from the network
      * TODO open and maintain a persistent connection to the server */
     var start = function() {
-     	$debug.log("starting connection");
-    	var xact = startNextSendXact();    	
-    	xact.push({'#recconnect':false});
-    	send(xact, connected);    	
-     };
+        $debug.log("starting connection to: " + feedUrl);
+        var xact = startNextSendXact();
+        xact.push({
+            '#reconnect':false
+        });
+        send(xact, connected);
+    };
 
     var syncFail = function(XMLHttpRequest, textStatus, errorThrown) {
         $debug.log("$sync protocol request failed: " + textStatus); 
@@ -67,8 +75,8 @@ $sync.connect = function(feedUrl, params) {
     /** send message up to the server 
      * (for now, we send each request over a separate http request) */
     var send = function(xact, successFn) {
-    	$debug.log("sending xact to server: " + xact);
-    	var xactStr = JSON.stringify(xact);
+        var xactStr = JSON.stringify(xact);
+        $debug.log("sending xact to server: " + xactStr);
         $.ajax({
             url: feedUrl,
             type:"POST",
@@ -87,21 +95,25 @@ $sync.connect = function(feedUrl, params) {
     
     /** create the next transaction to send to the client */
     var startNextSendXact = function() {
-    	var xact = [];
-        xact.push({'#transaction': sentTransaction++});
+        var xact = [];
+        xact.push({
+            '#transaction': sentTransaction++
+        });
         return xact;
     };
 
     /** send all modified objects to the server */
     that.sendModified = function(changeSet) {
         var xact = startNextSendXact();
-    	xact.push({'#reconnect':true});
+        xact.push({
+            '#reconnect':true
+        });
 
         changeSet.eachCheck(function(changed) {
             if (changed.changes.changeType === "create") {
                 xact.push(changed.obj);
             }
-            // TODO send modified objects too!
+        // TODO send modified objects too!
         });
         if (params && params.testMode)
             testModeOut = xact;
@@ -130,10 +142,12 @@ $sync.connect = function(feedUrl, params) {
         subscriptions.put(sub);
         if (watchFunc) {
             $sync.notification.watch(sub, function(subscription) {
-                watchFunc(subscription.root) }); }
+                watchFunc(subscription.root) 
+            });
+        }
 
         return sub; 
-     };
+    };
 
     /** handle a feed of object changes from the server.
      * 1) instantiate new objects, enter them into the map
@@ -147,6 +161,7 @@ $sync.connect = function(feedUrl, params) {
     var parseFeed = function(jsonFeed){
         var i, obj, toUpdate = [], toMetaSync = [], incomingTransaction;
 
+        $debug.log("parseFeed: " + JSON.stringify(jsonFeed));
         if (jsonFeed.length === 0)
             return;
 
@@ -156,7 +171,7 @@ $sync.connect = function(feedUrl, params) {
             return;
         }
         if (receivedTransaction == undefined || incomingTransaction === (receivedTransaction + 1)) {
-        	receivedTransaction = incomingTransaction
+            receivedTransaction = incomingTransaction
         }
         else {
             // TODO advise the server that we missed a transaction, and reissue.
@@ -171,8 +186,8 @@ $sync.connect = function(feedUrl, params) {
         for (i = 1; i < jsonFeed.length; i++) {
             obj = jsonFeed[i];
             if (obj == undefined) {
-            	$debug.warn("empty object in JSON stream");
-            	// be robust to empty elements in the protocol
+                $debug.warn("empty object in JSON stream");
+            // be robust to empty elements in the protocol
             } else if (obj.hasOwnProperty("#edit")) {
                 // handle collection changes a little later
                 toMetaSync.push(obj);
@@ -252,7 +267,10 @@ $sync.connect = function(feedUrl, params) {
 /** model object for subscriptions.  We send one of these to the server, and it will
  * create a subscription and send us the root object */
 $sync.subscription = function(params) {
-    var dataModel = {name:"unspecified", root:null};
+    var dataModel = {
+        name:"unspecified",
+        root:null
+    };
     var that = $sync.manager.createSyncable("$sync.subscription", dataModel, params);
     return that;
 }
