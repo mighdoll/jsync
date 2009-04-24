@@ -158,7 +158,7 @@ $sync.manager = function() {
      *
      * we try to find the appropriate constructor from an existing syncable
      * class to do the work for us.  If no appropriate constructor is found,
-     * (e.g. because the object is mi ssing) we synthesize one.
+     * (e.g. because the object is missing) we synthesize one.
      * 
      * @param template.kind describes the type of the object to be created.
      *      template.kind e.g "sync.set" creates a new object by calling the function

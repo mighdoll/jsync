@@ -47,7 +47,7 @@ $sync.sortedSet = function(params) {
         }
     };
 
-    that.each = function() {
+    that.each = function(func) {
         var i, result;
         for (i = 0; i < elems.length; i++) {
             result = func(elems[i].elem);
@@ -61,7 +61,7 @@ $sync.sortedSet = function(params) {
 
     var notifyInsert = function(sortElem) {
         // TODO -- needs to notify with the new index too!
-        $sync.notification.collectionNotify(this, {
+        $sync.notification.collectionNotify(that, {
             changeType: "edit",
             put: sortElem.elem
         });
@@ -118,7 +118,7 @@ $sync.set = function(params) {
         if (!that.contains(elem)) {
             elems[elem.id] = elem;
             size += 1;
-            $sync.notification.collectionNotify(this, {
+            $sync.notification.collectionNotify(that, {
                 changeType: "edit",
                 put: elem
             });
@@ -131,7 +131,7 @@ $sync.set = function(params) {
         if (that.contains(elem)) {
             delete elems[elem.id];
             size -= 1;
-            $sync.notification.collectionNotify(this, {
+            $sync.notification.collectionNotify(that, {
                 changeType: "edit",
                 remove: elem
             });

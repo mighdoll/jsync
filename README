@@ -38,7 +38,7 @@ A few key features:
     In practice, a few compromises are required to make sync work in
     javascript and scala.  The current javascript api requires a special
     constructor syntax, and using setter functions (on old browsers).
-    The scala api is TBD, but may requrie goat herding skills.
+    The scala api is TBD, but may require goat herding skills.
 
 * Collections 
     Starting with three mutable collections:  Set, Map, and LinkedList. 
