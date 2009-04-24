@@ -156,30 +156,4 @@ test("json-sync.send-obj", function() {
     $sync.manager.reset();
 });
 
-/*
-test("sync.linkedList", function() {
-    var connection, count = 0, oldHead;
-	expect(8);
-    connection = $sync.connect("file:test1.json");
-    connection.subscribe("list").await(
-	function(list) {
-		ok(list.kind === "sync.linkedList");
-		ok(list.head.id === 7);
-		ok(list._size === 3);
-		ok(list.size() === 3);
-		list.each(function() {
-			count++;
-		});
-		ok(count === 3);
-		oldHead = list.head;
-		list.remove(list.head);
-		ok(list.size() === 2);
-		list.insert(oldHead, list.head);
-		ok(list.size() === 3);
-		ok(list.head.id === 8);
-		$sync.manager.reset();
-		start();
-	});
-	connection.start();
-});
-*/
+

@@ -14,128 +14,95 @@
  */
 var $sync = $sync || {};      // namespace
 
-/* syncable singly linked list collection */
-$sync.linkedList = function() {
-    var that = {},
-	
-    init = function() {
-        // these are public so that the current version of the $sync engine can get at them..
-        that._size = 0;
-        that.head = null;
-    },
-	
-    size = function() {
-        return that._size;
-    },
-	
-    /** insert an element into the list.
-     *
-     * @param {Object} elem  item to insert
-     * @param {Object} after (optional) insert item after this element or at the front if null
-     */
-    insert = function(elem, after) {
-        // make element into a syncable link element
-        elem.next || (elem.next = null);
-        $sync.manager.makeSyncable(elem);  // fixme
-        $debug.assert(!that.contains(elem));
+$sync.sortedSet = function(params) {
+    var that = $sync.manager.createSyncable("$sync.sortedSet", null, params),
+    elems = []; // array of set elements
 
-        if (after) {
-            elem.setNext(after.next);
-            after.setNext(elem);
-        } else {
-            elem.setNext(that.head);
-            that.head = elem;
-        }
-		
-        that.set_size(that._size+1);
-        $sync.notification.collectionNotify(this, {
-            changeType:"edit",
-            "insert":elem,
-            "after":after
-        });
-    },
-		
-    remove = function(rem) {
-        var prev;
-        if (rem === null) {
-            $debug.assert(false);
-            return;
-        }
-		
-        if (that.head === rem) {
-            // remove head
-            that.head = that.head.next;
-            that.set_size(that._size-1);
-        } else {
-            // find element
-            prev = that.head;
-            while (prev && prev.next !== rem) {
-                prev = prev.next;
-            }
-            if (prev && prev.next === rem) {
-                // remove non-head element
-                prev.setNext(rem.next);
-                that.set_size(that._size-1);
-            } else {
-                $debug.log("not in list: " + jsDump.parse(rem));	// not in list
-            }
-        }
-        $sync.notification.collectionNotify(this, {
-            changeType:"edit",
-            remove:rem
-        });
-    },
-	
-    contains = function(sought, matcher) {
-        var result, elem = that.head;
-		
-        if (matcher) {
-            for (result = false; elem && !result; elem = elem.next) {
-                result = matcher(elem, sought);
-            }
-            return result;
-        } else {
-            while (elem && (elem !== sought)) {
-                elem = elem.next;
-            }
-            if (elem === sought) {
-                return elem;
-            }
-            return null;
-        }
-    },
-	
-    each = function(func) {
-        var elem = that.head;
-        while (elem && !func(elem)) {
-            elem = elem.next;
-        }
-    },
-	
-    clear = function() {
-        init();
+    that.put = function(item) {
+        $debug.assert($sync.manager.isSyncable(item), "sortedSet.put: elem isn't syncable: "+ item);
+        var sortElem = {sortKey:newMaxKey(), elem:item};
+        elems.push(sortElem);
+
+        notifyInsert(sortElem);
     };
-	
-    init();
-	
-    that.each = each;
-    that.size = size;
-    that.remove = remove;
-    that.contains = contains;
-    that.insert = insert;
-    that.clear = clear;
-    return that;
-}
 
-/* element in the linked list */
-$sync.linkElem = function() {
-    var that;
-		
-    that = {
-        next:null
+    that.size = function() {
+        return elems.length;
+    };
+
+    that.clear = function() {
+        elems = [];
+    };
+
+    that.insert = function(item, prev) {
+        $debug.assert($sync.manager.isSyncable(item), "sortedSet.insert: elem isn't syncable: "+ item);
+        var prevDex = prev && findElem(prev);
+        if (prevDex) {
+            var key = keyAfter(prevDex);
+            var sortElem = {sortKey:key, elem:item};
+            elems.splice(prevDex, 0, sortElem);
+            notifyInsert(sortElem);
+        } else {
+            that.put(item);
+        }
+    };
+
+    that.each = function() {
+        var i, result;
+        for (i = 0; i < elems.length; i++) {
+            result = func(elems[i].elem);
+            if (result) {
+                return result;
+            }
+        }
+        return null;
+    };
+
+
+    var notifyInsert = function(sortElem) {
+        // TODO -- needs to notify with the new index too!
+        $sync.notification.collectionNotify(this, {
+            changeType: "edit",
+            put: sortElem.elem
+        });
     }
+
+    var keyAfter = function(prevDex) {
+        var prevKey, nextKey, key;
+        if (prevDex === elems.length - 1) {
+            return prevDex + 100;
+        }
+        prevKey = elems[prevDex].sortKey;
+        nextKey = elems[prevDex+1].sortKey;
+
+        key = (prevKey + nextKey) / 2;
+
+        // eventually we need to recreate keys
+        $debug.assert(key != prevKey);
+        $debug.assert(key != nextKey);
+        
+        return key;
+    }
+
+    var newMaxKey = function() {
+      if (!elems.length){
+          return 100;
+      } else {
+          return elems[elems.length - 1].sortKey + 100;
+      }
+    }
+
+    var findElem = function(find) {
+        var i;
+        for (i = 0; i < elems.length; i++) {
+            if (elems[i] === find)
+                return i;
+        }
+        return -1;
+    }
+
     return that;
-}
+};
 
 /* Syncable set collection, both the set and the elements are Syncable objects */
 $sync.set = function(params) {
@@ -157,6 +124,7 @@ $sync.set = function(params) {
             });
         }
     };
+
 
     /* remove a syncable element from the syncable set */
     that.remove = function(elem) {
