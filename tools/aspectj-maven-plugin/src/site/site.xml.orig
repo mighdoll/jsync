@@ -1,0 +1,14 @@
+<project>
+   <body>
+      <menu name="AspectJ plugin Quickstart">
+         <item name="Standard usage" href="./usage.html"/>
+         <item name="Seperate test/compile settings" href="./differentTestAndCompile.html"/>
+         <item name="Using includes/excludes" href="./includeExclude.html"/>
+         <item name="Using with AJDT" href="./usingTogetherWithAJDT.html"/>
+         <item name="Weaving jars" href="./weaveJars.html"/>
+         <item name="Using aspect libraries" href="./libraryJars.html"/>
+         <item name="Configuring Report" href="./usingReport.html"/>
+         <item name="AspectJ home" href="http://aspectj.org"/>
+      </menu>
+   </body>
+</project>

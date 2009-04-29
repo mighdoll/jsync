@@ -1,0 +1,37 @@
+* document internals
+
+later:
+* move array utilities out of array, it's rude.  $util or $sync.util instead.
+* rename id and kind to $jsyncId and $jsyncKind to reduce conflict with user classes
+* override field = to warn on firefox
+* redo linked list modifications to send as edits?  reconsider design..
+* better use of public namespace
+* add example view controller: notes set, list explorer?
+* add caller-groups parameter to subscribe to allow groupwise unsubscribe
+* consider local only fields whose changes aren't propogated to the server
+  * e.g. _foobar
+* rename subscribe to emphasize two way comms?
+* add version vectors to make it easier to identify conflicts on the server
+
+much later:
+* multiple connections
+* pageable data structures
+* one way syncing (e.g. dropbox)
+* support for inheritance in syncable objects
+
+-------------------
+
+done:
+* replace "Lee." namespace: ($sync, $debug, $util for now?)
+* reformat to 8 space tabs everywhere
+* add copyright notices everywhere
+* revive other tests to verify changes from server
+* minimize necessary utility methods
+* send changes to server and test (use watchEvery)
+* verify watchEvery on collections too
+* use field_() istead of setField()
+* set prototype fields, not object itself
+* don't create fields for id and kind
+* publish on github
+* revise documentation
+* send json text up

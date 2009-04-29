@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>Sync-Server</name>
+	<comment></comment>
+	<projects>
+		<project>Sync-Aspects</project>
+		<project>Sync-Models</project>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>ch.epfl.lamp.sdt.core.scalabuilder</name>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>ch.epfl.lamp.sdt.core.scalanature</nature>
+		<nature>org.eclipse.jdt.core.javanature</nature>
+	</natures>
+</projectDescription>

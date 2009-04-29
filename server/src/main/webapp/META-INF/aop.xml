@@ -1,0 +1,30 @@
+<aspectj>
+
+	<aspects>
+		<!-- declare an existing aspects to the weaver -->
+		<aspect name="com.digiting.sync.aspects.Observe" />
+
+		<!--
+			Of the set of aspects declared to the weaver use aspects matching the
+			type pattern "com..*" for weaving.
+		-->
+		<include within="*" />
+
+	</aspects>
+
+	<!--
+		for more debug printouts: 
+		<weaver options="-verbose -showWeaveInfo">
+
+		to see classes before and after weaving: 		
+		<dump within="com.digiting.sync.models.*"/> 
+		
+		to weave more classes: 		
+		<include within="com.digiting.sync.models2.*"/>
+	-->
+
+	<weaver options="-verbose">
+		<include within="com.digiting.sync.models.*" />
+	</weaver>
+
+</aspectj>
