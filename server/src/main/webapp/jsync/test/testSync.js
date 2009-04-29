@@ -118,32 +118,8 @@ test("json-sync.$sync.set", function() {
 
 test("json-sync.$ref", function() {
   var connection, sub, obj4, obj5, obj6;
-
-  var init = function() {
-    expect(5);
-    connection = $sync.connect(null, {
-      testMode:true
-    });
-    sub = connection.subscribe("", function(root) {
-      verifyRefs(root);
-      $sync.manager.reset();
-    });
-    connection.testFeed(
-      [{  "#transaction": 0 } ,
-      { "id" : sub.id,
-        "root" : {"$ref": 4} },
-      { "id" : 4,
-        "forwardRef" : {"$ref": 5} },
-      { "id" : 5,
-         "selfRef" : {"$ref": 5} },
-      { "id" : 6,
-        "refsArray": [ {"$ref": 5}, {"$ref": 6} ],
-          "nestedRef": { "nest" : { "deep" : {"deeper" : {"$ref":4 }}}}
-      }]
-    );
-  };
-
-  var verifyRefs = function(obj4) {
+  
+  function verifyRefs(obj4) {
     // verify $ref decoding
     obj5 = $sync.manager.get(5);
     obj6 = $sync.manager.get(6);
@@ -152,11 +128,32 @@ test("json-sync.$ref", function() {
     ok(obj6.refsArray[0] === obj5);
     ok(obj6.refsArray[1] === obj6);
     ok(obj6.nestedRef.nest.deep.deeper === obj4);
-		
-    start();
-  };
 
-  init();
+    start();
+  }
+
+  expect(5);
+  connection = $sync.connect(null, {
+    testMode:true
+  });
+  sub = connection.subscribe("", function(root) {
+    verifyRefs(root);
+    $sync.manager.reset();
+  });
+  connection.testFeed(
+    [{  "#transaction": 0 } ,
+    { "id" : sub.id,
+      "root" : {"$ref": 4} },
+    { "id" : 4,
+      "forwardRef" : {"$ref": 5} },
+    { "id" : 5,
+       "selfRef" : {"$ref": 5} },
+    { "id" : 6,
+      "refsArray": [ {"$ref": 5}, {"$ref": 6} ],
+        "nestedRef": { "nest" : { "deep" : {"deeper" : {"$ref":4 }}}}
+    }]
+  );
+  stop();
 });
 
 test("json-sync.send-obj", function() {

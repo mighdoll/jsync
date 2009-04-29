@@ -36,9 +36,9 @@ test("sync.connect", function() {
    stop();
 });
 
-test("sync.subscribe.oneName", function() {
+test("sync.connect.oneName", function() {
    expect(1);
-   
+
    var connection = $sync.connect("http://localhost:8080/sync");
    connection.subscribe("$sync/test/oneName", function(oneName) {
        ok(oneName.name === "emmett");
@@ -50,5 +50,5 @@ test("sync.subscribe.oneName", function() {
    stop();
 });
 
-test("final", function() {});
+
 
