@@ -21,17 +21,7 @@
     var method = function(cls, methodName, func) {
         cls.prototype[methodName] || (cls.prototype[methodName] = func);
     }
-
-    /** find an element in the array
-     *  @return true if element is found */
-    method(Array, 'find', function(item) {
-        for (var i = 0; i < this.length; i++) {
-            if (this[i] == item) {
-                return true; } }
-
-        return false; });
-
-
+    
     /** calls @param fn for each element in the array.
      * iteration stops early if fn() returns a value */
     method(Array, 'eachCheck', function(fn) {

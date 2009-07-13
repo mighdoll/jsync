@@ -24,6 +24,4 @@ package com.digiting.sync.aspects;
  * prop_$eq (as scala generates with 'var prop' syntax) are edited at class load time 
  * to include a call to Observation.notify()
  */
-public interface Observable {
-
-}
+public interface Observable {}

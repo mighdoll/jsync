@@ -17,34 +17,43 @@ import collection._
 import net.liftweb.util.Log
 
 import com.digiting.sync.aspects.Observable
-import Observation._
+import Observers._
 
-/* watch all observable objects referenced by this one, recursively */
-class DeepWatch(root:Observable) {
+
+/** 
+ * Watch all observable objects referenced by this object or any of its connected set of references.  
+ * Changes to objects in the connected set are reported to watchers, as are objects added or 
+ * removed from the connected set (e.g. an object is removed from the connected set when the
+ * last reference to it from the connected set is removed).  
+ * 
+ * LATER Refernce cycles in the connected set are detected intermittently (currently not at all).
+ *
+ * Internally, DeepWatch maintains a reference count for every object in the connected set of objects
+ * referenced from the root, and the Observers facility to watch for changes to objects in the
+ * connected set.  Changes are reported to client watchers and used internally to update 
+ * reference counts.  
+ */
+class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   private val connectedSet = mutable.Map[AnyRef, Int]()  // tracked observables and their reference counts
-  private val watches = mutable.Set[Watch]()
  
   init()
   
-  // start by watching the root object
-  def init() = {
-    addedRef(root)
-//    Console println "DeepWatch started: "
-//    printConnectedSet
-//    verifyConnectedSet
+  /** start by watching the root object and it's recursive references */
+  private def init() = {
+    addedRef(root)	// add the whole reference tree to the connected set, and observes all elements.
+    //    Console println "DeepWatch started: "
+    //    printConnectedSet
+    //    verifyConnectedSet
   }
-  
-  /* register a callback when any object in the set is changed */
-  def watch(fn:Change, watchClass:Any) {
-    watches + new Watch(fn, watchClass)
-  }
-  
+
+  /** print for debugging */
   def printConnectedSet {
     for ((obj, count) <- connectedSet) {
       Console println "  " + obj + ":" + count
     }
   }
-  
+
+  /** debug verification of the connected set for consistency */
   def verifyConnectedSet {
     /* LATER make this recalculate the entire set and compare with the
      * dynamically maintained one */
@@ -53,56 +62,72 @@ class DeepWatch(root:Observable) {
     }
   }
   
-  /* handle change on one of the objects we're watching */
-  private def handleChanged(obj:Observable, change:ChangeDescription):Unit = {	    
+  /** called when on one of the objects we're watching has changed */
+  private def handleChanged(change:ChangeDescription):Unit = {	    
     change match {
-      case propChange:PropertyChange => {
-	    // update ref counts for old value 
-        propChange.oldValue match {
-          case old:Observable => removedRef(old)
-          case _ =>
-        }
-	    
-	    // update ref count for new value 
-	    propChange.newValue match {
-	      case newBranch:Observable => addedRef(newBranch)
-          case _ =>
-        }
-      }       
-      case membershipChange:MembershipChange => throw new NotYetImplemented
+      case propChange:PropertyChange => 	// (SCALA - do we ever need brackets for case statements, no)
+        handlePropChange(propChange)
+      case memberChange:MembershipChange => 
+        handleMemberChange(memberChange)
     }
-    // tell the client code about this about this change
-    watches foreach (_.changed(obj, change))
     
-//    Console println "deepWatch changed: " + change
-//    printConnectedSet
+    // tell the client observer about this about this change
+    fn(change)
+    
+    //    Console println "deepWatch changed: " + change
+    //    printConnectedSet
     verifyConnectedSet
+  }
+  
+  private def handlePropChange(propChange:PropertyChange) {
+	// update ref counts for old value
+    propChange.oldValue match {
+      case old:Observable => removedRef(old)
+      case _ =>
+    }
+
+	// update ref count for new value
+    propChange.newValue match {
+      case newBranch:Observable => addedRef(newBranch)
+      case _ =>
+    }
+  }
+  
+  /** */
+  private def handleMemberChange(memberChange:MembershipChange) {
+    memberChange match {
+      case put:PutChange => addedRef(put.newValue.asInstanceOf[Syncable])
+      case remove:RemoveChange => removedRef(remove.oldValue.asInstanceOf[Observable])
+      case _ => 
+        Log.error("DeepWatch() unexpected membership change: " + memberChange)
+        throw new NotYetImplemented
+    }
   }
    
   /* decrement reference counter for this object and every Observable it 
    * references.  If any object's reference counter drops to zero,
    * remove the object from the connectedSet of objects we observe */
   private def removedRef(ref:Observable) {
-	  connectedSet get ref match {
-	    case Some(count) if count > 1 => connectedSet + (ref -> (count -1))
-	    case Some(count) if count == 1 => removeObj(ref)
-	    case Some(count) => Log.error("BUG? count of ref: " + ref+ " is: " + count)
-	    case None => Log.error("BUG? removeDeep" + ref + "not found in connectedSet")              
-	  }
+    connectedSet get ref match {
+      case Some(count) if count > 1 => connectedSet + (ref -> (count -1))
+      case Some(count) if count == 1 => removeObj(ref)
+      case Some(count) => Log.error("BUG? count of ref: " + ref+ " is: " + count)
+      case None => Log.error("BUG? removeDeep" + ref + "not found in connectedSet")
+    }
   }
   
   private def removeObj(obj:Observable) {              
     // stop watching this object
-	connectedSet - obj
-	Observation.unwatch(obj, this)
+    connectedSet - obj
+    Observers.unwatch(obj, this)
  
-	// tell everyone
-	val change = new UnwatchChange(root, obj)
-	watches foreach (_.changed(root,change))
+    // generate a membership change to the connected set, and tell overyone
+    val change = new UnwatchChange(root, obj)
+    fn(change)
  
     // update reference counts 
     for (ref <- observableRefs(obj)) 
-      removedRef(ref)
+    removedRef(ref)
   }
       
   /* increment reference counter for this object and every Observable it
@@ -118,56 +143,16 @@ class DeepWatch(root:Observable) {
   private def addObj(obj:Observable) {
     // start watching this object
     connectedSet + (obj -> 1); 			 
-    Observation.watch(obj, handleChanged, this)   
+    Observers.watch(obj, handleChanged, this)   
     
-    // tell everyone 
+    // generate a membership change to the connected set, and tell overyone
     val change = new WatchChange(root, obj)
-    watches foreach (_.changed(root,change))
+    fn(change)
     
     for (ref <- observableRefs(obj)) 
-      addedRef(ref)      
+    addedRef(ref)
   }
   
-
-  /* Run a function on every reference to an Observable object in a branch of Observable
-   * objects.  
-   * 
-   * If two references refer to the same Observable object, the function will be called twice. 
-   * 
-   * @param branch  root of the tree
-   * @param fn      function called with the target of each reference
-   */
-  private def observableReferencesDeep(branch:Observable)(fn:Observable=>Unit) = {
-    // start with every (unique) referenced observable element in the branch
-    // and then walk every (non-unique) reference to an observable element
-    for (elem <- observablesDeep(branch);
-         ref <- observableRefs(elem)) { 
-      fn(ref)
-    }
-  }
-
-  /* collect every Observable object referenced by a root object or
-   * any of the root object's Observable descendants.  The root object is included
-   * in the set.
-   * 
-   * @param set     accumulates the collection of referenced Observerables
-   * @param branch  root object
-   */
-  private def observablesDeep(branch:Observable):Seq[Observable] =  {        
-    
-    /* recursive collector */
-    def collectObservables(branch:Observable, set:mutable.Set[Observable]):Unit = {
-      set + branch
-      for (ref <- observableRefs(branch)) {
-        if (!(set contains ref))
-          collectObservables(ref, set)
-      } 
-    }
- 
-    val accumulate = mutable.Set[Observable]()
-    collectObservables(branch, accumulate)
-    accumulate.toSeq      
-  }
   
   /* Collect every reference to an Observable object directly from a given object
    * 
@@ -177,12 +162,27 @@ class DeepWatch(root:Observable) {
     val refs = new mutable.ListBuffer[Observable]()
     Accessor.references(obj) foreach {_ match {
       case ref:Observable => refs + ref
+      case _ =>      
+    } }
+    obj match {
+      case collection:SyncableCollection => 
+        refs ++ collection.syncableElements
+//        for (elem <- collection.syncableElements) {
+//          Console println ("observable element: " + elem)
+//        }
       case _ =>
-    }}
+    }
+
     refs.toSeq
   }      
   
   override def finalize {  // LATER: consider some kind of loan wrapper approach
-    Observation.unwatchAll(this)
+    Observers.unwatchAll(this)
   }	  
 }
+
+/*
+ * LATER add cycle detection to garbage collector.  Perhaps simply trace from the root now and then?
+ * For a fancier approach, see:  http://www.research.ibm.com/people/d/dfb/papers/Paz05Efficient.pdf
+ * 
+*/

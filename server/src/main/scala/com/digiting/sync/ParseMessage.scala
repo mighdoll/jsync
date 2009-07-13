@@ -18,62 +18,81 @@ import _root_.net.liftweb.util._
 import JsonUtil._
 import collection._
 
+/**
+ * Utility routine to parse a Message from a json string.
+ * 
+ * CONSIDER -- move this into Message? 
+ */
 object ParseMessage {
   /** parses a string containing a json transaction message from the client.  */
-  def parse(receivedXact:String):Option[JsonMessage] = {
+  def parse(receivedXact:String):Option[Message] = {
 //    Log.info("ParseMessage.receiveTransaction " + receivedXact)
-    var message:Option[JsonMessage] = None
+    var message:Option[Message] = None
     
 	// extract the transaction number object and the transaction body objects
 	JSONParser.parse(receivedXact) match {
 	  case Full(json) => 
         processJson(json) 
-          {jsonArray => 
-            message = parseJsonMessageBody(jsonArray)
-          } 
+          {jsonArray => message = parseJsonMessageBody(jsonArray) } 
           {jsonObj => Log.error("protocol error: sync messages should start be enclosed in json array []:\n" + receivedXact);}
 	  case _ => 
-	    Log.info("hard to parse transaction received: " + receivedXact)	           
-	}    
+	    Log.error("hard to parse transaction received: " + receivedXact)	           
+	}
     message
-  }          
+  }  
+
   
   /** pull out the parts of the json transaction message  */
-  private def parseJsonMessageBody(elems:List[_]):Option[JsonMessage] = {
+  private def parseJsonMessageBody(elems:List[_]):Option[Message] = {
     var xactNumber:Option[Int] = None
     val edits = new collection.mutable.ListBuffer[Map[String,Any]]
     val syncs = new collection.mutable.ListBuffer[Map[String,Any]]
+    val controls = new collection.mutable.ListBuffer[Map[String,Any]]
     var reconnecting = false  // if the client is continuing a sync session (otherwise we reset to a fresh state)
 
     // parse the json string into json objects, separating out control messages e.g. #transaction
+  	// SOON (scala) -- change this to use ProtocolComponent subclasses e.g. TransactionProtocolComponent, EditProtocolComponent.  Use unapply and pattern matching..
     elems foreach {json => processJson(json)
       {jsonArray => Log.error("protocol error: sync protocol messages should not have nested json arrays")}
       {jsonObj => {
-        { jsonObj get "#transaction" map {number => xactNumber = Some(jsonValueToInt(number))}              
+        { jsonObj get "#transaction" map { number => 
+        	xactNumber = Some(jsonValueToInt(number)) 
+          } 
         } orElse {
-          jsonObj get "#edit" map {_ => edits + jsonObj; Some(jsonObj)}               
+          jsonObj get "#edit" map {_ => 
+            edits + jsonObj; 
+          }               
         } orElse {
-          jsonObj get "#reconnect" map {b => reconnecting = b.asInstanceOf[Boolean]; Some(reconnecting)}               
+          jsonObj find { case(name:String,value) =>
+            name.charAt(0) == '#'
+          } map { _ => 
+            controls + jsonObj  
+          }
+          // SCALA: map returns None if the find returns None, so orElse works.
         } orElse {
-          jsonObj get "id" map {_ => syncs + jsonObj; Some(jsonObj)}
+          jsonObj get "id" map {_ => syncs + jsonObj}
         } orElse {
           Log.error("protocol error: unexpected object received: " + jsonObj); None
         }
-       ""
       }}
     }
     
-    import JsonMessageControl._
-    val jsonMessage = xactNumber match { 
+    val message = xactNumber match { 
       case Some(num) =>
-        var control:JsonMessageControl.Value = Init
-        if (reconnecting)
-          control = Continue 
-        Some(new JsonMessage(control, num, edits.toList, syncs.toList))
+        Some(new Message(num, controls.toList, edits.toList, syncs.toList))
       case None => 
-        Log.error("protocol error: no transaction number recieved " + elems)
-        None
+        if (edits.isEmpty && syncs.isEmpty) {
+          if (controls.length == 1 && (controls.first contains "#token")) {
+            Some(new Message(-1, controls.toList, edits.toList, syncs.toList))
+          } else {
+            Log.error("protocol error: no transaction number recieved " + elems)
+            None
+          }  
+        } else {
+          Log.error("protocol error: no transaction number recieved " + elems)
+          None
+        }
     }
-    jsonMessage
+    message
   }
 }

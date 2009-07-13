@@ -19,52 +19,53 @@ var $sync = $sync || {};
  * @param resolved - (optional) completion function when trigger is fired
  */
 $sync.future = function(resolved) {
-    var i,
-    that = {
-        triggered: false
-    },
-    completions,
-    triggerParam;   // param passed to trigger()
-
-    var init = function() {
-        completions = resolved ? [resolved] : [];
-    };
-
-    /* trigger the future, causing all registered callbacks to be called
-     * @param payload - data that will be passed to all await function */
-    that.trigger = function(payload) {
-        triggerParam = payload;
-        that.triggered = true;
-        for (i = 0; i < completions.length; i++) {
-            completions[i](payload);
-        }
-        return this;
-    };
-
-    /* remove a registered completion function */
-    that.ignoreTrigger = function(func) {
-        for (i = 0; i < completions.length; i++) {
-            if (completions[i] === func) {
-                completions.splice(i,1);
-                i--;
-            }
-        }
-        return this;
-    };
-
-    /* register an additional function to be called when the future is triggered */
-    that.await = function(resolved) {
-        if (that.triggered) {
-            resolved(triggerParam);
-        } else {
-            completions.find(resolved) || completions.push(resolved);
-        }
-        return this;
-    };
-
-    init();
-
-    return that;
+  var i;
+  var completions;
+  var triggerParam; // param passed to trigger()
+  var self = {
+    triggered: false
+  };
+  
+  function init() {
+    completions = resolved ? [resolved] : [];
+  };
+  
+  /* trigger the future, causing all registered callbacks to be called
+   * @param payload - data that will be passed to all await function */
+  self.trigger = function(payload) {
+    triggerParam = payload;
+    self.triggered = true;
+    for (i = 0; i < completions.length; i++) {
+      completions[i](payload);
+    }
+    return self;
+  };
+  
+  /* remove a registered completion function */
+  self.ignoreTrigger = function(func) {
+    for (i = 0; i < completions.length; i++) {
+      if (completions[i] === func) {
+        completions.splice(i, 1);
+        i--;
+      }
+    }
+    return self;
+  };
+  
+  /* register an additional function to be called when the future is triggered */
+  self.await = function(resolved) {
+    if (self.triggered) {
+      resolved(triggerParam);
+    }
+    else {
+      $sync.util.arrayFindElem(completions, resolved) || completions.push(resolved);
+    }
+    return self;
+  };
+  
+  init();
+  
+  return self;
 };
 
 /*
@@ -77,48 +78,46 @@ $sync.future = function(resolved) {
  *@param complete - function to call when future objects have triggered
  */
 $sync.futuresWatch = function(futureArray, complete) {
-    var i, done, future, checkFunc, reg, registered = [],
-
-    checkTriggered = function() {
-        var allTriggered = true;
-        // see if the futures have already fired.
-        for (i = 0; allTriggered && i < futureArray.length; i++) {
-            if (!futureArray[i].triggered) {
-                allTriggered = false;
-            }
-        }
-        if (allTriggered) {
-            // remove waiters that we registered
-            for (i = 0; i < registered.length; i++) {
-                reg = registered[i];
-                reg.future.ignoreTrigger(reg.checkFunc);
-            }
-            complete();
-            return true;
-        }
-        return false;
-    };
-
-    done = checkTriggered();
-    if (!done) {
-        // conveniently, browser javascript is single threaded, otherwise we'd have to worry about gettings stomped on..'
-
-        // set a completion proc to recheck when any incomplete elements fire again
-        for (i = 0; i < futureArray.length; i++) {
-            future = futureArray[i];
-            if (!future.triggered) {
-                // create a wrapper for each element, so that we can remove 'em later
-                checkFunc = function() {
-                    checkTriggered()
-                };
-                registered.push({
-                    future: future,
-                    checkFunc: checkFunc
-                });
-                future.await(checkFunc);
-            }
-        }
+  var i, done, future, checkFunc, reg, registered = [], checkTriggered = function() {
+    var allTriggered = true;
+    // see if the futures have already fired.
+    for (i = 0; allTriggered && i < futureArray.length; i++) {
+      if (!futureArray[i].triggered) {
+        allTriggered = false;
+      }
     }
+    if (allTriggered) {
+      // remove waiters that we registered
+      for (i = 0; i < registered.length; i++) {
+        reg = registered[i];
+        reg.future.ignoreTrigger(reg.checkFunc);
+      }
+      complete();
+      return true;
+    }
+    return false;
+  };
+  
+  done = checkTriggered();
+  if (!done) {
+    // conveniently, browser javascript is single threaded, otherwise we'd have to worry about gettings stomped on..'
+    
+    // set a completion proc to recheck when any incomplete elements fire again
+    for (i = 0; i < futureArray.length; i++) {
+      future = futureArray[i];
+      if (!future.triggered) {
+        // create a wrapper for each element, so that we can remove 'em later
+        checkFunc = function() {
+          checkTriggered()
+        };
+        registered.push({
+          future: future,
+          checkFunc: checkFunc
+        });
+        future.await(checkFunc);
+      }
+    }
+  }
 }
 
 

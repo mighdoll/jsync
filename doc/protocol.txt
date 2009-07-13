@@ -1,0 +1,70 @@
+             The JsonSync Protocol
+
+The protocol carries changes made to a shared pool of objects and collections.  Connections
+established over JsonSync are stateful and persistent across network reconnection.
+
+JsonSync is a bi-directional message oriented protocol.  
+Messages are guaranteed to be processed in the order in which they are sent.  
+Asynchronous operation is the norm, clients aren't expected to wait for 
+responses from the server before sending subsequent messages.
+
+The combination of a stateful protocol and sequenced messaging allows a peer to make
+certain assumptions about the state of its partner.  In particular, it allows sending
+delta operations to make changes to objects.  
+
+JsonSync is currently carried over http.  Requests from the browser go up to the server
+as POST requests to a well known endpoint, e.g. /sync.  Responses are carried in the POST 
+response.  Empty requests and slow responses are allowed, which clients use to implement
+a long poll scheme.  There's always a pending http request on the server, enabling the
+server to send data whenever it likes.  Messages are sent up and down over multiple
+parallel sockets and reordered before processing as a single ordered message stream.
+
+  
+JsonSync messages normally contain:
+- a token, uniquely identifying the connection, and providing some security for it
+- a transaction sequence number, ordering messages sent by this peer
+- a series of object and collection operations:
+
+    Object operations include
+    - create a new object.
+    - modify a properties of an object
+
+    Collections are currently set, map, and sequence.  Operations include, e.g.
+    - set.put
+    - set.remove
+   
+
+Messages are encoded as json arrays.  Here are some sample messages
+  
+ * Start a new connection (client -> server) 
+      [{"#transaction":0},      // sequence number
+  
+       {"#start":true}]         // start a connection
+   
+ * Share a new object (server -> client)
+      [ {"#transaction":0}, 
+        {"#token":"0-+eB2jh3jcq"},                        // unique identifier for this JsonSync connection
+  
+        {"$kind":"digiting.test.simpleName",  // $kind is sent, it's a new object
+         "$id":"server-2",
+         "$partition":"part2",
+         "name":"john"} ]
+        
+ * Modify a shared object (client -> server)
+      [ {"#transaction":2}, {"#token":"0-+eB2jh3jcq"},
+  
+        {"$id":"server-2",                              // no '$kind', it's an object modification
+         "$partition":"part2",
+         "name":"fred"} ]
+  
+ * Share a new object and add it a set (server -> client)
+      [ {"#transaction":3}, {"#token":"0-+eB2jh3jcq"},
+
+        {"#edit":{"$id":"server-0","$partition":"part1"},       // edit set part1,server-0
+           "put":[{"$id":"server-1", "$partition":"part1"}]     // put object part1,server-1 in the set 
+        },
+        {"$kind":"digiting.test.simpleName",    // new object
+         "$id":"server-1", "$partition":"part1",
+         "name":"Jules"} ]
+  
+

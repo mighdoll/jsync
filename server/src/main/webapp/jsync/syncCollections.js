@@ -12,164 +12,213 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-var $sync = $sync || {};      // namespace
+var $sync = $sync || {}; // namespace
 
-$sync.sortedSet = function(params) {
-  var that = $sync.manager.createSyncable("$sync.sortedSet", null, params),
-  elems = []; // array of set elements
+$sync.sequence = function() {
+  var self = $sync.manager.createSyncable("$sync.sequence");
+  var elems = []; // array of set elements
 
-  that.put = function(item) {
-    $debug.assert($sync.manager.isSyncable(item), "sortedSet.put: elem isn't syncable: "+ item);
+  self.put = function(item) {
+    $debug.assert($sync.manager.isSyncable(item), "sequence.put: elem isn't syncable: " + item);
+    if (self.contains(item)) 
+      return;
     var sortElem = {
-      sortKey:newMaxKey(),
-      elem:item
+      sortKey: newMaxKey(),
+      elem: item
     };
     elems.push(sortElem);
-
+    
     notifyInsert(sortElem);
   };
-
-  that.size = function() {
+  
+  self.size = function() {
     return elems.length;
   };
-
-  that.clear = function() {
+  
+  self.clear = function() {
     elems = [];
+    $sync.observation.notify(self, "edit", {
+      clear:true
+    });
   };
-
-  that.remove = function(item) {
+  
+  self.contains = function(item) {
+    return findElem(item) !== undefined;
+  };
+  
+  self.remove = function(item) {
     var dex = findElem(item);
     if (dex !== undefined) {
       elems.splice(dex, 1);
+      $sync.observation.notify(self, "edit", {
+        remove: item
+      });
     }
   };
-
-  that.print = function() {
+  
+  self.print = function() {
     var i, elem;
-    for (i =0; i < elems.length; i++) {
+    for (i = 0; i < elems.length; i++) {
       elem = elems[i];
       $debug.log(elem.sortKey + " -> " + elem);
     }
   };
-    
-  that.insert = function(item, prev) {
-    $debug.assert($sync.manager.isSyncable(item), "sortedSet.insert: elem isn't syncable: "+ item);
+  
+  /** Insert `item` after `prev`.  If `prev` is falsey, insert `item` at the
+      beginning of the list. */
+  self.insert = function(item, prev) {
+    $debug.assert($sync.manager.isSyncable(item), "sequence.insert: elem isn't syncable: " + item);
+    $debug.assert(!self.contains(item));
+    $debug.assert(!prev || self.contains(prev));
     var prevDex = prev && findElem(prev);
-    if (prevDex !== undefined) {
-      var key = keyAfter(prevDex);
-      var sortElem = {
-        sortKey:key,
-        elem:item
-      };
-      elems.splice(prevDex + 1, 0, sortElem);
-      notifyInsert(sortElem);
+    var key;
+    if (prev) {
+      key = keyAfter(prevDex);
     } else {
-      that.put(item);
+      prevDex = -1;
+      key = newMaxKey();
     }
+    var sortElem = {
+      sortKey: key,
+      elem: item
+    };
+    elems.splice(prevDex + 1, 0, sortElem);
+    notifyInsert(sortElem);
   };
+  
+  /** Move `item` after `prev`.  If `prev` is falsey, move `item` to the
+      beginning of the list. */
+  self.move = function(item, prev) {
+    $debug.assert(self.contains(item));
+    $sync.observation.withoutNotifications(function() {
+        self.remove(item);
+        self.insert(item, prev);
+      });
+    $sync.observation.notify(self, "edit", {
+      move: item,
+      after: prev
+    });
+  }
 
-  that.each = function(func) {
+  self.each = function(func) {
     var i, result;
     for (i = 0; i < elems.length; i++) {
-      result = func(elems[i].elem);
+      result = func(elems[i].elem, i);
       if (result !== undefined) {
         return result;
       }
     }
     return undefined;
   };
-
-
-  var notifyInsert = function(sortElem) {
-    // TODO -- needs to notify with the new index too!
-    $sync.notification.collectionNotify(that, {
-      changeType: "edit",
-      put: sortElem.elem
+  
+  self.indexOf = findElem;
+  
+  function notifyInsert(sortElem) {
+    $sync.observation.notify(self, "edit", {
+      insertAt: {
+        key: sortElem.sortKey,
+        elem: sortElem.elem
+      }
     });
   }
-
-  var keyAfter = function(prevDex) {
+  
+  function keyAfter(prevDex) {
     var prevKey, nextKey, key;
     if (prevDex === elems.length - 1) {
       return prevDex + 100;
     }
     prevKey = elems[prevDex].sortKey;
-    nextKey = elems[prevDex+1].sortKey;
-
+    nextKey = elems[prevDex + 1].sortKey;
+    
     key = (prevKey + nextKey) / 2;
-
+    
     // eventually we need to recreate keys
     $debug.assert(key != prevKey);
     $debug.assert(key != nextKey);
-        
+    
     return key;
   }
-
-  var newMaxKey = function() {
-    if (!elems.length){
+  
+  function newMaxKey() {
+    if (!elems.length) {
       return 100;
-    } else {
+    }
+    else {
       return elems[elems.length - 1].sortKey + 100;
     }
   }
-
-  var findElem = function(sought) {
+  
+  function findElem(sought) {
     var i;
     for (i = 0; i < elems.length; i++) {
-      if (elems[i].elem === sought)
+      if (elems[i].elem === sought) 
         return i;
     }
     return undefined;
   }
-
-  return that;
+  
+  return self;
 };
 
-/* Syncable set collection, both the set and the elements are Syncable objects */
-$sync.set = function(params) {
-  var that = $sync.manager.createSyncable("$sync.set", null, params),
-  size = 0,   // number of elements
-  elems = {}; // associative array of set elements
-
-  var init = function() { };
-    
+/* Create a syncable set collection.  Both the set and the elements
+ themselves are Syncable objects */
+$sync.set = function() {
+  var self = $sync.manager.createSyncable("$sync.set");
+  var size = 0; // number of elements
+  var elems = {}; // associative array of set elements
+  
   /* add a syncable element to the syncable set */
-  that.put = function(elem) {
-    $debug.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: "+ elem);
-    if (!that.contains(elem)) {
+  self.put = function(elem) {
+    $debug.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: " + elem);
+    if (!self.contains(elem)) {
       elems[elem.id] = elem;
       size += 1;
-      $sync.notification.collectionNotify(that, {
-        changeType: "edit",
+      $sync.observation.notify(self, "edit", {
         put: elem
       });
     }
   };
 
-
-  /* remove a syncable element from the syncable set */
-  that.remove = function(elem) {
-    if (that.contains(elem)) {
+  /** put a syncable element in the set,
+   * (provided for compatibilty with sequence.insert())
+   * 
+   * @param {Object} elem  
+   * @param {Object} after is ignored
+   */    
+  self.insert = function(elem, after) {
+    self.put(elem);
+  }
+    
+  /** remove a syncable element from the syncable set */
+  self.remove = function(elem) {
+    if (self.contains(elem)) {
       delete elems[elem.id];
       size -= 1;
-      $sync.notification.collectionNotify(that, {
-        changeType: "edit",
+      $sync.observation.notify(self, "edit", {
         remove: elem
       });
     }
   };
-
-  that.contains = function(elem) {
+  
+  self.contains = function(elem) {
     return elems.hasOwnProperty(elem.id);
   };
-
-  that.size = function() {
+  
+  self.size = function() {
     return size;
   };
-
+  
+  self.clear = function() {
+    elems = [];
+    size = 0;
+    $sync.observation.notify(self, "edit", {
+      clear:true
+    });
+  };
+  
   /** call func on each element in the set.  iteration stops if the supplied
    * callback function returns a value */
-  that.each = function(func) {
+  self.each = function(func) {
     var elem, result;
     for (elem in elems) {
       result = func(elems[elem]);
@@ -179,8 +228,10 @@ $sync.set = function(params) {
     }
     return null;
   };
-
-  init();
-	
-  return that;
+  
+  
+  return self;
 }
+
+$sync.manager.defineKind("$sync.set", null, $sync.set);
+$sync.manager.defineKind("$sync.sequence", null, $sync.sequence);

@@ -1,0 +1,30 @@
+Features:
+* create syncable instances on the client
+* create syncable classes on the server
+* add methods to syncable classes
+* short, reasonably idiomatic object creation
+* constructor initialization functions (set default values, etc)
+* ensure client and server schemas are aligned
+* change notification 
+
+Desirable Features:
+* add unsynchronized fields to syncable classes
+* subclass syncables
+* don't require a server class to persist client syncables that are unused
+  by the server (e.g. server doesn't care about view layout objects).  
+  * create syncable classes on the client
+
+Think about:
+* schema migration / object versioning
+
+---------------
+
+Perhaps a schema file shared between the client and the server?
+* send it to the client in json format as part of the initialization process
+* could have multiple schema files
+  e.g. subscribe("context-schema")
+* generate schema from server instances
+* register schema on the client explicitly (and set up kind prototypes)
+  rather than creating kindProtos on the fly as we currently do?
+
+

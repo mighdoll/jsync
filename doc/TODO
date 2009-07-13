@@ -8,7 +8,7 @@ later:
 * better use of public namespace
 * add example view controller: notes set, list explorer?
 * add caller-groups parameter to subscribe to allow groupwise unsubscribe
-* consider local only fields whose changes aren't propogated to the server
+* consider local only fields whose changes aren't propagated to the server
   * e.g. _foobar
 * rename subscribe to emphasize two way comms?
 * add version vectors to make it easier to identify conflicts on the server

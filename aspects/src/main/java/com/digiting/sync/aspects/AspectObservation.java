@@ -19,17 +19,18 @@ import java.util.ArrayList;
 /** Register a function with registerListener and it will be called whenever an observable
  *  object is changed.  */
 public class AspectObservation {
-	static ArrayList<ObserveListener> listeners = new ArrayList<ObserveListener>();
-	
-	static public void registerListener(ObserveListener listener) {
-		listeners.add(listener);
-	}
-	
-	static void notify(Object target, String name, Object newValue, Object oldValue) {
-		System.out.println("aspect notification received: ." + name + "=" + newValue 
-				+ " oldValue: " + oldValue); // + " on: " + target);
-		for (ObserveListener listener : listeners) {
-			listener.change(target, name, newValue, oldValue);
-		}
-	}
+
+  static ArrayList<ObserveListener> listeners = new ArrayList<ObserveListener>();
+
+  static public void registerListener(ObserveListener listener) {
+    listeners.add(listener);
+  }
+
+  static void notify(Object target, String name, Object newValue, Object oldValue) {
+//		System.out.println("aspect notification received: ." + name + "=" + newValue
+//				+ " oldValue: " + oldValue); // + " on: " + target);
+    for (ObserveListener listener : listeners) {
+      listener.change(target, name, newValue, oldValue);
+    }
+  }
 }

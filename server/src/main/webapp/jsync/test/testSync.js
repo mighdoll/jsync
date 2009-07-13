@@ -12,176 +12,244 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-var testSync = testSync || {};
-
-testSync.test1 = function() {};
+var testSync = testSync ||
+{};
 
 test("createSyncable", function() {
-  var model = {
-    name:"emmett"
-  };
-  var obj = $sync.manager.createSyncable("testSync.test1", model);
-
+  var obj = $sync.test.named();
+  
   ok(obj.id);
-  ok(obj.kind === "testSync.test1");
+  ok(obj.kind === "$sync.test.nameObj");
   ok(obj.toString !== Object.toString);
   ok(typeof obj.name_ === "function");
   obj.name_("milo");
   ok(obj.name === "milo");
-    
-  $sync.manager.reset();
-});
-
-test("createSyncable.noKind", function() {
-  var model = {
-    name:"jackie"
-  };
-  var obj = $sync.manager.createSyncable(null, model);
-
-  ok(obj.id);
-  ok(obj.kind);
-  ok(typeof obj.name_ === "function");
-  obj.name_("milo");
-  ok(obj.name === "milo");
-
+  
   $sync.manager.reset();
 });
 
 test("$sync.manager.update", function() {
-  var obj, model = {
-    data:"bar"
-  };
-    
-  obj = $sync.manager.createSyncable(null, model, {
-    $syncId:10
+  var obj;
+  
+  $sync.manager.withNewIdentity({
+    partition: "test",
+    id: 10
+  }, function() {
+    obj = $sync.test.named({
+      name: "bar"
+    });
   });
-  $sync.manager.update({
-    id:obj.id,
-    data:"foo"
+  
+  ok(obj.name === "bar");
+  
+  $sync.observation.withMutator("server", function() {
+    $sync.manager.update({
+      id: obj.id,
+      $partition: "test",
+      name: "foo"
+    });
   });
-  ok(obj.data === "foo");
-  obj.data_(22);
-  ok(obj.data === 22);
+  ok(obj.name === "foo");
+  obj.name_("fred");
+  ok(obj.name === "fred");
   $sync.manager.reset();
 });
 
 
 test("json-sync.$sync.set", function() {
   var sub, connection, count = 0;
-
-  var init = function() {
+  
+  function init() {
     expect(6);
+    $sync.manager.setDefaultPartition("test");
     connection = $sync.connect(null, {
-      testMode:true
+      testMode: true
     });
-    sub = connection.subscribe("", function(set) {
+    sub = connection.subscribe("", "test", function(set) {
       verifySet(set);
       $sync.manager.reset();
     });
-    connection.testFeed(
-      [{"#transaction": 0} ,
-      {"id" : sub.id,
-       "root" : {"$ref": 1}
+    connection.testReceiveMessages([[{
+      "#transaction": 0
+    }, {
+      "id": sub.id,
+      "$partition": sub.$partition,
+      "root": {
+        "$ref": {
+          id: 1,
+          $partition: "test"
+        }
+      }
+    }, {
+      "#edit": {
+        id: 1,
+        $partition: "test"
       },
-      {"#edit" : 1,
-        "edits" : [ {
-          "put" : [2,3]
-          } ]
-      },
-      { "id": 1,
-        "kind": "$sync.set"
-      },
-      { "id" : 2,
-        "name" : "fred-1"
-      },
-      { "id" : 3,
-        "name" : "fred-2"
+      "put": [{
+        id: 2,
+        $partition: "test"
+      }, {
+        id: 3,
+        $partition: "test"
       }]
-    );
+    }, {
+      "id": 1,
+      "$partition": "test",
+      "kind": "$sync.set"
+    }, {
+      "id": 2,
+      "$partition": "test",
+      "kind": "$sync.test.nameObj",
+      "name": "fred-1"
+    }, {
+      "id": 3,
+      "$partition": "test",
+      "kind": "$sync.test.nameObj",
+      "name": "fred-2"
+    }]]);
   };
-
-  var verifySet = function(set) {
+  
+  function verifySet(set) {
     // verify sync.set
     ok(set.kind === "$sync.set");
     ok(typeof set.put === "function");
     ok(set.size() === 2);
     set.each(function(item) {
       count += 1;
-      ok(item.name === ("fred-"+count));
+      ok(item.name === ("fred-" + count));
     });
     ok(count === 2);
   }
-    
+  
   init();
 });
 
 
 test("json-sync.$ref", function() {
-  var connection, sub, obj4, obj5, obj6;
+  var connection, subscription;
+  function begin() {
+    $sync.manager.setDefaultPartition("test");
+    connection = $sync.connect(null, {
+      testMode: true
+    });
+    subscription = connection.subscribe("", "test", function(root) {
+      verifyRefs(root);
+    });
+    
+    // synthesize response from server
+    connection.testReceiveMessages([[{
+      "#transaction": 0
+    }, {
+      "id": subscription.id,
+      "$partition": subscription.$partition,
+      "root": {
+        "$ref": {
+          $partition: "test",
+          id: 4
+        }
+      }
+    }, {
+      "id": 4,
+      "$partition": "test",
+      "kind": "$sync.test.refObj",
+      "ref": { // forward ref
+        "$ref": {
+          $partition: "test",
+          id: 5
+        }
+      }
+    }, {
+      "id": 5,
+      "$partition": "test",
+      "kind": "$sync.test.refObj",
+      "ref": { // self ref
+        "$ref": {
+          $partition: "test",
+          id: 5
+        }
+      }
+    }, {
+      "id": 6,
+      "$partition": "test",
+      "kind": "$sync.test.refObj",
+      "ref": [{ // array of refs
+        "$ref": {
+          $partition: "test",
+          id: 5
+        }
+      }, {
+        "$ref": {
+          $partition: "test",
+          id: 7
+        }
+      }]
+    }, {
+      "id": 7,
+      "$partition": "test",
+      "kind": "$sync.test.refObj",
+      "ref": { // reference syncable via non-syncable reference chain
+        "nest": {
+          "deep": {
+            "deeper": {
+              "$ref": {
+                $partition: "test",
+                id: 4
+              }
+            }
+          }
+        }
+      }
+    }]]);
+    stop();
+  }
   
   function verifyRefs(obj4) {
+    var obj4, obj5, obj6;
+    
     // verify $ref decoding
-    obj5 = $sync.manager.get(5);
-    obj6 = $sync.manager.get(6);
-    ok(obj4.forwardRef === obj5 );
-    ok(obj5.selfRef === obj5 );
-    ok(obj6.refsArray[0] === obj5);
-    ok(obj6.refsArray[1] === obj6);
-    ok(obj6.nestedRef.nest.deep.deeper === obj4);
-
+    obj4 = subscription.root;
+    obj5 = $sync.manager.get("test", 5);
+    obj6 = $sync.manager.get("test", 6);
+    obj7 = $sync.manager.get("test", 7);
+    ok(obj4.ref === obj5);
+    ok(obj5.ref === obj5);
+    ok(obj6.ref[0] === obj5);
+    ok(obj6.ref[1] === obj7);
+    ok(obj7.ref.nest.deep.deeper === obj4);
+    
+    $sync.manager.reset();
     start();
   }
-
+  
   expect(5);
-  connection = $sync.connect(null, {
-    testMode:true
-  });
-  sub = connection.subscribe("", function(root) {
-    verifyRefs(root);
-    $sync.manager.reset();
-  });
-  connection.testFeed(
-    [{  "#transaction": 0 } ,
-    { "id" : sub.id,
-      "root" : {"$ref": 4} },
-    { "id" : 4,
-      "forwardRef" : {"$ref": 5} },
-    { "id" : 5,
-       "selfRef" : {"$ref": 5} },
-    { "id" : 6,
-      "refsArray": [ {"$ref": 5}, {"$ref": 6} ],
-        "nestedRef": { "nest" : { "deep" : {"deeper" : {"$ref":4 }}}}
-    }]
-  );
-  stop();
+  begin();
 });
 
 test("json-sync.send-obj", function() {
-  var leonardo, subscriptions, connection, model, obj, out;
-
+  var leonardo, subscriptions, connection, obj, out;
+  
   connection = $sync.connect(null, {
-    testMode:true
+    testMode: true
   });
-  model = {
-    name:"Leonardo"
-  };
-  obj = $sync.manager.createSyncable(null, model);
+  obj = $sync.test.named({
+    name: "Leonardo"
+  });
   $sync.manager.commit();
   out = connection.testOutput();
   ok(out[0]['#transaction'] === 0);
-
+  
   leonardo = out.eachCheck(function(elem) {
-    if (elem.id === obj.id)
+    if (elem.id === obj.id) 
       return elem;
     return null;
   });
   ok(leonardo);
-  ok(leonardo.name === model.name);
+  ok(leonardo.name === obj.name);
   ok(leonardo.id === obj.id);
   ok(leonardo.kind === obj.kind);
-
+  
   subscriptions = out.eachCheck(function(elem) {
-    if (elem.id === "#subscriptions")
+    if (elem.id === "#subscriptions") 
       return elem
     return null;
   });
@@ -189,27 +257,31 @@ test("json-sync.send-obj", function() {
   $sync.manager.reset();
 });
 
-test("json-sync.recieve-out-of-order", function() {
+test("json-sync.receive-out-of-order", function() {
   var connection, sub, testObj;
   
   connection = $sync.connect(null, {
-    testMode:true
+    testMode: true
   });
-
-  connection.testFeed(
-    [{"#transaction" : 1},
-     {id:"test-1",
-      name:"oliver"}]
-  );
-  testObj = $sync.manager.get("test-1");
-  ok(testObj === undefined);  // shouldn't have procesed #1 yet'
   
-  connection.testFeed(
-    [{"#transaction" : 0}]
-  );
-  testObj = $sync.manager.get("test-1");
+  connection.testReceiveMessages([[{
+    "#transaction": 1
+  }, {
+    id: "test-1",
+    $partition: "test",
+    kind: "$sync.test.nameObj",
+    name: "oliver"
+  }]]);
+  
+  testObj = $sync.manager.get("test", "test-1");
+  ok(testObj === undefined); // shouldn't have procesed #1 yet'
+  
+  connection.testReceiveMessages([[{
+    "#transaction": 0
+  }]]);
+  testObj = $sync.manager.get("test", "test-1");
   ok(testObj && testObj.name === "oliver");
-    
+  
   $sync.manager.reset();
 });
 

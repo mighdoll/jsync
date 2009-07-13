@@ -1,0 +1,29 @@
+/**
+ *              jSync object model
+ * 
+ * Syncable objects and collections are sharable between peers.  Modifications made 
+ * locally to shared objects and collections.
+ * and propogate to other peers asynchronously.  Eventually all peers converge on 
+ * a consistent version.
+ * 
+ * Each Syncable objects has a home in one and only 'partition.'  A partition typically
+ * persists its syncable objects in a database or a ram cache.  A partition owns the 
+ * master copy of a syncable object.
+ * 
+ * Syncable objects have:
+ *   - kind          // type of this instance, e.g. class or schema
+ *   - instanceId    // unique id of this isntance within a partition
+ *   - partitionId   // id of partition that owns this object
+ *   - properties    // fields of user modifiable data in this object.  each kind has the same set of properties
+ * 
+ * Peers typically 'subscribe' to a connected set of objects and collections within
+ * a partition.  Subscriptions are identified by a root object.  All objects
+ * referenced directly or indirectly by the root object are included in the subscription.
+ * Once a subscription is established, all modifications to objects in the connected set 
+ * are sent to the subscribing peer.  Modifications are sent bidirectionally from publisher
+ * to subscriber or from subscriber to publisher.  New objects can be added 
+ * to the subscription by modifying an object or collection in the connected set to point
+ * at the new object.
+ * 
+ * Conflicts are currently resolved simply with Thomas' write rule: last one wins.
+ */

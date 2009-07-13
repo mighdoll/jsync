@@ -15,5 +15,5 @@
 package com.digiting.sync.aspects;
 
 public interface ObserveListener {
-	public void change(Object target, String name, Object newValue, Object oldValue);
+  public void change(Object target, String name, Object newValue, Object oldValue);
 }

@@ -16,32 +16,107 @@ package com.digiting.sync
 
 import collection._
 import com.digiting.sync.aspects.Observable
-import Observation._
- 
-class SyncableMap extends Syncable {
-  def kind = "$sync.map"
+
+/**
+ * SyncableCollections are wrappers over collections with extensions to
+ * work with the Observers and Syncable systems.
+ * 
+ * They call Observers.notify when they're changed.  They also give an
+ * easy way to find their references.  
+ * 
+ * They're syncable objects themselves (so they can be transmitted to javascript).
+ */
+trait SyncableCollection extends Syncable {
+  def syncableElements:Seq[Syncable]
+      
+  /** use reference equality */
+  override def equals(other:Any):Boolean = {
+    other match {
+      case null => false
+      case s:SyncableSet[_] => s eq this
+      case _ => false
+    }
+  }
+  override def hashCode() = {
+    id.hashCode + partition.partitionId.hashCode
+  }
 }
 
-class SyncableSet[T] extends Syncable with mutable.Set[T] {
+class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
   def kind = "$sync.set"  
-  val set = new mutable.HashSet[T]  
+  val set = new mutable.HashSet[T] 
   
   def -=(elem:T) = {
-    Observation.notify(new RemoveChange(this, elem));
+    Observers.notify(new RemoveChange(this, elem));
     set -= elem
   }
   
   def +=(elem:T) = {
-    Observation.notify(new PutChange(this, elem));
+    Observers.notify(new PutChange(this, elem));
     set += elem
   }
   
   def contains(elem:T) = set contains elem
   def size = set size
   def elements = set elements
+
+  def syncableElements:Seq[Syncable] = {
+    val list = new mutable.ListBuffer[Syncable]
+    for (elem <- elements) {
+      elem match {
+        case syncable:Syncable => list + syncable
+        case _ =>
+      }
+    }
+    list.toList
+  }
 }
 
-class SyncableSortedSet extends Syncable {
-  def kind = "$sync.sortedSet"
+/** a collection of objects in sequential order.  
+ * 
+ * Internally, the elements are each assigned a sort key.  
+ */
+class SyncableSequence extends Syncable {
+  def kind = "$sync.sequence"
 }
 
+/** A collection of syncable objects */
+class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
+  def kind = "$sync.map"
+  val map = new mutable.HashMap[A,B]
+  
+
+  def -=(key:A) = {
+    Observers.notify(new RemoveMapChange(this, key, get(key)))
+    map -= key
+  }
+  
+  def update(key:A, value:B) = {
+    Observers.notify(new UpdateMapChange(this, key, value))
+    map.update(key, value)
+  }
+  
+  def get(key:A):Option[B] = map get key
+  
+  def size = map size
+    
+  def elements = map elements
+  
+  def syncableElements:Seq[Syncable] = {
+    val set = new mutable.HashSet[Syncable]
+    for ((key,value) <- this) {
+      ifSyncable(key) map (set + _)
+      ifSyncable(value) map (set + _)
+    }
+    set.toList
+  }
+
+  /** return Some(syncable) if the value is of type Syncable */
+  private def ifSyncable(value:Any):Option[Syncable] = {
+    value match {
+      case syncable:Syncable => Some(syncable)
+      case _ => None
+    }
+  }
+  
+}

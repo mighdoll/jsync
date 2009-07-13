@@ -16,12 +16,17 @@ package com.digiting.sync.syncable
 
 import com.digiting.sync.Syncable
 
-/* Subscription root object shared between the client and the server.
+/** Subscription root object shared between the client and the server.
  * It's created by the client with a name, and then the server
  * fills in the root object.   (The changed root is then naturally 
  * propogated back to the client) */
-class SubscriptionRoot extends Syncable {
+class Subscription extends Syncable {
   val kind = "$sync.subscription"
   var name:String = _
+  var inPartition:String = _
   var root:Syncable = _
+}
+
+class SyncableJson extends Syncable {
+  var kind = "syncableJson-overrideMe"	
 }

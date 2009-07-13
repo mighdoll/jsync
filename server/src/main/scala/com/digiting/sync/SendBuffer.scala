@@ -18,42 +18,43 @@ import actors._
 import actors.Actor._
 import collection._
 
-object JsonSendBuffer {
-  case class QueueMessage(message:JsonMessage)  
+object SendBuffer {
+  case class QueueMessage(message:Message)  
   case class TakeOrEmpty()  // return queued json transaction, 
   case class Take() 
   case class Pending(json:String)
-  case class Reset()   
 }
 
-import JsonSendBuffer._
+import SendBuffer._
 
-/* Buffers messages to be sent to the client */
-class JsonSendBuffer extends Actor {
+// 
+// CONSIDER using java.util.concurrent..
+// "use actors when you want queues/asynchonous and pattern matching"
+//
+
+/** Buffer of Message objects to be sent to the client */
+class SendBuffer extends Actor {	
   var nextXactNum:Int = 0
   val pending = new mutable.Queue[String] // json-sync transactions to go to the client
   val takers = new mutable.Queue[OutputChannel[Any]]
 
+  start
+  
   /* Receive protocol messages ready to be serialized and sent to the client.
    * Protocol message sequence numbers are set in the order that message are received.  */
   def act = {
     loop {
       react {
         case QueueMessage(message) =>
-//          Console println "SendBuffer queuing: " + message
-          message.xactNumber = nextXactNum
-          nextXactNum += 1
-          pending += message.toJson
-          notifyTakers
+//          Console println "SendBuffer queueing: " + message.toJson
+          queueMessage(message)
+          checkTakers
         case TakeOrEmpty() => 
           reply(takePending)
         case Take() => 
 //          Console println "SendBuffer Take: " + sender
-          takeWhenReady(sender)
-          if (!pending.isEmpty)
-            notifyTakers
-        case Reset() =>
-//          Console println "SendBuffer reset " 
+          queueTaker(sender)
+          checkTakers
           pending.clear
         case unexpected => 
           Log.error("unexpected message received: " + unexpected)
@@ -61,24 +62,37 @@ class JsonSendBuffer extends Actor {
     }
   }
   
+  /** call this only if you're sure that the actor isn't receiving messages yet */
+  def unsafeQueueMessage(message:Message) = queueMessage(message)
+  
+  private def queueMessage(message:Message) {
+    message.xactNumber = nextXactNum
+    nextXactNum += 1
+    pending += message.toJson
+  }
+
+  /** remove all messages queued for sending.  
+    * @return pending json message strings, wrapped in a json array; or an empty array */
   def takePending():Pending = {
-    val json =           
+    val json = {          
       if (pending.isEmpty)
         "[]"
       else 
-        pending.mkString("", ",", "")
+        pending.mkString("[", ",", "]")	
+    }
+//    Log.info("sendBuffer.takePending: " + json)
     
-    pending.clear           
+    pending.clear
     Pending(json)
   }
   
-  def notifyTakers {
-    val taker = takers.dequeue
-//    Console println "notifyTaker: " + taker
-    taker ! takePending
+  private def checkTakers {
+    if (!takers.isEmpty && !pending.isEmpty) {
+	  takers.dequeue ! takePending
+    }
   }
   
-  def takeWhenReady(receiver:OutputChannel[Any]) {
+  private def queueTaker(receiver:OutputChannel[Any]) {
     takers += receiver
   }
 }

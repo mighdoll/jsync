@@ -12,28 +12,12 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-package com.digiting.sync.syncable
 
-import com.digiting.sync.Syncable
+$sync = $sync || {};
+$sync.test = $sync.test || {};
 
-class TestNameObj extends Syncable {
-  val kind = "$sync.test.nameObj"
-  var name:String = _  
-}
-
-class TestRefObj extends Syncable {
-  val kind = "$sync.test.refObj"
-  var reference:Syncable = null
-}
-
-class TestTwoRefsObj extends Syncable {
-  val kind = "$sync.test.twoRefsObj"
-  var ref1:Syncable = null;
-  var ref2:Syncable = _
-}
-
-class TestParagraph extends Syncable {
-  val kind = "$sync.test.paragraph"
-  var text:String = _
-}
+$sync.test.named = $sync.manager.defineKind("$sync.test.nameObj", ['name']);
+$sync.test.referenced = $sync.manager.defineKind("$sync.test.refObj", ['ref']);
+$sync.test.valued = $sync.manager.defineKind("$sync.test.valueObj", ['value']);
+$sync.test.paragraph = $sync.manager.defineKind("$sync.test.paragraph", ['text']);
 

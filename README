@@ -1,6 +1,6 @@
 Welcome to jSync - transparent object replication over json
 
-This is a technlogy preview release -- you can see the api, peek at the code,
+This is a technology preview release -- you can see the api, peek at the code,
 and try some small test cases.
 
 Here's how to try it:
@@ -16,7 +16,7 @@ Reading about jSync
 
 ----------------
 
-The goal is to enable enable easy to use object replication between
+The goal is to enable easy-to-use object replication between
 loosely connected machines.  A browser and a server can share a pool
 of objects.  If the browser program makes a local change to any object
 in the pool, the change will propagate to the server.  And vice versa.
@@ -62,7 +62,7 @@ A few key features:
 
 * JSON protocol 
     The current protocol sketch is simple and uses JSON, so it's trendy.
-    It's resonably efficient too, in that only the changes to objects and
+    It's reasonably efficient too, in that only the changes to objects and
     collections are sent.
 
 * Conflict notification, eventual consistency

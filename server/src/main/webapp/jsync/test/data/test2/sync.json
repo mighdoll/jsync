@@ -1,4 +1,5 @@
 [
+[
 	{ 	"transaction" : 1},
     {   "_sync": 6,
         "request": "list",
@@ -17,4 +18,5 @@
     {	"id" : 9,
 		"next": null,
 	}
+]
 ]

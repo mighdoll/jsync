@@ -18,8 +18,9 @@ import scala.collection._
 import java.lang.reflect.Method
 import _root_.net.liftweb.util._
 
+/** utility function for identifying property methods in scala classes */
 object Properties {
-  val propertyMethod = "(.*)_[$]eq".r
+  private val propertyMethod = "(.*)_[$]eq".r
   
   def propertySetterName(methodName:String):Option[String] = {
     propertyMethod findFirstMatchIn methodName match {
@@ -29,6 +30,9 @@ object Properties {
   }
 }
 
+/**
+ * Reflection based access to a single property in a class
+ */
 class PropertyAccessor(val name:String, setter:Method, getter:Method) {
 //  Console println "creating accessor: " + name + "  " + setter
   
@@ -48,13 +52,22 @@ class PropertyAccessor(val name:String, setter:Method, getter:Method) {
   }
 }
 
+/**
+ * Reflection based access to a properties in a scala class.  Properties are
+ * currently defined as any scala getter/setter pair (value(), value_=()).
+ * LATER limit properties to only certain getter/setters.
+ */
 class ClassAccessor(clazz:Class[_], ignoreMethods:String=>Boolean) {
   val propertyAccessors:mutable.Map[String, PropertyAccessor] = mutable.Map()
   val referenceProperties:mutable.Set[PropertyAccessor] = mutable.Set()
   
   val theClass = clazz
-  def set(target:AnyRef, property:String, value:AnyRef) = {    
-    propertyAccessors(property).set(target, value)
+  def set(target:AnyRef, property:String, value:AnyRef) = {
+    propertyAccessors get property match {
+      case Some(accessor) => accessor.set(target, value)
+      case None => 
+        Log.error("property: " + property + " not founnd on class: " + clazz)         
+    }
   }
   
   def references(target:AnyRef):Iterable[AnyRef] = { 
@@ -66,39 +79,48 @@ class ClassAccessor(clazz:Class[_], ignoreMethods:String=>Boolean) {
   val methods:mutable.Map[String, Method] = mutable.Map()
   for (method <- clazz.getMethods) 
     methods + (method.getName -> method)
-  
+
+  // SCALA style how do organize this initialization code?
+
   // walk through methods looking for setters
   for (method <- clazz.getMethods) { 
-      val propertyNameOpt = Properties.propertySetterName(method.getName)
-      for (propertyName <- propertyNameOpt if !ignoreMethods(propertyName)) {
-          // find the matching getter too
-          val getterOpt = methods get propertyName
-          getterOpt match {
-            case Some(getter) => {
-              // create and save property accessor
-	          val accessor = new PropertyAccessor(propertyName, method, getter)
-           
-		      propertyAccessors + (propertyName -> accessor)
-	          if (classOf[AnyRef].isAssignableFrom(accessor.propertyClass))
-	            referenceProperties + accessor
-	              
-	        }
-            case _ => Log.warn("ignoring property: " + propertyName + " on class: " + 
-                                 clazz.getName + ".  It has a setter, but no getter")
-          }
+    val propertyNameOpt = Properties.propertySetterName(method.getName)
+    for (propertyName <- propertyNameOpt if !ignoreMethods(propertyName)) {
+      // find the matching getter too
+      val getterOpt = methods get propertyName
+      getterOpt match {
+        case Some(getter) => {
+          // create and save property accessor
+          val accessor = new PropertyAccessor(propertyName, method, getter)
+       
+	      propertyAccessors + (propertyName -> accessor)
+          if (classOf[AnyRef].isAssignableFrom(accessor.propertyClass))
+            referenceProperties + accessor
+        }
+        case _ => Log.warn("ignoring property: " + propertyName + " on class: " + 
+                             clazz.getName + ".  It has a setter, but no getter")
       }
+    }
   }
 }
 
+/**
+ * Cache of ClassAccessors and other convenience routines for working with syncable classes
+ * and instances via reflection
+ */
 object SyncableAccessor {
   type AnyRefClass = AnyRef
   val accessors:mutable.Map[Class[_], ClassAccessor] = mutable.Map()
-
+//  val accessors2:mutable.Map[Class[_], String] = mutable.Map()
+//
+//  accessors2 += (classOf[Receiver] -> "foo")
+  accessors += (classOf[Receiver] -> (null:ClassAccessor))
+  
   /* get an accessor for the given class */
   def get(clazz:Class[_]):ClassAccessor = {
     accessors get clazz getOrElse {      
-      val accessor = new ClassAccessor(clazz, SyncableInfo.isReserved)      
-      accessors + ((clazz, accessor))  // WHY doesn't clazz -> accessor work?
+      val accessor:ClassAccessor = new ClassAccessor(clazz, SyncableInfo.isReserved)      
+      accessors += ((clazz, accessor))  // SCALA why doesn't clazz -> accessor work? , compiler bug?
       accessor
     } 
   }
@@ -116,12 +138,16 @@ object SyncableAccessor {
   }
 }
 
+/**
+ * Cache of ClassAccessors and other convenience routines for working with scala 
+ * classes and instances via reflection
+ */
 object Accessor {
-  /* currently, this uses the SyncableAccessor.  This means that objects
+  /* currently, this uses the SyncableAccessor.  This means that object
      references to reserved Syncable fields are ignored.  Fine for me for now,
      but LATER give this a separate cache if it's used for another purpose.  */
   def references(obj:AnyRef):Iterable[AnyRef] = SyncableAccessor.references(obj)
 }
 
 
-/* MOVE the Syncable, isReserved stuff out of this file -- it should be generic.  */
+/* LATER move the Syncable, isReserved stuff out of this file -- it should be generic.  */

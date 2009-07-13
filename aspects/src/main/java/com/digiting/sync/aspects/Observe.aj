@@ -16,25 +16,26 @@ package com.digiting.sync.aspects;
 
 import org.aspectj.lang.annotation.SuppressAjWarnings;
 import java.lang.reflect.*;
+import com.digiting.sync.aspects.Observable;
 
 public aspect Observe {
-	  pointcut setScalaProperty() : execution(* Observable+.*_$eq(*));
+  pointcut setScalaProperty() : execution(* Observable+.*_$eq(*));
 
   @SuppressAjWarnings	// don't warn that it doesn't match -- we weave at load time from a separate project
   void around(Object target, Object newVal): setScalaProperty() && args(newVal) && target(target){
-	Object oldVal = null;
+    Object oldVal = null;
     String methodName = thisJoinPointStaticPart.getSignature().getName();
     String propName = methodName.substring(0, methodName.length() - 4);
     try {
-    	final Class<?>[] noParams = new Class[0];  
-	    Method getter = target.getClass().getDeclaredMethod(propName, noParams);
-	    oldVal = getter.invoke(target);
+      final Class<?>[] noParams = new Class[0];
+      Method getter = target.getClass().getDeclaredMethod(propName, noParams);
+      oldVal = getter.invoke(target);
     } catch (Exception e) {
-    	System.err.println("error finding or using getter for property: " + propName + " on object: " + target);
-    	System.err.println(e);
-    	e.printStackTrace(System.err);
+      System.err.println("error finding or using getter for property: " + propName + " on object: " + target);
+      System.err.println(e);
+      e.printStackTrace(System.err);
     }
-	proceed(target, newVal);
+    proceed(target, newVal);
     AspectObservation.notify(target, propName, newVal, oldVal);
   }
 }

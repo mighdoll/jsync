@@ -1,0 +1,38 @@
+We need to assign a unique number to each client's logical connection
+to the server.
+* A series of protocol transaction may involve multiple http connections.
+  * The client and server need to distinguish between connections over the same connection vs. others
+
+This is similar to the session concept used by java servers.
+* Is it the same?  e.g. can we use JSESSIONID?
+* no, see multiple tabs issue below
+
+Features:
+* The client or the server need to be able to declare that they want
+  to reset the connection as part of a failure recovery scenario.
+* Client tests need to be able to establish new logical connections / sessions.
+* The load balancer needs to route based on the partition and/or the session
+
+-----
+Sevlets/ sessions
+  How it works in lift/servlets
+  * Servlets automatically set a session cookie when HttpRequest.getSession() is called.  A new session
+  is created if one doesn't exist.
+  * Lift calls getSession during the request processing path for stateful sessions.  (stateless requests
+  bypass this mechanism)
+
+  How to reset the session. 
+  * on the client side, we could just delete the cookie..
+  * on the server side, we can call session.invalidate()
+    * and then send a redirect?  or create a new session and trick lift into using it?
+
+  * but sessions alone won't work for us, see multiple tabs
+
+-----
+
+Issue: multiple tabs
+* The session mechanism is tied to cookies, so it's basically one session per browser
+  * but we want multiple connections per browser, one for each window
+  ** switch to jSyncConnection inside the protocol
+    * possibly send connection as query param too for load balancer
+  * or use a separate dns address for each sync connection?

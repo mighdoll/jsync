@@ -16,9 +16,14 @@ package com.digiting.util
 
 import collection._
 
+/**
+ * LATER, reconsider using something from the scala libraries for this
+ */
 class MultiMap[A,B] {
   val map = new mutable.HashMap[A,mutable.Set[B]]
 
+  def +=(key:A, value:B) = this + (key,value) 
+  
   def +(key:A, value:B) {
     val set:mutable.Set[B] = 
       map get key match {
@@ -31,6 +36,8 @@ class MultiMap[A,B] {
     }
     set + value
   }
+
+  def -=(key:A, value:B) = this - (key, value)
   
   def -(key:A, value:B) {
     map get key foreach { set =>
@@ -55,9 +62,7 @@ class MultiMap[A,B] {
   }
   
   def foreach(fn:(A,B)=>Unit) {
-    for (pair <- map) {
-      val key:A = pair._1
-      val set:mutable.Set[B] = pair._2
+    for ((key,set) <- map) {
       for (value <- set) {
         fn(key, value)
       }
