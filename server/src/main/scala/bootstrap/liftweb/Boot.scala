@@ -20,11 +20,9 @@ class Boot {
   def boot {
 
     val jsync = Loc("jsync", ("jsync" :: Nil, true), "", Hidden)
-    val jsync2 = Loc("jsync2", ("jsync2" :: Nil, true), "", Hidden)
     val entries =
       Menu(Loc("Home", List("index"), "Home")) ::
       Menu(jsync) ::
-      Menu(jsync2) ::
       Nil
 
     LiftRules.setSiteMap(SiteMap(entries:_*))
