@@ -1,0 +1,22 @@
+The DataSortable extends the jQuery UI Sortable plugin to be backed by
+a jsync sequence.  Changes to the view update use jsync API calls to
+update the sequence, and changes to the sequence update the view.
+
+Options:
+
+- inserted: function that is applied to new list item views after they
+  are inserted in the list
+
+- model: a jsync sequence
+
+- render: either a fn model -> HTML, or a hash of {kind -> fn}, that
+  is applied to sequence items
+
+- rerender: if true, re-render items that are dragged from one list to
+  another
+
+- modelTranslator: a function that creates sequence items from incoming
+  sequence items, in order to represent items that are dragged between
+  connected lists by different models
+
+Other options are passed through to ui.sortable.
