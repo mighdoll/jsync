@@ -16,14 +16,24 @@ package com.digiting.sync.syncable
 
 import com.digiting.sync.Syncable
 
-class TestNameObj extends Syncable {
+class TestNameObj(var name:String) extends Syncable {
+  def this() = this("")
   val kind = "$sync.test.nameObj"
-  var name:String = _  
+}
+
+object TestNameObj {
+  def apply(name:String) = new TestNameObj(name)
+  def apply() = new TestNameObj()
+}
+
+class TestValueObj extends Syncable {
+  val kind = "$sync.test.valueObj"
+  var value:String = _
 }
 
 class TestRefObj extends Syncable {
   val kind = "$sync.test.refObj"
-  var reference:Syncable = null
+  var ref:Syncable = null
 }
 
 class TestTwoRefsObj extends Syncable {
@@ -32,8 +42,35 @@ class TestTwoRefsObj extends Syncable {
   var ref2:Syncable = _
 }
 
-class TestParagraph extends Syncable {
+class TestParagraph(var text:String) extends Syncable {
+  def this() = this("")
   val kind = "$sync.test.paragraph"
-  var text:String = _
 }
 
+class TestPrimitiveProperties extends Syncable {
+  val kind = "$sync.test.primitiveProperties"
+  var b:Byte = _
+  var s:Short = _
+  var i:Int = _
+  var l:Long = _
+  var c:Char = _
+  var t:Boolean = _
+  var f:Float = _
+  var d:Double = _
+}
+
+
+class KindVersion extends Syncable {
+  val kind = "$sync.test.kindVersioned"
+  override def kindVersion = "1"
+  var ref:TestRefObj = _
+}
+
+class KindVersion0 extends Syncable with Migration[KindVersion] {
+  val kind = "$sync.test.kindVersioned"
+  var ref:TestNameObj = _
+  def copyTo(newVersion:KindVersion) {
+    newVersion.ref = new TestRefObj
+    newVersion.ref.ref = ref
+  }
+}

@@ -15,6 +15,8 @@
 package com.digiting.sync
 
 import com.digiting.sync.aspects.Observable
+import net.lag.logging.Logger
+import net.lag.logging.Level._
 
 /**
  * All objects participating in the syncable system must extend Syncable.  Syncable
@@ -33,14 +35,31 @@ import com.digiting.sync.aspects.Observable
  * with conflict detection..)
  */
 trait Syncable extends Observable {
-  def kind:String	// 'kind' is what we call the syncable type or class     
+  def kind:String		 // the public name for this type of Syncable, shared with javascript
+  def kindVersion = "0"  // 'schema' version of this kind, to support migration of old versions
   private val newIds = SyncManager.creating(this)	// ask the sync manager for an identity for this new object
   val id:String = newIds.instanceId	// unique id of this object within its partition
   val partition = newIds.partition	// partition this object call's home
+  private val _log = Logger("Syncable")
 
   SyncManager.created(this)
   
-  override def toString:String = {"[" + id + "," + partition.partitionId + "(" + prettyKind + ")]"}
+  override def toString:String = {
+    val partitionStr = 
+      if (partition == null) 
+        "partition?" 
+      else 
+        partition.partitionId
+        
+    if (_log.getLevel != null && _log.getLevel.intValue >= TRACE.intValue) {    
+      JsonUtil.toJson(Message.toJsonMap(this), 0, true)      
+    } else {
+      String.format("{%s:%s}", shortKind, shortCompositeId)
+    }
+  }
+  
+  def shortCompositeId:String = partition.partitionId.take(4) + "/" + id.take(5)
+  def compositeId:String = partition.partitionId + "/" + id
   
   /** return a shallow serialization of this instance */
   def frozenCopy:JsonObject.JsonMap = {
@@ -61,13 +80,39 @@ trait Syncable extends Observable {
     }
   }
   
-  private def prettyKind = dotTail(kind) 
+  private def shortKind = dotTail(kind) 
   
   /* CONSIDER override def hashCode = id.hashCode  */    
 }
 
+
+/** marker type indicating that this syncable is not transmitted to clients */
+trait LocalOnly 
+
+object CompositeId {
+  val compositeIdRegex = """([a-zA-Z0-9_\.]+)/(.*)""".r
+  def toSyncableId(compositeId:String):Option[SyncableId] = {
+    compositeIdRegex.unapplySeq(compositeId) match {
+      case Some(part :: id :: nil) => Some(SyncableId(part,id))
+      case _ => None
+    }
+  }
+}
+
 import collection._
-case class SyncableId(var partitionId:String, var instanceId:String) {
+import CompositeId.compositeIdRegex
+object SyncableId {
+  def unapply(s:String):Option[SyncableId] = {
+    compositeIdRegex.unapplySeq(s) match {
+      case Some(part :: id :: nil) => Some(SyncableId(part,id))
+      case _ => None
+    }
+  }
+  def apply(partitionId:String, instanceId:String) = 
+    new SyncableId(partitionId, instanceId)
+}
+
+class SyncableId(var partitionId:String, var instanceId:String) {  
   def toJsonMap = immutable.Map("id" -> instanceId, "$partition" -> partitionId)
   def toJson = JsonUtil.toJson(toJsonMap)
 }
@@ -76,16 +121,22 @@ case class SyncableId(var partitionId:String, var instanceId:String) {
  * LATER make this a generic mechansim that any syncable can implement
  */
 object SyncableInfo {
+  val log = Logger("SyncableInfo")
   /* true if the field isn't a user settable property (e.g. it's the sync id field) */
-  def isReserved(fieldName:String):Boolean = {
-    val newIds = ".*newIds".r
-    fieldName match {
-      case "kind" => true
-      case "id" => true
-      case "$partition" => true
-      case "partition" => true
-      case newIds() => true
-      case _ => false
-    }
+  def isReserved(fieldName:String):Boolean = {    
+    val result = 
+      fieldName match {
+        case "kind" => true
+        case "kindVersion" => true
+        case "id" => true
+        case "$partition" => true
+        case "partition" => true
+        case "newIds" => true
+        case "_log" => true
+        case _ => false
+      }
+    log.trace("isReserved %s = %s", fieldName, result)
+
+    result
   }
 }

@@ -16,20 +16,20 @@
 /*
  * All syncable javascript objects contain an 'id' property and a 'kind' property.
  * id+kind is guaranteed to be a unique, and is currently implemented as a string.
- * 
+ *
  * kind is akin to the class of the object - the client typically uses the kind to
- * attach functions to the data object arriving over the wire. 
+ * attach functions to the data object arriving over the wire.
  *
  * We maintain a mapping table that maps unique ids to javascript objects.  Objects
  * are entered into the table when they are first received from the network.  LATER
  * note that currently the table is not garbage collected, so syncable objects
  * are never freed.
- * 
+ *
  * Each syncable object instance has two prototypes in its prototype chain.  The immediate
- * prototype, called the kindPrototype, contains property setter functions of the 
+ * prototype, called the kindPrototype, contains property setter functions of the
  * form:  function property_(value).  The setter functions perform notification as
- * they change the object state.  The kindPrototype has a prototype too called the 
- * kindBasePrototype, which adds some debug logging for syncables. 
+ * they change the object state.  The kindPrototype has a prototype too called the
+ * kindBasePrototype, which adds some debug logging for syncables.
  */
 var $sync = $sync || {};
 
@@ -41,7 +41,7 @@ var $sync = $sync || {};
 $sync.manager = function() {
   var self = {};
   var ids;              // mapping of partition,ids to objects
-  var connection;       // for now, the browser has only one connection
+  var connection;       // for now, each browser tab has only one connection to the service
   var changeSet;        // uncommitted changes to be sent to the server on commit()
   var nextId;           // next id to use for locally created objects
   var clientId = "Uninitialized-"; // id prefix for locally created objects LATER protocol should give a unique id for this session
@@ -50,24 +50,34 @@ $sync.manager = function() {
   var defaultPartition; // create object in this partition by default
   var nextIdentity;		// set the next instance ids to the contained {partition:, id:} pair
   var autoCommit;		// automatically commit changes to the server if this is set
-	
+  var dirty;			// set to true when local objects have been changed and need to be sent to the server
+
+  function logSidebar(message) {
+    $debug.log(message);
+  }
+
   /** reset to initial state (useful for testing!) */
   self.reset = function() {
+//    $log.log("$sync.manager.reset()");
     ids = {};
-	defaultPartition = "partition-unset";
+    defaultPartition = "partition-unset";
+    connection && connection.close({
+      ignoreMessages: true
+    });
     connection = null;
     changeSet = [];
     nextId = 0;
-	nextIdentity = undefined;
+    dirty = false;
+    nextIdentity = undefined;
+    self.transientPartition = undefined;
     $sync.observation.reset();
     $sync.observation.watchEvery(syncableChanged, "$sync.manager");
   };
-  
+
   self.autoCommit = function(auto) {
     if (auto === undefined) {
       autoCommit = true;
-    }
-    else {
+    } else {
       autoCommit = auto;
     }
   }
@@ -80,22 +90,24 @@ $sync.manager = function() {
     }
     return self.get(obj.$partition, obj.id) === obj;
   };
-  
-  /** 
-   * Set the identity (partition, id) for the next created object 
-   * 
+
+  /**
+   * Set the identity (partition, id) for the next created object
+   *
    * used when instantiating remote objects
-   *  
+   *
    * @param {Object} ids
    * @param {Object} fn
    */
   self.withNewIdentity = function(ids, fn) {
-  	var oldIds = nextIdentity;
-	nextIdentity = ids;
-	fn();
-	nextIdentity = oldIds;
+    var oldIds = nextIdentity;
+    var result;
+    nextIdentity = ids;
+    result = fn();
+    nextIdentity = oldIds;
+    return result;
   };
-  
+
   /**
    * Returns an object that represents a $sync kind.  This object is a
    * construction function (not a constructor) that takes a hash of
@@ -108,30 +120,39 @@ $sync.manager = function() {
    * @param {Object} kind
    * @param {Object} dataModel
    * @param {Object} providedConstructor
-   * 
-   * @return constructor function for objects of this kind 
+   *
+   * @return constructor function for objects of this kind
    */
   self.defineKind = function(kind, dataModel, providedConstructor) {
 //  	$debug.log("defineKind: " + kind);
-	if (kindPrototypes[kind] !== undefined) {
-	  $debug.assert("defineKind called twice on kind: " + kind);
-	  return;
-	}
+    if (kindPrototypes[kind] !== undefined) {
+      $debug.fail("defineKind called twice on kind: " + kind);
+      return kindPrototypes[kind];
+    }
     if (dataModel instanceof Array) { 	  // convert array of property names to hash
       var model = {};
       $.each(dataModel, function(_, name) {
-        model[name] = null; 
+        model[name] = null;
       });
-      dataModel = model;	
-    } 
-	
-	makeKindPrototype(kind, dataModel);
-	constructors[kind] = providedConstructor || constructor;	
+      dataModel = model;
+    }
+
+    var proto = makeKindPrototype(kind, dataModel);
+    constructors[kind] = constructor = providedConstructor || constructor;
+    constructor.kindPrototype = proto;
+    $.extend(constructor, {
+      defineClassMethods: function(methods) {
+        $.extend(constructor, methods);
+      },
+      defineInstanceMethods: function(methods) {
+        $.extend(proto, methods);
+      }
+    });
     return providedConstructor ? null : constructor;
-	
+
 	/**
 	 * Constructor for this kind of object
-	 * 
+	 *
 	 * @param {Object} instanceData - hash of {property:value} initial values
 	 * for the new instance
 	 */
@@ -141,60 +162,81 @@ $sync.manager = function() {
       return object;
     }
   };
-	
+
   /** Instantiate a new syncable object.  This creates a prototype, and
    * instantiates it.  A subsequent call with the same kind or dataModel.kind
    * will use the same prototype.
-   * 
+   *
    * @param kind : ?string - specifies the syncable kind for the syncable object
    *    kind typically refers to a constructor function, which will be called
    *    when objects of this kind are received from the network.  defaults to
    *    dataModel.kind.
-   * @param instanceData - optional instance data copied to this instance.  
+   * @param instanceData - optional instance data copied to this instance.
    */
   self.createSyncable = function(kind, instanceData) {
     var kindProto, obj;
-    
+
     // get kind for new object
     if (!kind) { // use the provided kind	(SOON get rid of !kind cases, -lee)
-      $debug.fail("specify a kind in createSyncable()");	  
+      $debug.fail("specify a kind in createSyncable()");
     }
-    
+
     // create a javascript object instance with appropriate prototype for this kind
     kindProto = kindPrototype(kind);
-	obj = $sync.util.createObject(kindProto);
+    obj = $sync.util.createObject(kindProto);
     
-	// setup identity for this object
-	if (nextIdentity) {
-	  obj.$partition = nextIdentity.partition;
-	  obj.id = nextIdentity.id;
-	} else {
+    // setup identity for this object
+    if (nextIdentity) {
+      obj.$partition = nextIdentity.partition;
+      obj.id = nextIdentity.id;
+    } else {
       obj.$partition = defaultPartition;
-	  obj.id = clientId + nextId++;	
-	}
+      obj.id = clientId + nextId++;
+    }
 
-	// populate with instance data    
-	$.extend(obj, instanceData);
-	
+    $debug.assert(obj.$partition !== "partition-unset");
+
+  	// populate with instance data
+  	$.extend(obj, instanceData);
+
+    // user defined initialization
+    if (typeof obj.jsyncInit === 'function') {
+      obj.jsyncInit();
+    }
+
     // install in map and let people know.  we've made a new syncable!
     self.put(obj);
+//	logSidebar("createdSyncable: " + JSON.stringify(obj));
     $sync.observation.notify(obj, "create");
     return obj;
   };
 
   /** send all modified objects to the server */
   self.commit = function() {
-    connection.sendModified(changeSet);
-    changeSet = [];
+    $debug.assert(connection);
+    if (!connection) {
+      logSidebar("manager().commit, but connection is:" + connection);
+      logSidebar("changeSet: " + JSON.stringify(changeSet));
+    }
+    if (changeSet.length > 0) {
+      connection.sendModified(changeSet);
+      changeSet = [];
+    }
   };
-  
+
   /** register an existing sync channel */
   self.registerConnection = function(conn, id) {
     connection = conn;
     clientId = "*" + id;
+    self.transientPartition = id;
   };
 
-  /** log the entire local syncable instance table for debugging */  
+  /** handy access to the current connection */
+  self.connection = function() {
+  	return connection;
+  }
+
+  /** log the entire local syncable instance table for debugging */
   self.printLocal = function() {
     $debug.log("local syncable instances:");
     for (id in ids) {
@@ -203,6 +245,21 @@ $sync.manager = function() {
       }
     }
   };
+	
+	/** assert for debugging that it's legal to have a reference between two syncable objects
+	 * generally, objects may not directly reference objects in other partitions
+	 * 
+	 * one exception: object in the .implicit partition may reference objects in other partitions
+	 * 
+	 * return false if for an illegal reference
+   */
+	self.assertLegalReference = function(from, to) {
+    if (from.$partition == '.implicit') {
+			return true;
+		}
+		$debug.assert(from.$partition == to.$partition);
+		return (from.$partition == to.$partition);
+	}
 
   /** update a syncable object by copying fieldwise from a received data object.
    * the target object is identified by the id of the received object
@@ -211,18 +268,19 @@ $sync.manager = function() {
    */
   self.update = function(received) {
     var prop, obj = self.get(received.$partition, received.id);
-    
+
+//    $debug.log("manager.update: " + JSON.stringify(received));
     $debug.assert(obj && obj !== received);
     $debug.assert(obj.id === received.id);
     $debug.assert(!received.kind || obj.kind === received.kind);
-        
+
     // update the target object with the received data
     for (prop in received) {
       // expecting only data fields in the received object
       $debug.assert(typeof received[prop] !== 'function');
-      
+
       // call setter to set to received value. This notifies client observers
-      // of the change.  
+      // of the change.
       if (!reservedProperty(prop)) {
         // these changes came from the server, no sense sending them back
         $debug.assert($sync.observation.currentMutator() === "server");
@@ -230,14 +288,14 @@ $sync.manager = function() {
       }
     }
   };
-	
+
   /** process a "#edit" object in the sync feed.
    * #edit objects contain:
    * here's an example edit object:
    *   { "#edit" : {id:1, $partition:"test"},         // target object id
    *   						// put objects 2,3 into object 1
-   *     "put": [{id:2, $partition:"test"}, {id:3, $partition:"test"}]			 
-   * 
+   *     "put": [{id:2, $partition:"test"}, {id:3, $partition:"test"}]
+   *
    * CONSIDER--move this protocol related stuff to connection.js ?
    */
   self.collectionEdit = function(edit) {
@@ -246,19 +304,22 @@ $sync.manager = function() {
     if (typeof(collection) === 'undefined') {
       $debug.error("target of collection edit not found: " + JSON.stringify(edit));
 	  $sync.manager.printLocal();
-	  debugger;
+	  $debug.assert(false);
     } else if (collection.kind === "$sync.set") {
       editSet(collection, edit);
+    } else if (collection.kind === "$sync.sequence") {
+      editSequence(collection, edit);
     } else {
       $debug.log("unexpected kind of collection for #edit: " + JSON.stringify(edit) + " found: " + JSON.stringify(collection));
     }
   };
-    
+
   /** add obj to the map unless the map already has an object at that (id,$partition)
    *
    * @param obj object to add
    */
   self.put = function(obj) {
+//  	logSidebar("$sync.manager.put: " + JSON.stringify(obj, null, 2));
   	var key = self.instanceKey(obj.$partition, obj.id);
     if (!ids[key]) {
 	  ids[key] = obj;
@@ -267,17 +328,17 @@ $sync.manager = function() {
 	}
     return false;
   };
-  
+
   /** return the javascript object tracked by this id pair */
   self.get = function(partitionId, instanceId) {
     return ids[self.instanceKey(partitionId, instanceId)];
   };
-  
+
   /** return the javascript object tracked by this key (which embeds the id pair) */
   self.getByInstanceKey = function(key) {
   	return ids[key];
   };
-  
+
   /** report whether an object is tracked by the syncable map */
   self.contains = function(partitionId, instanceId) {
     return ids.hasOwnProperty(self.instanceKey(partitionId, instanceId));
@@ -286,27 +347,30 @@ $sync.manager = function() {
   /** create a new object of the id and kind described in a template object.
    * The new object is placed in the id map, and connected to a prototype of
    * appropriate for the kind.
-   * 
+   *
    * (data from the template isn't added here. it's added fieldwise by
    *  manager.update())
-   * 
+   *
    * @param template.kind describes the type of the object to be created.
    *      template.kind e.g "sync.set" creates a new object by calling the function
    *          sync.set() with no parameters.
-   *      template.id id of the object to be created.  
+   *      template.id id of the object to be created.
    *      template.$partition partitionId of the object to be created
    * @return newly created raw syncable object (no data fields have been set)
-   */    
+   */
   self.createRaw = function(template) {
     var constructFn, obj, partition = template.$partition, id = template.id, kind = template.kind;
-    
+
     $debug.assert(id);
     $debug.assert(!self.contains(partition, id));
-    
+
+//	logSidebar("createRaw: " + JSON.stringify(template, null, 2));
     if (kind) {
       // get constructor function for this kind
       constructFn = constructors[kind];
-	  $debug.assert(typeof(constructFn) === 'function');
+	  if (typeof(constructFn) !== 'function') {
+	  	$debug.fail("constructor not defined for kind: " + kind);
+	  }
       // construct a new object for this kind using the id from the template.id
 	  self.withNewIdentity({partition: partition, id:id}, function() {
 	  	obj = constructFn();
@@ -317,62 +381,97 @@ $sync.manager = function() {
     else {
       self.printLocal();
       $debug.fail("kind unspecified in createRaw: " + JSON.stringify(template, null, 2));
+//      logSidebar("kind unspecified in createRaw: " + JSON.stringify(template, null, 2));
     }
-    
+
     // (constructor above is expected to call createSyncable and put it in the map)
     $debug.assert(self.isSyncable(obj));
     return obj;
   };
-  
-  /** report the full instance key for a given object */ 
+
+  /** report the full instance key for a given object */
   self.instanceKey = function(partitionId, instanceId) {
   	return partitionId + "/" + instanceId;
   };
-  
-  /** set the default partition  
-   * 
-   * @param {String} partitionId  -- partition for newly created syncable objects 
-   * @param {function} fn  -- (optional) function.  Set the defalut partition for new 
-   * objects execute fn() and then set it back. 
+
+  /** set the default partition
+   *
+   * @param {String} partitionId  -- partition for newly created syncable objects
    */
-  self.setDefaultPartition = function(partitionId, fn) {
-  	var oldDefault;
-  	if (typeof(fn) !== 'undefined') {
- 	  origDefault = defaultPartition;
-	  defaultPartition = partitionId;
-	  fn();
-	  defaultPartition = origDefault;
-	} else {
-	  defaultPartition = partitionId;
-	}
+  self.setDefaultPartition = function(partitionId) {
+    $debug.assert(partitionId != undefined, 'setDefaultPartition(undefined)');
+    defaultPartition = partitionId;
   };
+
+  /** set the default partition temporarily while running a function.
+   * (handy for creating objects in a certain partition)
+   *
+   * @param {String} partitionId  -- partition for newly created syncable objects
+   * @param {function} fn  -- function.
+   * @return the result of fn()
+   */
+  self.withPartition = function(partitionId, fn) {
+    var result;
+    var orig = defaultPartition;
+    self.setDefaultPartition(partitionId);
+    result = fn();
+    self.setDefaultPartition(orig);
+    return result;
+  };
+
+  /** run a function with the default partition set temporarily to
+   * to a transient partition (not persisted between client sessions)
+   * (handy for creating objects in a the transient partition)
+   * @return the result of fn()
+   */
+  self.withTransientPartition = function(fn) {
+//  $debug.log("transientPartition: " + self.transientPartition);
+  	return self.withPartition(self.transientPartition, fn);
+  };
+  
+  /**
+   * call fn with the name of each property in a syncable
+   */
+  self.eachPropertyName = function(syncable, fn) {
+    var kindProto = kindPrototype(syncable.kind);
+    for (propName in kindProto) {
+      if (typeof kindProto[propName] == 'function' 
+        && propName[propName.length - 1] == '_') {
+        fn(propName.slice(0,propName.length - 1));
+      }
+    }
+  }
 
   /** called when any object changes.  update the change set for
    * future commits() */
   function syncableChanged(change) {
     // ignore server generated changes
     if (change.source !== "server") {
-//      $debug.log("adding change to changeSet: " + change);
+//      $log.log("adding change to changeSet: " + change);
       changeSet.push(change);
       // schedule a commit of changes to the server
-      if (autoCommit && connection) {
-        setTimeout($sync.manager.commit, 100);
+      if (autoCommit && connection && !dirty) {
+        dirty = true;
+        setTimeout(function() {
+          $sync.manager.commit();
+          dirty = false;
+        }, 25);
       }
     }
     else {
-//      $debug.log("skipping change (not adding to changeSet): " + change);
-    }    
+      //      $debug.log("skipping server change (not adding to changeSet): " + change);
+    }
   }
-  
-  /** make up a unique string identifier for a new per instance kind.  
+
+  /** make up a unique string identifier for a new per instance kind.
    * (CONSIDER removing support for these 'untyped' instances)
-   */ 
+   */
   function synthesizeKind(id) {
     return "synth-" + id;
   }
 
   /** prototype of all syncable objects
-   * (overrides toString for debug logging) 
+   * (overrides toString for debug logging)
    */
   var kindBasePrototype = {
     toString: function() {
@@ -380,54 +479,54 @@ $sync.manager = function() {
       var idStr = self.instanceKey(this.$partition, this.id);
       return idStr + kindStr;
     },
-    
+
     setProperty: function(property, value) {
       this[property + "_"](value);
     }
-  };
-  
-  /* get or make prototype for objects of this kind */
+  };  
+
+  /* get prototype for objects of this kind */
   function kindPrototype(kind) {
     var kindProto = kindPrototypes[kind];
     $debug.assert(kindProto !== undefined);
     return kindProto;
   }
-  
-  /** 
+
+  /**
    * create a new protytpe object for instances of this kind
-   * 
+   *
    * @param {Object} kind
-   * @param {Object} model 
+   * @param {Object} model
    */
   function makeKindPrototype(kind, model) {
     var kindProto = $sync.util.createObject(kindBasePrototype);
-	kindProto.kind = kind;
-	populateKindPrototype(kindProto, model);
+    kindProto.kind = kind;
+    populateKindPrototype(kindProto, model);
     kindPrototypes[kind] = kindProto;
     return kindProto;
   };
-  
+
   /** add field setters to the prototype for this kind */
   function populateKindPrototype(kindProto, model) {
     var prop;
-	
+    
     for (prop in model) {
-      if (model.hasOwnProperty(prop) && !kindProto.hasOwnProperty(prop) 
-	      && typeof model[prop] !== 'function' && !reservedProperty(prop)) {
-        addAccessor(kindProto, prop);		  	
-	  }
+      if (model.hasOwnProperty(prop) && !kindProto.hasOwnProperty(prop) &&
+      typeof model[prop] !== 'function' && !reservedProperty(prop)) {
+        addAccessor(kindProto, prop);
+      }
     }
-	// CONSIDER allowing functions in the model.  they become methods on this kind
+    // CONSIDER allowing functions in the model.  they become methods on this kind
   };
-  
+
   /** properties of syncable objects used by the framework, clients shouldn't
-   * use these.  
-   * 
+   * use these.
+   *
    * SOON make all properties that begin with '$' reserved, CONSIDER per class reserves
    */
   function reservedProperty(prop) {
     if (prop === "id" || prop === "kind" || prop === "$partition") {
-      return true; 
+      return true;
     }
     return false;
   };
@@ -442,34 +541,33 @@ $sync.manager = function() {
    */
   function addAccessor(obj, prop) {
     var setter = prop + "_";
-    
+
     if (obj.prop) {
       $debug.assert(typeof obj[prop] !== 'function');
       $debug.assert(typeof obj[setter] === 'function');
-    }
-    else {
+    } else {
       // generic setter function for a property
       obj[setter] = function(value) {
         var oldValue = this[prop];
         this[prop] = value;
-        
+
         // notify
         $sync.observation.notify(this, "property", {
           property: prop,
           oldValue: oldValue
         });
-        
+
         // support fluid style, e.g. obj.foo_().bar_()
         return this;
       };
-      
+
 	  // (Users should use "obj.prop_(val)"
       // not "obj.prop = val".  the latter form would be nice, but we can't override
       // setters on older IE browsers.)
-	  //
+	    //
       // LATER in browsers which support getter/setter (e.g. firefox, IE8) create a
-      // setter function which fires and an assertion.  
-      // 
+      // setter function which fires and an assertion.
+      //
       // (LATER consider using eval to create a custom function with the property
       //  inserted for speed)
     }
@@ -478,7 +576,7 @@ $sync.manager = function() {
   /** process changes to a sync.set */
   function editSet(set, changes) {
     var changeDex, putDex, obj, puts, onePut, change;
-    
+
     for (change in changes) {
       if (change === "put") {
         // process something like  "put": [{id:2, $partition:"part1"},{id:3, $partition:"part1"}]
@@ -489,12 +587,34 @@ $sync.manager = function() {
           $debug.assert(obj);
           // these changes came from the server, no sense sending them back)
           $debug.assert($sync.observation.currentMutator() === "server");
+//          $debug.log("manager.editSet: put" + onePut + " into: " + set);
           set.put(obj)
         }
       }
     }
   }
-  
+
+  function editSequence(seq, edit) {
+    if (edit.insertAt !== undefined) {
+      var insertDex, elem, insert;
+      var insertAt = edit.insertAt;
+      
+      $debug.assert($sync.util.isArray(insertAt));
+      for (insertDex = 0; insertDex < insertAt.length; insertDex++) {
+        insert = insertAt[insertDex];
+        elem = self.get(insert.elem.$partition, insert.elem.id);
+        seq.insertAt(elem, insert.at);
+      }
+    }
+    else if (edit.move !== undefined) { // CONSIDER should we allow arrays here in the protocol?
+      var move = edit.move;
+      seq.moveAt(move.from, move.to);
+    }
+    else if (edit.removeAt !== undefined) {
+      seq.removeAt(edit.removeAt);
+    }
+  }
+
   self.reset();
 
   return self;

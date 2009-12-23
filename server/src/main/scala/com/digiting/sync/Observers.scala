@@ -15,12 +15,14 @@
 package com.digiting.sync
 
 import collection._
-import net.liftweb.util.Log
+import net.lag.logging.Logger
 import com.digiting.sync.aspects.Observable
 import com.digiting.util._
 import com.digiting.sync.aspects.AspectObservation
 import com.digiting.sync.aspects.ObserveListener
 import scala.util.DynamicVariable
+import scala.collection._
+import scala.util.matching.Regex
 
 /**
  * Change tracking utility for Observable objects and collections.
@@ -36,6 +38,7 @@ import scala.util.DynamicVariable
  * SCALA -- consider api observation.  e.g. should watch() send an actor message or provide a callback?
  */
 object Observers { 
+  var log = Logger("Observers")
   /** called when a change happens */
   type ChangeFn = (ChangeDescription)=>Unit		// Consider a listener object...
   
@@ -43,17 +46,21 @@ object Observers {
    * @param watchClass  is a caller specified indentifer so that the caller can delete single or multiple watches by identifer
    */
   case class Watcher(changed:ChangeFn, watchClass:Any)    
+  case class Notification(watcher:Watcher, change:ChangeDescription)
   
   var currentMutator = new DynamicVariable("server") 						// 'source' of current changes, tagged onto all observations
   private var watchers = new MultiMap[Observable, Watcher]  				// watch one observable
   private val deepWatches = new MultiMap[Observable, DeepWatch]()		// watch a connected set of observables
+  private var holdNotify = new DynamicVariable[Option[mutable.ListBuffer[Notification]]](None)
   
   // listen for model object modifications found from the AspectJ enhanced Observable objects 
   private object AspectListener extends ObserveListener {
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
-      Observers.notify(PropertyChange(target.asInstanceOf[Observable], property, newValue, oldValue))
+      if (!SyncableInfo.isReserved(property)) {
+        Observers.notify(PropertyChange(target.asInstanceOf[Observable], property, newValue, oldValue))
+      }
     }
-  }    
+  }
   AspectObservation.registerListener(AspectListener)
     
   /** reset all watches -- useful for testing from a clean slate */
@@ -63,16 +70,32 @@ object Observers {
   }
     
   /** notify observers of the change */
-  def notify(changes:ChangeDescription):Unit = {
-    watchers.foreachValue(changes.target) {watch =>  
-//      Console println("Observers.notify: " + watch.watchClass + " : " + changes)
-      watch.changed(changes)
+  def notify(change:ChangeDescription):Unit = {            
+    holdNotify.value match {
+      case Some(paused) => 
+	    watchers.foreachValue(change.target) {watch =>  
+	      val notify = Notification(watch, change)
+	      log.trace("queing notification: %s", notify)
+	      paused += notify
+	    }
+      case _ =>
+	    watchers.foreachValue(change.target) {watch =>  
+	      watch.changed(change)
+	    }        
     }
   }
+  
+  def withNoNotice[T](fn: => T):T = {
+    // just use a pause buffer and throw away the contents 
+    holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
+      fn
+    }
+  }
+
     
   /* Register a function to be called when an object is changed.  */
   def watch(obj:Observable, fn:ChangeFn, watchClass:Any) {
-//    Console println("Observers.watch: " + obj + " by " + watchClass)
+    log.trace("watch: %s by %s", obj, watchClass)
     watchers + (obj, Watcher(fn, watchClass))
   }
   
@@ -82,8 +105,10 @@ object Observers {
    * @param fn          function called on each change
    * @param watchClass  names this watch, which enables removing the watch by name
    */
-  def watchDeep(root:Observable, fn:ChangeFn, watchClass:Any) {
-    deepWatches + (root, new DeepWatch(root, fn, watchClass))
+  def watchDeep(root:Observable, fn:ChangeFn, watchClass:Any):DeepWatch = {
+    val deepWatch = new DeepWatch(root, fn, watchClass)
+    deepWatches + (root, deepWatch)
+    deepWatch
   }
   
   /** unregister all watch functions registered with a given watchClass
@@ -108,5 +133,48 @@ object Observers {
     }
   }
   
+  def withMutator[T](mutator:String)(fn: =>T):T = {
+    currentMutator.withValue(mutator) {
+      fn
+    }
+  }
+  
+  def pauseNotification[T](fn: =>T):T = {    
+      // install pause buffer
+      holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
+        val result = fn	// call function
+
+	    // send held notifications
+	    holdNotify.value match {	// note that the fn could change the holdNotify value, so we refetch
+	      case Some(paused) => 
+		    for (notification <- paused) {
+		      log.trace("pauseNotification, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+		      notification.watcher.changed(notification.change)
+		    }
+	      case _ =>
+	        log.warning("pauseNotification, that's odd.  where'd the pause buffer go?")
+	    }
+        result
+      }
+  }
+  
+  def releasePaused(matchFn:(Any)=>Boolean) {
+    // accumulate notifiations that we're leaking out of the pause buffer
+	val releasing = new mutable.ListBuffer[Notification]
+ 
+    // release notifications that match 	                                      
+    holdNotify.value map {held =>
+      for {notification <- held
+           if matchFn(notification.watcher.watchClass)} {        
+        releasing += notification
+	    log.trace("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+	    notification.watcher.changed(notification.change)
+      }
+      // remove released notifications from pause buffer
+      val remainder = new mutable.ListBuffer[Notification]
+      remainder ++= (held.toList -- releasing.toList)
+      holdNotify.value = Some(remainder)
+    }
+  }  
 }
 

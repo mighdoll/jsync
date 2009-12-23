@@ -12,8 +12,9 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-test("observe.watch", function() {
-  var syncable = $sync.test.valued({value:10});
+test("observe.watch", function() { 
+  $sync.manager.setDefaultPartition("test");
+  var syncable = $sync.test.valueObj({value:10});
   
   expect(4);
   
@@ -34,7 +35,8 @@ test("observe.watch", function() {
 });
 
 test("observe.ignore", function() {
-  var syncable = $sync.test.valued({value:10});
+  $sync.manager.setDefaultPartition("test");
+  var syncable = $sync.test.valueObj({value:10});
   
   expect(4);
   
@@ -56,7 +58,8 @@ test("observe.ignore", function() {
 
 test("observe.pause", function() {
   var fired = false;  
-  var syncable = $sync.test.valued({value:"fred"});
+  $sync.manager.setDefaultPartition("test");
+  var syncable = $sync.test.valueObj({value:"fred"});
   expect(2);
   
   $sync.observation.watch(syncable, function() {
@@ -74,7 +77,8 @@ test("observe.pause", function() {
 
 
 test("observe.watch.set", function() {
-  var syncable = $sync.test.valued({value:"jim"});
+  $sync.manager.setDefaultPartition("test");
+  var syncable = $sync.test.valueObj({value:"jim"});
   var set = $sync.set();
   var results = [];
   expect(5);
@@ -99,6 +103,7 @@ test("observe.watchEvery", function() {
   var syncable;
   var results = [];
   
+  $sync.manager.setDefaultPartition("test");
   $sync.observation.watchEvery(function(changes) {
     results.push({
       obj: changes.target,
@@ -106,7 +111,7 @@ test("observe.watchEvery", function() {
     });
   });
   
-  syncable = $sync.test.valued({value:"bruce"});
+  syncable = $sync.test.valueObj({value:"bruce"});
   syncable.value_("milo");
   
   ok(results.length === 2);
@@ -122,6 +127,7 @@ test("observe.set.watchEvery", function() {
   var set, elem;
   var results = [];
   
+  $sync.manager.setDefaultPartition("test");
   $sync.observation.watchEvery(function(changes) {
     results.push({
       obj: changes.target,
@@ -130,7 +136,7 @@ test("observe.set.watchEvery", function() {
   });
   
   set = $sync.set();
-  elem = $sync.test.named({name:"sven"});  
+  elem = $sync.test.nameObj({name:"sven"});  
   set.put(elem);
   
   ok(results.length === 3);

@@ -14,39 +14,26 @@
  */
 package com.digiting.sync
 
-import SendBuffer._
 import _root_.net.liftweb.util._
 import net.liftweb.util.JSONParser
 import collection._
 import com.digiting.sync.aspects.Observable
 import JsonUtil._
+import net.lag.logging.Logger
 
+object ConnectionDebug {
+  var nextId = -1
+  def nextDebugId():Int = {nextId += 1; nextId}
+}
 /**
  * Manages a connection to a client using the json sync protocol.
  */
-class Connection(val connectionId:String) {  
-  val sendBuffer = new SendBuffer						// buffers messages to go to the client
+class Connection(val connectionId:String) {
+  val debugId = ConnectionDebug.nextDebugId()
+  val putSendBuffer = new PutSendBuffer(debugId)		// put interface to buffer messages to go to the client
+  val takeSendBuffer = putSendBuffer.take				// take interface for messages to go to the client
   val receiver = new Receiver(this)					 	// processes messages from the client     
-  val subscribes = new ActiveSubscriptions(this)		// active subscriptions from the client
-  val connectionPartition = new RamPartition(connectionId)
-  val defaultPartition = new RamPartition("user") 		// we'll create new client objects here, TODO make this a per user persistent partition 
-    
-    // when the receiver's visible set commits, send changes to the client too
-  receiver.watchCommit(sendPendingChanges)
-    
-  /** send any queued model changes to the client in a single transaction 
-   * 
-   * (Note that this may be called from an arbitrary thread)
-   */
-  private def sendPendingChanges(changes:Seq[ChangeDescription]) = {
-    val pending = subscribes.takePending()
-    if (!pending.isEmpty) {
-      var json = Message.makeMessage(pending)
-//      Console println "JsonConnction: queueing Pending Change: " + json.toJson
-      sendBuffer ! QueueMessage(json)
-    } else {
-//      Log.info("sendPendingChanges: nothing Pending")
-    }
-  }
+  var appContext:Option[AppContext] = None				// application handling this connection
+  
 }
 

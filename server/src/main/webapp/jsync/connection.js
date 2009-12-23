@@ -21,41 +21,47 @@ var $sync = $sync || {};      // namespace
  * or even in parallel over multiple connections simultaneously.  
  * 
  * @param feedUrl - url of the jsonsync protocol endpoint
- * @param params - optional options { testMode: true/false, connected: function }
+ * @param params - optional options { 
+ *                  testMode: true/false, 
+ *                  connected: function,
+ *                  authorization: token }
  */
 $sync.connect = function(feedUrl, params) {
   var self = {};
-  var receivedTransaction = -1; 	// protocol sequence number received
-  var sentTransaction = 0;		// protocol sequence number sent
+  var receivedTransaction = -1;         // protocol sequence number received
+  var sentTransaction = 0;              // protocol sequence number sent
   var testModeOut;                      // output for test mode
-  var connectionToken = undefined;	// password for this connection 
+  var connectionToken = undefined;      // password for this connection 
   var subscriptions;                    // object trees we're mirroring from the server
   var received = [];                    // queue of received messages (possibly out of sequence)
   var lastProcessed = $sync.util.now(); // last time a message was received
   var missedMessageTimeout = 500000;    // buffer out of order server messages for this many msec
-  var sendWhenConnected = [];	        // queue of messages to send once the logical connection is open
-  var isClosed = false;
+  var sendWhenConnected = [];           // queue of messages to send once the logical connection is open
+  var isClosed = false;                 // true if this connection has been closed
+  var longPollEnabled =                 // long polling is enabled by default
+    (!window.location.search.match(/[?&]longpoll=false/));
+  var minActiveRequests = 1;            // long poll should keep this many requests active 
+  var requestsActive = 0;               // current number of active requests
+  var consecutiveFailed = 0;            // number of failures in a row from the server
+  var backoffDelay =                    // exponential backoff rate for server requests
+    [100,500,1000,10000,30000,120000,600000];
 
   /** open a connection to the server */
   function init() {
-    // we keep the subscription list in sync with the server.  CONSIDER -- is this necessary?
-    $sync.manager.withNewIdentity({
-      partition: "subscriptions-unset",	// we change this after we connect.. TODO, fix this, it will break the manager's index
-      id: "#subscriptions"
-    }, function() {
-      subscriptions = $sync.set();
-    });
     if (params && params.testMode) {
-      $sync.manager.registerConnection(self, "BrowserTestMode");
-    }
-    else {
+      connectionToken = "localTestModeToken";
+      connected([]);
+    } else {
       start(); // connect            
     }
   }
   
-  /** close the connection.  Any subsequent messages received will be dropped.  Currently used only for testing.  */  
-  self.close = function() {
-  	isClosed = true;	
+  /** close the connection.  Any subsequent messages received will be dropped.  
+   * pass {ignoreMessages:true} in params to silence warnings if future messages are dropped 
+   * @param {Object} params
+   */
+  self.close = function(params) {   
+    isClosed = params;  
   }
 
   /** @return true if we've an active sync connection to the server */
@@ -71,42 +77,63 @@ $sync.connect = function(feedUrl, params) {
   
   /** send all modified objects to the server */
   self.sendModified = function(changeSet) {
-    var delta;						// jsonSync message fragment for a property change
-    var edit;						// jsonSync message fragment for a collection change
-    var target;						// target of the change
-    var changeType;					// type of change
-    var xact; 						// change we're sending
-    var created;					// new object created
+    var delta;                      // jsonSync message fragment for a property change
+    var edit;                       // jsonSync message fragment for a collection change
+    var target;                     // target of the change
+    var changeType;                 // type of change
+    var xact;                       // change we're sending
+    var created;                    // new object created
+    var outgoing;                   // modified object for sending new objects
 
-    if (changeSet.length === 0) {
-      return;
-    }
+    if (changeSet.length === 0) return;    
     
-    xact = startNextSendXact();	    
+    xact = startNextSendXact();     
     changeSet.eachCheck(function(change) {      
       target = change.target;
       changeType = change.changeType;
-      if (changeType === "create") {
-    	created = $.extend({kind:target.kind}, target);		// otherwise, stringify will skip kind, which is in the prototype
-        xact.push(created);
+//      $debug.log("sendModified, change: " + change);
+      if (changeType === "create") {        
+        if (target.$partition !== '.implicit') {// don't send 'well known' objects 
+          outgoing = outgoingSyncable(target);
+          xact.push(outgoing);
+//          $debug.log(".outgoing: " + JSON.stringify(outgoing));
+        }
       } else if (changeType === "property") {
         delta = {};
         delta.id = target.id;
         delta.$partition = target.$partition;
-        delta[change.property] = target[change.property];
+        delta[change.property] = outgoingValue(target[change.property]);
         xact.push(delta);
+//        $debug.log(".sending delta: " + JSON.stringify(delta));
       } else if (changeType === "edit") {
         edit = {};
+        $debug.assert(target.$partition != undefined);
         edit['#edit'] = {id:target.id, "$partition":target.$partition};
         if (typeof(change.put) !== 'undefined') {
           edit.put = {id:change.put.id, "$partition":change.put.$partition};
         } else if (typeof(change.clear) !== 'undefined') {
           edit.clear = true;
+        } else if (typeof(change.insertAt) !== 'undefined') {
+          edit.insertAt = {
+            at:change.insertAt.index, 
+            elem:{
+              id:change.insertAt.elem.id,
+              $partition:change.insertAt.elem.$partition
+            }
+          };
+        } else if (typeof(change.move) !=='undefined') {
+          edit.move = {
+            from:change.move.from,
+            to:change.move.to
+          };
+        } else if (typeof(change.removeAt) !== 'undefined') {
+          edit.removeAt = change.removeAt;
         } else {
           $debug.error("sendModified doesn't know how to send change:" + change);     
         }
         
-        xact.push(edit);  
+        xact.push(edit);
+//      $debug.log(".sending #edit: " + JSON.stringify(edit));
       } else {
          $debug.error("sendModified doesn't know how to send change: " + change);     
       }
@@ -117,6 +144,44 @@ $sync.connect = function(feedUrl, params) {
       send(xact, receiveMessages);
   };
 
+
+  
+  /** copy and convert a syncable to a form suitable for sending over the wire 
+   * convert references to $ref objects, and add the kind property
+   * @param {Object} syncable
+   */
+  function outgoingSyncable(syncable) {
+    // add kind as local property, stringify will skip it if it's just in the prototype
+    var toSend = {kind: syncable.kind };
+    var value;
+    
+    for (property in syncable) {
+      if (syncable.hasOwnProperty(property) && property[0] != '_') {
+        value = syncable[property];
+        if (typeof value !== 'function' &&
+        value != null &&
+        value != undefined) {
+          // modify properties for sending (replace refs with $ref objects)
+          toSend[property] = outgoingValue(syncable[property]);
+        }
+      }
+    }
+    return toSend;
+  }
+
+  /** convert property values into a form suitable for sending over the wire. 
+   * replace object references to syncable objects with $ref objects.  */  
+  function outgoingValue(value) {
+//  if (typeof(value) !== 'function') {
+//    $debug.log("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
+//  }
+    if ($sync.manager.isSyncable(value)) {
+      return {$ref: {$partition: value.$partition, id:value.id}};
+    } 
+    
+    return value;
+  }
+  
   /** If testMode is true, return the last message string that
     * would normally be sent to the network */
   self.testOutput = function() {
@@ -135,11 +200,11 @@ $sync.connect = function(feedUrl, params) {
    * @return a subscription object: {name: "string", root: rootObject}
    */
   self.subscribe = function(name, partition, watchFunc) {
-	var sub;
-	$sync.manager.setDefaultPartition(connectionToken, function() {
-	  sub = $sync.subscription();
-	});
-	
+    var sub;
+    $sync.manager.withPartition(connectionToken, function() {
+      sub = $sync.subscription();
+    });
+    
     sub.name = name;
     sub.inPartition = partition;
     subscriptions.put(sub);
@@ -150,44 +215,69 @@ $sync.connect = function(feedUrl, params) {
     }
 
     return sub;
+    
+ // LATER delete items from the subscriptions list to unsubscribe
   };
-		
+        
   /** start connection to the server */
   function start() {
-    $debug.log("starting connection to: " + feedUrl);
+//    $debug.log("starting connection to: " + feedUrl);
     var xact = startNextSendXact();
     xact.push({'#start': true });
+    params.authorization && xact.push({'#authorization':params.authorization});
     sendNow(xact, connected);
   }
   
   /** called when the sync connection to the server is opened
    * -- we've heard a response from the server in response to our initial connection attempt */
   function connected(data) {
-    $debug.log("connected");
+//    $log.info("connected");
     
     receiveMessages(data); // parse any data the server has waiting for us
     $debug.assert(connectionToken !== undefined);
     $sync.manager.registerConnection(self, connectionToken);
     
-    subscriptions.$partition = connectionToken;	// scope subscription object to this connection before we send it up
+    $sync.manager.withNewIdentity({
+      partition: ".implicit",   
+      id: "subscriptions"
+    }, function() {
+      subscriptions = $sync.set();
+    });
     
     $sync.util.arrayFind(sendWhenConnected, function(queued) {
+      $debug.warn("sendWhenConnected: is this still used?");
       sendNow(queued.xact, queued.successFn);
     });
     if (params && params.connected) // notify anyone who's listening that we're now connected
       params.connected(self);
     
-//    if (!window.location.search.match(/[?&]longpoll=false/))
-//      longPoll();
   }
 
   /** continually keep a request outstanding to the server */
   function longPoll() {
-	send([], callAgain);
-	  
-	function callAgain() {
-	  setTimeout(longPoll, 100);		
-	};
+    
+    if (!longPollEnabled || !connectionToken || isClosed) return;
+    
+    if (requestsActive < minActiveRequests) {      
+      setTimeout(pollServer, retryDelay());  // use timeout so our stack doesn't grow ever deeper
+    }
+    
+    /** exponential backoff for failed requests */
+    function retryDelay() {
+      var delay, backoffDex, fixedDelay = 10;
+      
+      if (consecutiveFailed == 0) {
+        return fixedDelay;
+      }
+      
+      backoffDex = Math.min(consecutiveFailed, backoffDelay.length - 1);
+      delay = fixedDelay + (Math.random() * backoffDelay[backoffDex]);      
+      return Math.round(delay);
+    }
+    
+    function pollServer() {
+      send([], receiveMessages);
+    }
   }
   
   /** send a message up to the server (or queue it if we're not connected yet */
@@ -210,16 +300,31 @@ $sync.connect = function(feedUrl, params) {
     }
     
     var xactStr = JSON.stringify(xact);
-    $debug.log("sending xact to server: " + xactStr);
+//    $debug.log("sending xact to server: " + xactStr);
+    requestsActive += 1;
     $.ajax({
       url: feedUrl,
       type: "POST",
       dataType: "json",
       contentType: "application/json",
-      success: successFn,
-      error: syncFail,
+      success: success,
+      error: failed,
       data: xactStr
     });
+    
+    function success() {
+      consecutiveFailed = 0;
+      requestsActive -= 1;
+      successFn.apply(this, arguments);
+      longPoll();     
+    }
+    
+    function failed() {
+      consecutiveFailed += 1;
+      requestsActive -= 1;
+      syncFail.apply(this, arguments);       
+      longPoll();     
+    }    
   }
 
   /** called if there's a an error with the http request 
@@ -242,12 +347,16 @@ $sync.connect = function(feedUrl, params) {
     var msgDex;
     if (messages.length === 0) 
       return;
-	  
-	if (isClosed) {
-	  $debug.log("connection (" + connectionToken + ") is closed.  Dropping these messages: " + messages);
-	  return;
-	}
-
+    
+    if (isClosed) {
+      if (!isClosed.ignoreMessages) {
+        $debug.warn("connection (" + connectionToken +
+        ") is closed.  Dropping these messages: " +
+        JSON.stringify(messages));
+      }
+      return;
+    }
+    
     for (msgDex = 0; msgDex < messages.length; msgDex++) {
       received.push(messages[msgDex]);
     }
@@ -259,7 +368,7 @@ $sync.connect = function(feedUrl, params) {
   function processReceived() {
     var message;
     
-    while (message = takeNextMessage()) {
+    while ((message = takeNextMessage())) {
       parseMessage(message);
     }
   }
@@ -288,7 +397,7 @@ $sync.connect = function(feedUrl, params) {
       $debug.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
-      $debug.log("waiting for transaction: " + (receivedTransaction + 1));
+      $debug.log("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
     }
     return undefined;
   }
@@ -298,11 +407,7 @@ $sync.connect = function(feedUrl, params) {
     var number;
 
     number = $sync.util.arrayFind(jsonMessage, function(obj) {
-      var num = obj['#transaction'];
-
-      if (num !== undefined)
-        return num;
-      return false;
+      return obj['#transaction'];   // halts if we found it 
     });
 
     if (number === undefined)
@@ -322,7 +427,7 @@ $sync.connect = function(feedUrl, params) {
   function parseMessage(message) {
     var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
-    $debug.log("parseMessage: " + JSON.stringify(message, null, 2));
+//    $log.debug("parseMessage: ", message);
     if (message.length === 0) 
       return;
     
@@ -390,13 +495,13 @@ $sync.connect = function(feedUrl, params) {
    * properties starting with '#' are resevered for jsync control messages
    */   
   function hasHashProperty(obj) {
-  	for (prop in obj) {
- 	  if (prop[0] === '#')
-	  	return true;
-	}
-	return false;
+    for (prop in obj) {
+      if (prop[0] === '#')
+        return true;
+    }
+    return false;
   }
-	 
+     
   /** replace any reference property value with the referenced object.
      * references look like this-  val:{$ref: 17}. which would be replaced
      * with the syncable object #17, e.g. val:{id:17, kind:"person", name:"fred"} */
@@ -404,10 +509,10 @@ $sync.connect = function(feedUrl, params) {
     var prop, arrayDex, arrayVal;
 
     if (typeof obj !== 'object') {
-      $debug.warn("resolveRefs can't resolve obj: " + obj);	// shouldn't happen
+      $debug.warn("resolveRefs can't resolve obj: " + obj); // shouldn't happen
       return obj;
     }
-		
+        
     if ($sync.util.isArray(obj)) {
       // recurse on array values that are objects or sub-arrays
       for (arrayDex = 0; arrayDex < obj.length; arrayDex++) {
@@ -424,7 +529,7 @@ $sync.connect = function(feedUrl, params) {
         }
       }
     }
-		
+        
     // return either the object reference or the $ref translated
     // into a real object reference
     if (obj.$ref) {
@@ -438,11 +543,7 @@ $sync.connect = function(feedUrl, params) {
   return self;
 };
 
-/** model object for subscriptions.  We send one of these to the server, and it will
- * create a subscription and send us the root object */
-$sync.subscription = $sync.manager.defineKind('$sync.subscription', ['name', 'inPartition', 'root']);
 
 /*
- * TODO support longpoll, should be pretty easy from now
  * LATER support websocket if available
  */

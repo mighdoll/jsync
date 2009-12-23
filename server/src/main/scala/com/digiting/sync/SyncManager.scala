@@ -20,7 +20,7 @@ import com.digiting.sync.aspects.Observable
 import com.digiting.sync.syncable._
 import com.digiting.util.Takeable
 import scala.util.DynamicVariable
-import net.liftweb.util.Log
+import net.lag.logging.Logger
 
 /**
  * Some handy interfaces for creating and fetching syncable objects
@@ -29,22 +29,32 @@ import net.liftweb.util.Log
  */
 object SyncManager {
   type Kind = String	// buys a little documentation benefit.. consider conversion to case class?
-  case class NewSyncableIdentity(val instanceId:String, val partition:Partition)
+  case class VersionedKind (val kind:Kind, val version:String)
+  val log = Logger("SyncManager")
   
-  var instanceCache = new InstancePool("SyncManager")
+  val instanceCache = new InstancePool("SyncManager")
   
   // prebuilt reflection tools, one for each $kind of Syncable
   val metaAccessors = mutable.Map.empty[Kind, ClassAccessor]
-
-  // unique id for creating new objects
-  var nextUniqueId:Int = 0
+  
+  // prebuilt reflection tools, one for each $kind of old Syncable (Migration)
+  val migrations = mutable.Map.empty[VersionedKind, ClassAccessor]
 
   // to force the id of the next created object (to instantiate remotely created objects)
-  var setNextId = new Takeable[NewSyncableIdentity]
+  val setNextId = new Takeable[SyncableIdentity]
   
   // default partition for new objects
-  var currentPartition = new DynamicVariable[Partition](new RamPartition("default1"))	
+  val currentPartition = new DynamicVariable[Partition](null)	
+
+  // don't register a creation change while this is true (so partitions can intantiate objects)
+  val quietCreate = new DynamicVariable[Boolean](false)
   
+  // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed
+  private var creatingFake = new DynamicVariable[Boolean](false);  
+  
+  // dummy partition for fake objects
+  private val fakePartition = new RamPartition("fake")
+
   reset()
 
   instanceCache.watchCommit(commitToPartitions)
@@ -52,40 +62,21 @@ object SyncManager {
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
     for (change <- changes) {
-      change match {
-        case CreatedChange(created) => 
-          val newObj = created.asInstanceOf[Syncable]
-          newObj.partition.put(newObj)
-        case p:PropertyChange =>
-          p.target.asInstanceOf[Syncable].partition.update(p)
-        case _ => 
-          // Log.info("commitToPartitions skipping change: " + change)
-      }
+      change.target.asInstanceOf[Syncable].partition.update(change)
     }
   }
   
   /** For testing, reset as if we'd just rebooted.  */
   def reset() {
-    currentPartition.value = new RamPartition("default")
+    currentPartition.value = null
     metaAccessors.clear
     registerSyncableKinds()
-    TestData.setup()
-    nextUniqueId = 0
     setNextId.set(None)
+    TestData.setup()
   }
   
-//  def newSyncable(kind:Kind, partitionId:String, instanceId:String):Option[Syncable]= {
-//    Partitions.get(partitionId) match {
-//      case Some(partition) => 
-//      	newSyncableIn(partition, instanceId, kind)
-//      case None => 
-//        Log.error("newSyncable(): partition not found: " + partitionId)
-//        None
-//    }      
-//  }
-
   /** untested.  create a local JsonMap for*/
-  private def constructLocalMapForSyncable(kind:Kind, ids:NewSyncableIdentity):Option[SyncableJson] = {
+  private def constructLocalMapForSyncable(kind:Kind, ids:SyncableIdentity):Option[SyncableJson] = {
     // handle case we're we don't have a server class registered 
     setNextId.withValue(ids) {
       val js = new SyncableJson()
@@ -95,13 +86,38 @@ object SyncManager {
   }
   
   /** construct a new syncable instance in the specified partition with the specified class*/
-  def newSyncable(kind:Kind, ids:NewSyncableIdentity):Option[Syncable] = {
+  def newSyncable(kind:Kind, ids:SyncableIdentity):Option[Syncable] = {
     metaAccessors.get(kind) match {
       case Some(meta) => 
-        constructSyncable(meta.theClass.asInstanceOf[Class[Syncable]], ids.partition, ids.instanceId)
+        constructSyncable(meta.theClass.asInstanceOf[Class[Syncable]], ids)
       case None =>
-        Log.error("no server class found for kind: " + kind)
-        constructLocalMapForSyncable(kind, ids)
+        log.error("no server class found for kind: " + kind)
+        constructLocalMapForSyncable(kind, ids)  // not currently tested or used
+    }
+  }
+    
+  /** construct a new syncable or migration.  
+   * does not send a creation notification to observers.
+   */
+  def newBlankSyncable(kind:Kind, kindVersion:String, ids:SyncableIdentity):Option[Syncable] = {
+    quietCreate.withValue(true) {
+      migrations get VersionedKind(kind, kindVersion) match {
+        case Some(meta) =>
+          constructSyncable(meta.theClass.asInstanceOf[Class[Syncable]], ids)
+        case _ =>  
+          newSyncable(kind,ids)
+      }
+    }
+  }
+  
+  def propertyAccessor(syncable:Syncable):ClassAccessor = {
+    propertyAccessor(syncable.kind)
+  }
+  
+  def propertyAccessor(kind:Kind):ClassAccessor = {
+    metaAccessors.get(kind) getOrElse {
+      log.error("accessor not found for kind: %s", kind)
+      throw new ImplementationError
     }
   }
 
@@ -109,21 +125,22 @@ object SyncManager {
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(partitionId:String, syncableId:String):Option[Syncable] = {    
-	instanceCache get(partitionId, syncableId) orElse {
+	  instanceCache get(partitionId, syncableId) orElse {
       val foundOpt = Partitions.get(partitionId) match {
         case Some(partition) => partition.get(syncableId) 
         case _ =>
-          Log.error("unexpected partition in Syncables.get: " + partitionId)
+          log.error("unexpected partition in Syncables.get: " + partitionId)
           None        
       }
       foundOpt map (instanceCache put _)	
       foundOpt
     }
+   
   }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
-  def get(ids:NewSyncableIdentity):Option[Syncable] = {
+  def get(ids:SyncableIdentity):Option[Syncable] = {
     instanceCache get(ids.partition.partitionId, ids.instanceId) orElse {
       ids.partition get ids.instanceId map {found =>
         instanceCache put found
@@ -132,62 +149,97 @@ object SyncManager {
     }
   }
 
-
   /** build a syncable with a specified Id */
-  private def constructSyncable(clazz:Class[Syncable], partition:Partition, instanceId:String):Option[Syncable] = {
-    setNextId.withValue(NewSyncableIdentity(instanceId, partition)) {
+  private def constructSyncable(clazz:Class[Syncable], ids:SyncableIdentity):Option[Syncable] = {
+    setNextId.withValue(ids) {
       Some(clazz.newInstance)
     }
   }
-    
-  private def registerKind(kind:Kind, clazz:Class[T] forSome {type T <: Syncable}) = {
-    metaAccessors + (kind -> SyncableAccessor.get(clazz))
+  
+  def registerKind(clazz:Class[_ <: Syncable]) = {
+    withFakeObject {  
+      val syncable:Syncable = clazz.newInstance  // make a fake object to read the kind field
+      val accessor = SyncableAccessor.get(clazz)
+      val kind = syncable.kind
+      syncable match {
+        case migration:Migration[_] =>
+          migrations += (VersionedKind(kind, migration.kindVersion) -> accessor)
+        case _ =>
+          metaAccessors += (kind -> accessor)          
+      }
+    }
+  }
+  
+  def registerKindsInPackage(clazz:Class[_ <: Syncable]) {
+    val classes = ClassReflection.collectClasses(clazz, classOf[Syncable])
+    classes foreach {syncClass =>
+      if (!syncClass.isInterface) {
+        log.trace("registering class %s", syncClass.getName)
+        registerKind(syncClass)
+      }
+    }
+  }
+  
+  /** run a function with the current partition temporarily set.  Handy for creating objects
+    * in a specified partition */
+  def withPartition[T](partition:Partition)(fn: =>T):T = {
+    currentPartition.withValue(partition) {
+      fn
+    }      
+  }
+  
+  def withFakeObject[T](fn: => T):T = {
+    try {
+      creatingFake.value = true
+      setNextId.withValue(SyncableIdentity("fake", fakePartition)) {
+        fn
+      }
+    } finally {
+      creatingFake.value = false;
+    }
   }
     
   private def registerSyncableKinds() {
-    /* manually for now, SOON search packages for all Syncable classes, and register them (use aspectJ search?) */
-    SyncManager.registerKind("$sync.subscription", classOf[Subscription])
-    SyncManager.registerKind("$sync.set", classOf[SyncableSet[_]])
-    SyncManager.registerKind("$sync.test.nameObj", classOf[TestNameObj])
-    SyncManager.registerKind("$sync.test.refObj", classOf[TestRefObj])
-    SyncManager.registerKind("$sync.test.twoRefsObj", classOf[TestTwoRefsObj])
-    SyncManager.registerKind("$sync.server.publishedRoot", classOf[PublishedRoot])
-    SyncManager.registerKind("$sync.test.paragraph", classOf[TestParagraph])
+    /* manually for now, SOON search packages for all Syncable classes, and register them */
+    SyncManager.registerKindsInPackage(classOf[Subscription])    
+    SyncManager.registerKindsInPackage(classOf[TestNameObj])
+    SyncManager.registerKindsInPackage(classOf[SyncableSet[_]])
   }
   
   /** copy a set of properities to a target syncable instance */
   def copyFields(srcFields:Iterable[(String, AnyRef)], target:Syncable) = {    
-    metaAccessors get target.kind match {
-      case Some(classAccessor) => 
-        for ((propName, value) <- srcFields) {
-          classAccessor.set(target, propName, value)
-        }
-      case None => Log.error("class accessor not found for kind: " + target.kind)
+    val classAccessor = SyncableAccessor.get(target.getClass)
+    for ((propName, value) <- srcFields) {
+      classAccessor.set(target, propName, value)
     }
   }
      
   /** create the identity for a new object */
-  def creating(syncable:Syncable):NewSyncableIdentity = {
-	setNextId.take() getOrElse NewSyncableIdentity(newSyncableId(), currentPartition.value)
+  def creating(syncable:Syncable):SyncableIdentity = {    
+	val id = setNextId.take() getOrElse SyncableIdentity(newSyncableId(), currentPartition.value)
+    log.trace("creating(): %s", id)
+    id
   }
   
   
   /** called when a new instance is created */
   def created(syncable:Syncable) {
-    instanceCache put syncable
-    // TODO put some logic here to not call created if the object was fetched from a partition
-    instanceCache created syncable
+    log.trace("created(): %s", syncable)
+    assert(syncable.partition != null)
+    if (!creatingFake.value) {
+      instanceCache put syncable
+      if (!quietCreate.value)
+        instanceCache created syncable
+    }
   }
   
   /** create a unique id for a new syncable */
   private def newSyncableId():String = {
-    // LATER this needs to be unique per partition
-    synchronized {
-    val id = "server-" + nextUniqueId
-	  nextUniqueId += 1
-      id
-    }
+    "s_" + RandomIds.randomUriString(32);
   }  
+  
 }
 
-
+case class SyncableIdentity(val instanceId:String, val partition:Partition) {
+  override def toString():String = instanceId + "/" + partition.partitionId
+}

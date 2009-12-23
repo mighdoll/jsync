@@ -1,0 +1,91 @@
+Welcome to jSync - transparent object replication over json
+
+This is a technology preview release -- you can see the api, peek at the code,
+and try some small test cases.
+
+Here's how to try it:
+$ mvn install
+$ cd server && mvn jetty:run
+$ firefox http://localhost:8080/jsync/test/tests.html
+
+Reading about jSync
+* See the doc directory for some early docs
+* The server code is in: server/src/main/scala/com/digiting/sync
+* The javascript code is in: server/src/main/webapp/jsync
+* Poke around, there are more comments in the code.
+
+----------------
+
+The goal is to enable easy-to-use object replication between
+loosely connected machines.  A browser and a server can share a pool
+of objects.  If the browser program makes a local change to any object
+in the pool, the change will propagate to the server.  And vice versa.
+
+What this enables:
+* Way simple persistence for javascript.  
+    Change a few lines and your javascript objects can flow to the server
+    and from there to MySQL or whatever.
+
+* Rich models
+    It's easy to communicate lots of different kinds of data and
+    relationships, which is especially handy for complex models and
+    rich clients.
+
+* Observation api.  
+    Use the observation api to do MVC/data binding style programming.  And 
+    then support for network delivered changes comes for free.
+
+A few key features: 
+* Transactions 
+    Related changes to objects are normally bundled into atomic groups.  
+    Changes are applied in bulk, so that programs don't see inconsistent state.
+
+* Syncable objects are normal objects... (ideally.)
+    In practice, a few compromises are required to make sync work in
+    javascript and scala.  The current javascript api requires a special
+    constructor syntax, and using setter functions (on old browsers).
+    The scala api is TBD, but may require goat herding skills.
+
+* Collections 
+    Starting with three mutable collections:  Set, Map, and LinkedList. 
+    
+* Asynchronous 
+    Neither the browser the server can afford to wait on the other.
+
+* Observation api 
+    Watch() any syncable object or collection for changes.
+    
+* Subscription api 
+    Pools of shared objects are identified by subscription root object.
+    The subscription contains every object referenced directly or
+    indirectly by the root object.
+
+* JSON protocol 
+    The current protocol sketch is simple and uses JSON, so it's trendy.
+    It's reasonably efficient too, in that only the changes to objects and
+    collections are sent.
+
+* Conflict notification, eventual consistency
+    Occasionally, two programs will change the same thing before
+    synchronization catches up.  It's important to detect the conflict
+    case to ensure that the two copies converge.  And although Thomas's
+    last one wins is usually fine, it's worth giving the program a chance
+    to try some fancier recovery.
+    
+
+Future:
+* Recovery 
+    Using other replicated stores to identify loss of sync and potentially
+    to bootstrap recovery.   e.g. if the browser crashes, use the server
+    to refresh.  If a server fails, detect whether the browser is in
+    sync with the replacement server.
+
+* Server to server
+    The design and protocol is pretty symmetric anyway, so it shouldn't
+    be too much work to support a server as a client of another server.
+
+* Pageable collections
+    Support for large collections on the server that are viewable by the
+    client section by section, but not copied in their entirety.  
+
+

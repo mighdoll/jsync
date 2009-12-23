@@ -19,7 +19,10 @@ import net.liftweb.util.Log
 import com.digiting.sync.aspects.Observable
 import Observers._
 
-
+object DeepWatchDebug {
+  var nextId = -1
+  def nextDebugId() = {nextId += 1; nextId}
+}
 /** 
  * Watch all observable objects referenced by this object or any of its connected set of references.  
  * Changes to objects in the connected set are reported to watchers, as are objects added or 
@@ -35,6 +38,7 @@ import Observers._
  */
 class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   private val connectedSet = mutable.Map[AnyRef, Int]()  // tracked observables and their reference counts
+  val debugId = DeepWatchDebug.nextDebugId()
  
   init()
   
@@ -65,10 +69,13 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   /** called when on one of the objects we're watching has changed */
   private def handleChanged(change:ChangeDescription):Unit = {	    
     change match {
-      case propChange:PropertyChange => 	// (SCALA - do we ever need brackets for case statements, no)
+      case propChange:PropertyChange => 	
         handlePropChange(propChange)
       case memberChange:MembershipChange => 
         handleMemberChange(memberChange)
+      case clearChange:ClearChange =>
+        handleClearChange(clearChange)
+      case m:MoveChange =>
     }
     
     // tell the client observer about this about this change
@@ -93,18 +100,25 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     }
   }
   
-  /** */
+  /** update references in response to change to collection membership */
   private def handleMemberChange(memberChange:MembershipChange) {
-    memberChange match {
-      case put:PutChange => addedRef(put.newValue.asInstanceOf[Syncable])
-      case remove:RemoveChange => removedRef(remove.oldValue.asInstanceOf[Observable])
-      case _ => 
-        Log.error("DeepWatch() unexpected membership change: " + memberChange)
-        throw new NotYetImplemented
+    if (memberChange.newValue != null)
+      addedRef(memberChange.newValue.asInstanceOf[Syncable])
+    if (memberChange.oldValue != null)
+      removedRef(memberChange.oldValue.asInstanceOf[Syncable])
+  }
+  
+  /** update references in response to clearing collection membership */
+  private def handleClearChange(clearChange:ClearChange) {
+    for (ref <- clearChange.members) {
+      ref match {
+        case syncableRef:Syncable => removedRef(syncableRef)
+        case _ =>
+      }
     }
   }
    
-  /* decrement reference counter for this object and every Observable it 
+  /** decrement reference counter for this object and every Observable it 
    * references.  If any object's reference counter drops to zero,
    * remove the object from the connectedSet of objects we observe */
   private def removedRef(ref:Observable) {
@@ -146,7 +160,7 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     Observers.watch(obj, handleChanged, this)   
     
     // generate a membership change to the connected set, and tell overyone
-    val change = new WatchChange(root, obj)
+    val change = new WatchChange(root, obj, this)
     fn(change)
     
     for (ref <- observableRefs(obj)) 
@@ -178,7 +192,9 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   
   override def finalize {  // LATER: consider some kind of loan wrapper approach
     Observers.unwatchAll(this)
-  }	  
+  }
+  
+  override def toString:String = "DeepWatch #" + debugId
 }
 
 /*

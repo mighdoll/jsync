@@ -40,8 +40,9 @@ $sync.changeDescription = function(changeType, target, params) {
       self.oldValue = params.oldValue;
     } else if (self.changeType == 'edit') {
       // LATER validate these parameters too
-      $sync.util.extend(self, params);      
+      $sync.util.extend(self, params);
     } else if (self.changeType == 'create') {
+	  // (no additional params to add)
     } else {
       $debug.fail("unexpected change type: " + self.changeType);
     }
@@ -71,9 +72,9 @@ $sync.changeDescription = function(changeType, target, params) {
  *   desc = { changeType: "edit",
  *            put: newElem }
  *
- * from sequence.insert(newElem);  or .put
+ * from sequence.insert(newElem);  
  *   desc = { changeType: "edit",
- *            insertAt: {key:101, elem:"foo" } }
+ *            insertAt: {index:101, elem:someObj } }
  *
  * from set.remove(newElem);
  *   desc = { changeType: "edit",

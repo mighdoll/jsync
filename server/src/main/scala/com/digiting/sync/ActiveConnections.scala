@@ -17,6 +17,8 @@ package com.digiting.sync
 import collection._
 import actors.Actor._
 import actors.Actor
+import net.lag.logging.Logger
+import RandomIds.randomUriString
 
 /**
  * Maintains a collection of active connections from clients to this
@@ -28,14 +30,17 @@ object ActiveConnections extends Actor {
   case class Get(connectionId:String)	// request message to get an existing connection
   case class Create()					// request message to create a new connection
   var createdCount = 0;
+  val log = Logger("ActiveConnections")
   
   val connections = new mutable.HashMap[String, Connection]	// currently active client connections 
   start
   
-  def findConnection(id:String):Connection = {
+  def get(id:String):Option[Connection]= {
     this !? Get(id) match {
-      case Some(connection:Connection) => connection
-      case None => throw new NotYetImplemented	// connection lost or expired, need to reset the client
+      case Some(connection:Connection) => Some(connection)
+      case _ => 
+      	log.debug("findConnection, can't find connection: %s", id)
+        None
     }
   }
   
@@ -59,7 +64,7 @@ object ActiveConnections extends Actor {
   /** create a new active connection */  
   private def create:Connection = {
     // LATER make this more unique across reboots.  e.g. serverForThisParititionCount-createdCount-randomId
-    val id = createdCount + "-" + secureRandomUriString(10) 
+    val id = createdCount + "-" + randomUriString(10) 
     createdCount += 1
     
     val connection = new Connection(id); 
@@ -69,32 +74,8 @@ object ActiveConnections extends Actor {
     val tokenMap = new JsonObject.MutableJsonMap
     tokenMap + ("#token" -> id)
     val message = new Message(tokenMap :: Nil)
-    connection.sendBuffer.unsafeQueueMessage(message) 
+    connection.putSendBuffer !? PutSendBuffer.PutAndReply(message) 
     connection
-  }
-
-  /** return a random string containing characters legal in uri parameter 
-   * the random number is not cryptographically strong */
-  import java.util.Random
-  private def insecureRandomUriString(length:Int):String = {
-    randomUriString(length, new Random)
-  }
-  
-  import java.security.SecureRandom
-  private def secureRandomUriString(length:Int):String = {
-    randomUriString(length, new SecureRandom)
-  }
-  
-  /** random character string, guaranteed not to include '-', '/' or '=' */
-  def randomUriString(length:Int, random:Random):String = {    
-    val legalChars = "1234567890abcdefghijklmnopqrstuvwxyaABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*(),"
-    val s = new StringBuilder
-    0 until length foreach { _ =>	
-      val dex = random.nextInt(legalChars.length)
-      val randomChar = legalChars.charAt(dex)
-      s append randomChar
-    }
-    s.toString
   }
 
   // LATER expire unused connections after awhile.

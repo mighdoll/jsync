@@ -26,6 +26,7 @@ var $sync = $sync || {};
  * description object.  See below for examples. 
  */
 $sync.observation = function() {
+  var log = $log.getLogger("$sync.observation");
   var deferred;
   var watchers; // map of watching functions, indexed by the
                 // id field of syncable objects, where each item
@@ -80,7 +81,7 @@ $sync.observation = function() {
      * that's been changed.  See changeDescription to see a description of the
      * changes. */
     watch: function(objOrArray, fn, owner) {    
-      $sync.util.optionalArray(objOrArray, function(target) {
+      $sync.util.each(objOrArray, function(target) {
         watchOne(target, fn, owner);
       });
     },
@@ -90,9 +91,9 @@ $sync.observation = function() {
     	
       /** called when the object is changed */
       function changed(change) {
-    	if (change.changeType === "property" && change.property === property) {
-    	  fn(change);
-    	}
+        if (change.changeType === "property" && change.property === property) {
+          fn(change);
+        }
       }
       
       self.watch(objOrArray, changed, owner);
@@ -115,13 +116,14 @@ $sync.observation = function() {
      * stop watching for changes
      */
     ignore: function(objOrArray, fnOrOwner) {
-      $sync.util.optionalArray(objOrArray, function(target) {
+      $sync.util.each(objOrArray, function(target) {
         ignoreOne(target, fnOrOwner);
-      });      
+      });
     },
     
     /** notify watchers that an object or collection has been changed */
     notify: function(target, changeType, changeParams) {
+//      log.debug("notify(): ", target, changeType, changeParams);
       if (!enabled) return;
       var notify, notifyAll;
       var callBacks = watchers[target.id];
@@ -131,7 +133,7 @@ $sync.observation = function() {
         // notify all watchers registered in the appropriate watchDB
         notifyAll = function() {
           callBacks.eachCheck(function(entry) {
-//            $debug.log("notify: " + target + "  changes:" + changes);
+//            $log.debug("notify: " + target + "  changes:" + changes);
             entry.func(changes);
           });
         };
@@ -214,11 +216,13 @@ $sync.observation = function() {
         str += "\t" + watcher.owner + ":" + watcher.call + "\n";
       });
       
-      $debug.log(str);
+      $log.log(str);
     }    
   };
   
   function watchOne(obj, fn, owner) {
+//    log.debug("watchOne: " + obj + " watcher: " + owner);
+    
     var watcherArray = watchers[obj.id];
     if (!watcherArray) {
       watcherArray = watchers[obj.id] = [];
@@ -234,8 +238,9 @@ $sync.observation = function() {
     if (watcherArray) {
       watchers[obj.id] = watcherArray.filter(function(entry) {
         if (entry.func === fnOrOwner ||
-        entry.owner === fnOrOwner) { return false; // matched, so remove from array
-   }
+        entry.owner === fnOrOwner) {
+          return false; // matched, so remove from array
+        }
         return true;
       });
     }

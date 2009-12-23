@@ -12,16 +12,13 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-/*
+
+/**
  *  Debug logging and assertions
- *
- *  LATER find an existing library to replace this one.
  */
 var $debug = (function() {
-  // Firebug and recent Safari, at least
-  var useNativeConsole = typeof window.console !== "undefined" && typeof console.log == 'function';
-  var $console; // HTML element to log to, when not using the native console
-  var messages = []; // messages queued before document load
+  var logger = $log.getLogger('jsync');
+
   var self = {
     assert: function(val, msg) {
       if (!val) {
@@ -30,67 +27,17 @@ var $debug = (function() {
       }
     },
     
-    fail: function(msg) {
-      self.log("FAIL: " + msg);
-      debugger;
-    },
+    logger: logger,
+
+    fail: logger.fail,
     
-    // init() installs code that replaces this once on document load
-    log: function(msg) {
-      messages.push(msg);
-    },
+    log: logger.log,
     
-    error: function(msg) {
-      self.log("ERROR: " + msg);
-    },
+    error: logger.error,
     
-    info: function(msg) {
-      self.log("INFO: " + msg);
-    },
+    info: logger.info,
     
-    warn: function(msg) {
-      self.log("WARN: " + msg);
-    }
+    warn: logger.warn
   };
-  
-  // if we're using the native console, delegate these to the console
-  var names = ['log', 'error', 'info', 'warn'];
-  for (var i = 0; i < names.length; i++) {
-    var name = names[i];
-    if (useNativeConsole) 
-      self[name] = function() {
-        console[name].apply(console, arguments);
-      }
-  }
-  if (window.location.search.match(/[?&]log=false/))
-    self.log = function() {}
-  
-  /* setup $debug.log() function.
-   *
-   * use firefox console if available,
-   * otherwise create a div named #console.
-   *
-   * LATER - log these to the server.
-   */
-  function initDivConsole() {
-    $console = $("#console");
-    if ($console.length === 0) {
-      $("body").append("<div id='console'></div>");
-      $console = $("#console");
-    }
-    self.log = logToDiv;
-    self.log("Console:");
-    while (messages.length) 
-      $debug.log(messages.shift())
-  }
-  
-  function logToDiv(msg) {
-    // FIXME escape for HTML
-    $console.append("<div>" + msg + "</div>");
-  };
-  
-  if (!useNativeConsole) 
-    $(document).ready(initDivConsole);
-  
   return self;
 })();

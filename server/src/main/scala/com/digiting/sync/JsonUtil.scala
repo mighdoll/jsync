@@ -16,11 +16,10 @@
 package com.digiting.sync
 
 import org.apache.commons.lang.StringEscapeUtils
-import _root_.net.liftweb.util.Log
 import _root_.net.liftweb.util.Empty
 import collection._	// CONSIDER importing mutable,immutable explicitly, watch out for wildcards, you might get implicits!
 import JsonObject._	// CONSIDER good style on SCALA placement: import types at the top, constants/methods near to the use
-
+import net.lag.logging.Logger
 
 // CONSIDER making JsonMap it's own class (no explicit conversions, type alias for immutable, someday immutable view of mutable class?, changing in 2.8...)
 object JsonObject {
@@ -42,6 +41,7 @@ object ImmutableJsonMap {
  * 
  */
 object JsonUtil {  
+  val log = Logger("JsonUtil")
   /** utility function for type casting a parsed json object from JSONParser.parse.
    * the top level object is either List or a Map depending on whether the
    * json was a javascript object or an array.  
@@ -51,8 +51,8 @@ object JsonUtil {
     parsedJson match {
       case list:List[_] => arrayFn(list)        
       case map:Map[_,_] => objFn(map.asInstanceOf[Map[String,Any]])
-      case unexpected =>  Log.error("unexpected value in parsed Json: " + unexpected)        
-    }      
+      case unexpected =>  log.error("unexpected value in parsed Json: " + unexpected)        
+    }
   }
   
   def jsonValueToString(value:Any) = {
@@ -67,21 +67,11 @@ object JsonUtil {
     value match {
       case d:Double => d.intValue
       case s:String => java.lang.Integer.parseInt(s)
-      case _ => Log.error("unexpected json value, hard to make into an Int: " + value); 0
+      case _ => log.error("unexpected json value, hard to make into an Int: " + value); 0
     }
   }
   
-  /** translate primitive value objects parsed from json into reference objects (subclasses of AnyRef) */
-  def sanitizeJsonValue(value:Any):AnyRef = {
-    value match {
-      case Empty => null     // null is parsed as Empty
-      case d:Double => new java.lang.Double(d)
-      case s:String => s
-      case _ => 
-        Log.error("received unexpected value type in JSON: " + value); null
-    }
-  }
-    
+  
   private def quote(str:String) = "\"" + str + "\""
 
   private def spaces(count:Int):String = {
@@ -91,7 +81,7 @@ object JsonUtil {
   }
   
   /** write a jsonMap out as a json string */
-  def toJson(jsonMap:JsonMap, indent:Int):String = {
+  def toJson(jsonMap:JsonMap, indent:Int, oneLine:Boolean):String = {
     val json = new StringBuilder()
     val space = spaces(indent)
     val startSpace = spaces(indent - 1)
@@ -107,15 +97,25 @@ object JsonUtil {
         first = false
         
       json append quote(name) + ":" + toJsonValue(value)
-      if (iter.hasNext)
-        json append ",\n"
+      if (iter.hasNext) {
+        val separator = 
+          if (oneLine)
+            " "
+          else 
+            ",\n"  
+        json append separator
+      }
     }
     json append "}"
     json.mkString    
   }
   
+  def toJsonOneLine(jsonMap:JsonMap):String = {
+    toJson(jsonMap, 0, true)
+  }
+  
   def toJson(jsonMap:JsonMap):String = {
-    toJson(jsonMap, 0)
+    toJson(jsonMap, 0, false)
   }
 
   
@@ -146,4 +146,18 @@ object JsonUtil {
     }
   }
   
+}
+
+
+/** translate primitive value objects parsed from json into reference objects (subclasses of AnyRef) */
+object PrimitiveJsonValue {
+  def unapply(any:Any):Option[AnyRef] = {
+    any match {
+      case Empty => Some(null)     // null is parsed as Empty
+      case d:Double => Some(new java.lang.Double(d))
+      case s:String => Some(s)
+      case _ => None
+    }    
+  }
+
 }

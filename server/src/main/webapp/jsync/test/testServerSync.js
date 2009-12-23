@@ -6,14 +6,13 @@ $sync.test = $sync.test || {};
 test("sync.connect", function() {
   var connection;
   function begin() {
-    connection = $sync.connect("http://localhost:8080/sync/test", {
+    connection = $sync.connect("/sync", {
       connected: connected
     });
     stop();
   }
   
   function connected() {
-    console.log("test-connected");
     ok(connection.isConnected());
     $sync.manager.reset();
     start();
@@ -27,24 +26,11 @@ test("sync.connect", function() {
 test("sync.subscribe.oneName", function() {
   var connection;
   
-  function begin() {
-    connection = $sync.connect("http://localhost:8080/sync/test", {
-      connected: connected
-    });
-    stop();
-  }
-  
-  function connected() {
-    connection.subscribe("oneName", "test", function(oneName) {
-      ok(oneName.name === "emmett");
-      $sync.manager.reset();
-      start();
-    });
-    $sync.manager.commit();
-  }
-  
   expect(1);
-  begin();
+  withTestSubscription("oneName", function(oneName) {
+    ok(oneName.name === "emmett");
+  });
+  
 });
 
 /** downloads a set from the server */
@@ -53,7 +39,7 @@ test("sync.subscribe.oneSet", function() {
   var foundMercer = false;
 
   function begin() {
-    connection = $sync.connect("http://localhost:8080/sync/test", {
+    connection = $sync.connect("/sync", {
       connected: connected
     });
     stop();
@@ -82,113 +68,40 @@ test("sync.subscribe.oneSet", function() {
  */
 test("sync.modifyOneName", function() {
   var uniqueName = "time-" + $sync.util.now();
-  var connection, connection2;
-  
-  function begin() {
-    connection = $sync.connect("http://localhost:8080/sync/test", {
-      connected: connected
-    });
-    stop();
-  }
-  
-  function connected() {
-    connection.subscribe("modifyOneName", "test", function(named) {
-      // modify the name and send it to the server
-      named.name_(uniqueName);
-      $sync.manager.commit();
-	  
-	  // clear everything, as if the user has logged out and is logging back in
-      $sync.manager.reset();  
-      
-      // reconnect and see that it's modified
-      connection2 = $sync.connect("http://localhost:8080/sync/test", {
-        connected: connected2
-      });
-      
-    });
-    $sync.manager.commit();
-  }
-  
-  function connected2() {
-    connection.subscribe("modifyOneName", "test", function(named2) {
-      if (named2.name === uniqueName) {
-        ok(named2.name === uniqueName);
-        $sync.manager.reset();
-        start();
-      }
-      else {
-        // our re-subscription may have our previous modification, so watch until it changes
-        $sync.observation.watch(named2, function() {
-          ok(named2.name === uniqueName);
-          $sync.manager.reset();
-          start();
-        });
-      }
-    });
-    $sync.manager.commit();
-  }
-  
+
   expect(1);
-  begin();
+  withTestSubscription("modifyOneName", modify, undefined, verify);
   
+  function modify(named) {
+    // modify the name and send it to the server
+    named.name_(uniqueName);
+  }
+  
+  function verify(named2) {
+	ok(named2.name === uniqueName);
+  }
 });
 
 
 /** subscribe and then modify a server set, server makes modification too, 
- * client reconnects and sees both client and server objects in the set. */
+ * client sees both client and server objects in the set. */
 test("sync.bothModifyTwoSet", function() {
   var uniqueName = "time-" + $sync.util.now();
   var connection, connection2;  
   var ourName;
-    
-  function begin() {
-    connection = $sync.connect("http://localhost:8080/sync/test", {
-      connected: connected
-    });
-    stop();
-  }
   
-  function connected() {
-    connection.subscribe("twoSet", "test", function(twoSet) {
-      $sync.manager.setDefaultPartition("test");
-	  ourName = $sync.test.named();
+  expect(3);
+  withTestSubscription("twoSet", modify, undefined, verify);
+  
+  function modify(twoSet) {
+	  ourName = $sync.test.nameObj();
 	  ourName.name_(uniqueName);	
 	  	
       // modify the name and send it to the server
 	  twoSet.clear();
       twoSet.put(ourName);
-      $sync.manager.commit();
-	  
-	  // clear everything, as if the user has logged out and is logging back in
-	  connection.close();
-      $sync.manager.reset();  
-      
-      // reconnect and see that it's modified
-      connection2 = $sync.connect("http://localhost:8080/sync/test", {
-        connected: connected2
-      });
-      
-    });
-    $sync.manager.commit();	// commit the subscription
   }
-  
-  function connected2() {
-    connection.subscribe("twoSet", "test", function(twoSet) {
-      if (twoSet.size() > 1) {
-	  	verify(twoSet);
-		finish();
-      }
-      else {
-        // our subscription may have outraced our modification, so watch until it changes
-        $sync.observation.watch(twoSet, function() {
-		  verify(twoSet);
-		  finish();
-        });
-      }
-    });
-    $sync.manager.commit();	// commit the subscription
-  }
-  
+    
   function verify(twoSet) {
 	var foundSelf, foundServerChange;
 	
@@ -203,14 +116,29 @@ test("sync.bothModifyTwoSet", function() {
     });
     ok(foundSelf);
     ok(foundServerChange);
+  }    
+});
+
+/** modify an object reference and add a new object containing a reference
+ *  on both cliet and server */
+test("sync.modifyReference", function() {
+  expect(2);
+  var newRef;
+
+  withTestSubscription("modifyReference", modify, changed);
+  
+  function modify(root) {
+  	newRef = $sync.test.refObj();
+	newRef.ref_(root);
+  	root.ref_(newRef);
   }
   
-  function finish() {
-    $sync.manager.reset();
-    start();  	
+  function changed(changed) {
+  	var root = changed.target;
+    // verify that server inserts an element
+  	ok(root.ref.ref === newRef);
+  	ok(root.ref.ref.ref === root);
   }
   
-  expect(3);
-  begin();  
 });
 

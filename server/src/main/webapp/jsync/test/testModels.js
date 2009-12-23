@@ -16,8 +16,28 @@
 $sync = $sync || {};
 $sync.test = $sync.test || {};
 
-$sync.test.named = $sync.manager.defineKind("$sync.test.nameObj", ['name']);
-$sync.test.referenced = $sync.manager.defineKind("$sync.test.refObj", ['ref']);
-$sync.test.valued = $sync.manager.defineKind("$sync.test.valueObj", ['value']);
-$sync.test.paragraph = $sync.manager.defineKind("$sync.test.paragraph", ['text']);
+//$sync.test.named = $sync.manager.defineKind("$sync.test.nameObj", ['name']);
+//$sync.test.referenced = $sync.manager.defineKind("$sync.test.refObj", ['ref']);
+//$sync.test.valued = $sync.manager.defineKind("$sync.test.valueObj", ['value']);
+//$sync.test.paragraph = $sync.manager.defineKind("$sync.test.paragraph", ['text']);
 
+test("defineKind.kind", function() {
+  $sync.manager.setDefaultPartition("test");
+  expect(1);
+  var obj = $sync.test.nameObj();
+  ok(obj.kind == "$sync.test.nameObj");
+});
+
+test("defineKind.kindPrototype", function() {
+  var kind = $sync.test.nameObj;
+  $.extend(kind.kindPrototype, {
+    fn1: function() { return 1 },
+    fn2: function() { return 2 },
+  });
+
+  var obj = kind();
+
+  expect(2);
+  ok(obj.fn1() == 1);
+  ok(obj.fn2() == 2);
+});

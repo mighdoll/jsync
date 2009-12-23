@@ -16,6 +16,7 @@ package com.digiting.sync
 
 import collection._
 import com.digiting.sync.aspects.Observable
+import net.lag.logging.Logger
 
 /**
  * SyncableCollections are wrappers over collections with extensions to
@@ -33,7 +34,7 @@ trait SyncableCollection extends Syncable {
   override def equals(other:Any):Boolean = {
     other match {
       case null => false
-      case s:SyncableSet[_] => s eq this
+      case collection:SyncableCollection => collection eq this
       case _ => false
     }
   }
@@ -43,22 +44,33 @@ trait SyncableCollection extends Syncable {
 }
 
 class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
+  val log = Logger("SyncableSet")
   def kind = "$sync.set"  
   val set = new mutable.HashSet[T] 
   
   def -=(elem:T) = {
-    Observers.notify(new RemoveChange(this, elem));
     set -= elem
+    Observers.notify(new RemoveChange(this, elem));
   }
   
   def +=(elem:T) = {
-    Observers.notify(new PutChange(this, elem));
     set += elem
+    val putChange = PutChange(this,elem)
+    log.trace("put: %s", putChange)
+    Observers.notify(putChange);
   }
   
+
+
   def contains(elem:T) = set contains elem
   def size = set size
   def elements = set elements
+    
+  override def clear() = {
+    val cleared = syncableElements.toList
+    set.clear();
+    Observers.notify(new ClearChange(this, cleared));
+  }
 
   def syncableElements:Seq[Syncable] = {
     val list = new mutable.ListBuffer[Syncable]
@@ -74,10 +86,62 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
 
 /** a collection of objects in sequential order.  
  * 
- * Internally, the elements are each assigned a sort key.  
+ * Not too worried about the API for now, this changes with scala 2.8
  */
-class SyncableSequence extends Syncable {
+class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def kind = "$sync.sequence"
+  val list = new mutable.ArrayBuffer[T]
+  
+  def syncableElements:Seq[Syncable] = {
+    list.clone
+  }
+  
+  def insert(index:Int, elem:T) = {
+    list.insert(index, elem)
+    Observers.notify(new InsertAtChange(this, elem, index))
+  }
+  
+  def remove(index:Int) = {
+    val origValue = list(index)
+    list.remove(index)
+    Observers.notify(new RemoveAtChange(this, index, origValue))    
+  }
+  
+  def toStream = list.toStream
+  
+  def length = list.length
+  def apply(index:Int) = list.apply(index)  
+  def first = list.first
+  def last = list.last
+  def firstOption = list.firstOption
+  def lastOption = list.lastOption  
+  def clear() = {
+    val cleared = syncableElements.toList
+    list.clear();
+    Observers.notify(new ClearChange(this, cleared));
+  }
+  
+  def map[C](fn: (T)=> C):Seq[C] = list.map(fn)
+  
+  def zipWithIndex:Array[(T,Int)]= {
+    var i = 0
+    val buf = new mutable.ArrayBuffer[(T,Int)]
+    while (i < list.size) {
+      buf += (list(i), i)
+      i += 1
+    }
+    buf.toArray
+  }
+  
+  def +=(elem:T) = insert(length, elem)
+  def ++=(toAdd:Iterable[T]) = toAdd map (this += _)
+  
+  def move(fromDex:Int, toDex:Int) {
+    val elem = list(fromDex)
+    list.remove(fromDex)
+    list.insert(toDex, elem)            
+    Observers.notify(new MoveChange(this, fromDex, toDex))
+  }
 }
 
 /** A collection of syncable objects */
@@ -87,13 +151,13 @@ class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
   
 
   def -=(key:A) = {
-    Observers.notify(new RemoveMapChange(this, key, get(key)))
     map -= key
+    Observers.notify(new RemoveMapChange(this, key, get(key)))
   }
   
   def update(key:A, value:B) = {
-    Observers.notify(new UpdateMapChange(this, key, value))
     map.update(key, value)
+    Observers.notify(new UpdateMapChange(this, key, value))
   }
   
   def get(key:A):Option[B] = map get key

@@ -1,6 +1,70 @@
+/*   Copyright [2009] Digiting Inc
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ */
 package com.digiting.sync
+import java.security.SecureRandom
 
+class ProtocolException(message:String) extends Exception(message) {
+  def this() = this("")
+}
 
-class ProtocolException extends Exception 
-class NotYetImplemented extends Exception
-class ImplementationError extends Exception
+class NotYetImplemented(message:String) extends Exception(message) {
+  def this() = this("")
+}
+
+class ImplementationError(message:String) extends Exception(message) {
+  def this() = this("")
+}
+
+object RandomIds {
+  val random = new SecureRandom
+  
+  /** random string using characters legal in a URI, and not using 
+   *  _, !, or ' which we reserve even though they are legal URI characters
+   * Approximately 6 bits of randomness per character
+   */
+  def randomUriString(length:Int):String = {    
+    val legalChars = 
+      "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~*().-"
+    val s = new StringBuilder
+    0 until length foreach { _ =>	
+      val dex = random.nextInt(legalChars.length)
+      val randomChar = legalChars.charAt(dex)
+      s append randomChar
+    }
+    s.toString
+  }
+  
+}
+
+object StringUtil {
+  def firstLine(s:String) = {
+    s.lines.take(1).mkString    
+  }
+}
+
+object TryCast {
+  /** try doing a cast at runtime.  Note this is slower than compile time match tests.  */
+  def tryCast[T](instance:Any, clazz:Class[T]):Option[T] = {
+    instance match {
+      case ref:AnyRef if clazz.isAssignableFrom(ref.getClass) => 
+        Some(ref.asInstanceOf[T])
+      case _ => None
+    }
+  }
+  
+  /** cast Option[Any] to Option[String] */
+  def toSomeString(option: Option[Any]):Option[String] =
+    option flatMap (_ match { case s:String => Some(s) })  
+}

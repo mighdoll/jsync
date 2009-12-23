@@ -27,6 +27,30 @@ class Subscription extends Syncable {
   var root:Syncable = _
 }
 
-class SyncableJson extends Syncable {
+class SyncableJson extends Syncable with LocalOnly {
   var kind = "syncableJson-overrideMe"	
+}
+
+class StringParameter extends Syncable {
+  val kind = "$sync.stringParameter"
+  var string:String = _
+}
+
+class ServiceCall extends Syncable {
+  val kind = "$sync.serviceCall"
+  var parameters:SyncableSeq[_ <: Syncable] = _   
+  var results:Syncable = _
+  
+  def arguments(method:java.lang.reflect.Method):Seq[AnyRef] = {
+    parameters.map { parameterFromMessage(_) }    
+  }
+  
+  private def parameterFromMessage(param:Syncable):AnyRef = {
+    param match {
+      case s:StringParameter =>
+        s.string
+      case _ =>
+        param;
+    }
+  }
 }

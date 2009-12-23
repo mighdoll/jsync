@@ -12,11 +12,11 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-var testSync = testSync ||
-{};
+var testSync = testSync || {};
 
 test("createSyncable", function() {
-  var obj = $sync.test.named();
+  $sync.manager.setDefaultPartition("test");
+  var obj = $sync.test.nameObj();
   
   ok(obj.id);
   ok(obj.kind === "$sync.test.nameObj");
@@ -29,13 +29,14 @@ test("createSyncable", function() {
 });
 
 test("$sync.manager.update", function() {
+  $sync.manager.setDefaultPartition("test");
   var obj;
   
   $sync.manager.withNewIdentity({
     partition: "test",
     id: 10
   }, function() {
-    obj = $sync.test.named({
+    obj = $sync.test.nameObj({
       name: "bar"
     });
   });
@@ -57,6 +58,7 @@ test("$sync.manager.update", function() {
 
 
 test("json-sync.$sync.set", function() {
+  $sync.manager.setDefaultPartition("test");
   var sub, connection, count = 0;
   
   function init() {
@@ -226,12 +228,13 @@ test("json-sync.$ref", function() {
 });
 
 test("json-sync.send-obj", function() {
+  $sync.manager.setDefaultPartition("test");
   var leonardo, subscriptions, connection, obj, out;
   
   connection = $sync.connect(null, {
     testMode: true
   });
-  obj = $sync.test.named({
+  obj = $sync.test.nameObj({
     name: "Leonardo"
   });
   $sync.manager.commit();
@@ -248,17 +251,17 @@ test("json-sync.send-obj", function() {
   ok(leonardo.id === obj.id);
   ok(leonardo.kind === obj.kind);
   
-  subscriptions = out.eachCheck(function(elem) {
-    if (elem.id === "#subscriptions") 
+  subscriptions = $sync.util.arrayFind(out, function(elem) {
+    if (elem.id === "subscriptions") 
       return elem
-    return null;
+    return undefined;
   });
-  ok(subscriptions);
+  ok(subscriptions === undefined);
   $sync.manager.reset();
 });
 
 test("json-sync.receive-out-of-order", function() {
-  var connection, sub, testObj;
+  $sync.manager.setDefaultPartition("test");
   
   connection = $sync.connect(null, {
     testMode: true

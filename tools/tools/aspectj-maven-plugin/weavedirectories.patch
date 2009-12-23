@@ -1,0 +1,214 @@
+Index: src/main/java/org/codehaus/mojo/aspectj/AbstractAjcCompiler.java
+===================================================================
+--- src/main/java/org/codehaus/mojo/aspectj/AbstractAjcCompiler.java	(revision 7500)
++++ src/main/java/org/codehaus/mojo/aspectj/AbstractAjcCompiler.java	(working copy)
+@@ -31,6 +31,7 @@
+ import java.util.List;
+ import java.util.Set;
+ 
++import org.apache.commons.lang.StringUtils;
+ import org.apache.maven.artifact.Artifact;
+ import org.apache.maven.artifact.ArtifactUtils;
+ import org.apache.maven.artifact.handler.ArtifactHandler;
+@@ -63,7 +64,7 @@
+     /**
+      * List of ant-style patterns used to specify the aspects that should be included when 
+      * compiling. When none specified all .java and .aj files in the project source directories, or
+-     * directories spesified by the ajdtDefFile property are included.
++     * directories specified by the ajdtDefFile property are included.
+      * 
+      * * @parameter
+      */
+@@ -390,8 +391,12 @@
+             ajcOptions.add( "-warn:" + warn );
+         }
+ 
+-        // Add artifacts to weave
+-        addModulesArgument( "-inpath", ajcOptions, weaveDependencies, null, "a dependency to weave" );
++        // Add artifacts or directories to weave
++        String joinedWeaveDirectories = null;
++        if (weaveDirectories != null) {
++        	joinedWeaveDirectories = StringUtils.join(weaveDirectories, File.pathSeparator);
++        }
++        addModulesArgument( "-inpath", ajcOptions, weaveDependencies, joinedWeaveDirectories, "dependencies and/or directories to weave" );
+ 
+         // Add library artifacts 
+         addModulesArgument( "-aspectpath", ajcOptions, aspectLibraries, getAdditionalAspectPaths(), "an aspect library" );
+Index: src/main/java/org/codehaus/mojo/aspectj/AbstractAjcMojo.java
+===================================================================
+--- src/main/java/org/codehaus/mojo/aspectj/AbstractAjcMojo.java	(revision 7500)
++++ src/main/java/org/codehaus/mojo/aspectj/AbstractAjcMojo.java	(working copy)
+@@ -33,7 +33,7 @@
+  * The base class.
+  * 
+  * @author Juraj Burian
+- * @version $Revision:$ by $Author:$
++ * @version $Revision$ by $Author$
+  */
+ abstract public class AbstractAjcMojo extends AbstractMojo
+ {
+@@ -60,6 +60,14 @@
+      * @parameter
+      */
+     protected Module[] weaveDependencies;
++    
++    /**
++     * List of of directories with .class files to weave (into target directory).
++     * Corresponds to ajc -inpath option .
++     * 
++     * @parameter
++     */
++    protected String[] weaveDirectories;
+ 
+     /**
+      * Weave binary aspects from the jars. 
+Index: src/site/site.xml
+===================================================================
+--- src/site/site.xml	(revision 7500)
++++ src/site/site.xml	(working copy)
+@@ -18,7 +18,8 @@
+          <item name="Seperate test/compile settings" href="./differentTestAndCompile.html"/>
+          <item name="Using includes/excludes" href="./includeExclude.html"/>
+          <item name="Using with AJDT" href="./usingTogetherWithAJDT.html"/>
+-         <item name="Weaving jars" href="./weaveJars.html"/>
++         <item name="Weaving classes in jars" href="./weaveJars.html"/>
++         <item name="Weaving classes in directories" href="./weaveDirectories.html"/>
+          <item name="Using aspect libraries" href="./libraryJars.html"/>
+          <item name="Configuring Report" href="./usingReport.html"/>
+          <item name="AspectJ home" href="http://aspectj.org"/>
+Index: src/site/apt/includeExclude.apt
+===================================================================
+--- src/site/apt/includeExclude.apt	(revision 7500)
++++ src/site/apt/includeExclude.apt	(working copy)
+@@ -1,8 +1,8 @@
+ Using includes/excludes
+ 
+-  The AspectJ plugin will by default add all .java and .aj files in the
+-  project sourcedirectories. Below you will find an example of how
+-  to add a include/excludefiltering on top of that.
++  The AspectJ plugin will by default compile and weave all .java and .aj files in the
++  project source directories. Below you will find an example of how  to add a include/exclude
++  filtering on top of that.
+   
+ +------------------------------------------+
+ <project>
+Index: src/site/apt/usage.apt
+===================================================================
+--- src/site/apt/usage.apt	(revision 7500)
++++ src/site/apt/usage.apt	(working copy)
+@@ -1,9 +1,9 @@
+ Usage
+ 
+-  This plugin weaves aspectJ aspects with your classes using the AspectJ ajc compiler.
+-  Please do remember to add aspectjrt dependency to your project. aspectj needs it to weave
+-  and ultimatly to run your code. to have it compile aspects found in your project source directories
+-  simply use the configuration below
++  This AspectJ plugin weaves AspectJ aspects with your classes using the AspectJ ajc compiler.
++  Please do remember to add aspectjrt dependency to your project. AspectJ needs it to weave
++  and ultimatly to run your code. To have it compile aspects found in your project source directories
++  simply use the configuration below.
+   
+ +------------------------------------------+
+ <project>
+Index: src/site/apt/usingTogetherWithAJDT.apt
+===================================================================
+--- src/site/apt/usingTogetherWithAJDT.apt	(revision 7500)
++++ src/site/apt/usingTogetherWithAJDT.apt	(working copy)
+@@ -1,6 +1,6 @@
+ Using together with AJDT
+ 
+-  To use together with AJDT you simply spesify the ajdtBuildDefFile property to point to the
++  To use together with AJDT you simply specify the ajdtBuildDefFile property to point to the
+   build.ajproperties generated by AJDT.
+   The use of this property will override the use of the project source folders.
+   Any include or exclude elements in the pom are also disregarded.
+Index: src/site/apt/weaveDirectories.apt
+===================================================================
+--- src/site/apt/weaveDirectories.apt	(revision 0)
++++ src/site/apt/weaveDirectories.apt	(revision 0)
+@@ -0,0 +1,37 @@
++Weaving already compiled classes  
++
++  AspectJ gives a possibility to weave already compiled classes in a folder.
++  In order to do this with the AspectJ plugin you need to specify the folder(s)
++  with the compiled classes via <weaveDirectories> and execute the plugin after
++  the java compiler plugin has been run (life cycle phase "process-class" or later).
++
+++------------------------------------------+
++<project>
++    ...
++    ...
++    <build>
++        <plugins>
++            <plugin>
++                <groupId>org.codehaus.mojo</groupId>
++                <artifactId>aspectj-maven-plugin</artifactId>
++                <configuration>
++					<weaveDirectories>
++						<weaveDirectory>${project.build.directory}/classes</weaveDirectory>
++					</weaveDirectories>
++                </configuration>
++                <executions>
++                    <execution>
++                        <goals>
++                            <goal>compile</goal>
++                        </goals>
++						<!-- Compile and weave aspects after all classes compiled by javac -->
++						<phase>process-classes</phase>
++                    </execution>
++               </executions>
++           </plugin>
++           ...
++       </plugins>in
++   <build>
++...
++</project>
+++------------------------------------------+
+Index: src/site/apt/weaveJars.apt
+===================================================================
+--- src/site/apt/weaveJars.apt	(revision 7500)
++++ src/site/apt/weaveJars.apt	(working copy)
+@@ -1,7 +1,7 @@
+ Weaving already compiled jar artifacts  
+ 
+   AspectJ gives a possibility to weave already compiled classes in a jar file.
+-  In order to do this with the AspectJ plugin you need do setup all the jar
++  In order to do this with the AspectJ plugin you need to setup all the jar
+   files you would like to weave in the plugin configuration as shown below.
+   Note. The artifact you reference must exist as dependencies in the module.
+   
+Index: src/test/java/org/codehaus/mojo/aspectj/AbstractAjcCompilerTest.java
+===================================================================
+--- src/test/java/org/codehaus/mojo/aspectj/AbstractAjcCompilerTest.java	(revision 7500)
++++ src/test/java/org/codehaus/mojo/aspectj/AbstractAjcCompilerTest.java	(working copy)
+@@ -144,6 +144,30 @@
+     }
+     
+     /**
++     * Tests if modules told to weave classes that are found in directories.
++     * @throws Exception
++     */
++    public void testGetAjcArguments_weaveDirectories()
++    throws Exception
++    {
++    	String dir1 = "target/classes1";
++    	String dir2 = "target/classes2";
++        ajcCompMojo.weaveDirectories = new String[] { dir1, dir2 };
++        ajcCompMojo.assembleArguments();
++        List args = ajcCompMojo.ajcOptions;
++        assertTrue( args.contains( "-inpath" ) );
++        Iterator it = args.iterator();
++        while ( !it.next().equals( "-inpath" ) )
++        {
++            // don't do nothing
++        }
++        String weavePath = (String) it.next();
++        assertTrue( weavePath.indexOf( File.pathSeparator ) != -1 );
++        assertTrue( weavePath.indexOf( dir1 ) != -1 );
++        assertTrue( weavePath.indexOf( dir2 ) != -1 );
++    }
++    
++    /**
+      * Verifies that if not stated no -aspectpath argument should
+      * be found in the ajc arguments
+      * {@link AbstractAjcCompiler#execute()}

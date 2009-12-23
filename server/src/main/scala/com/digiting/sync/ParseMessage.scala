@@ -41,6 +41,38 @@ object ParseMessage {
     message
   }  
 
+  object ProtocolTransaction {
+    def unapply(json:Map[String,Any]):Option[Int] = {
+      for (num <- json get "#transaction")
+        yield jsonValueToInt(num)           
+    }
+  }
+  
+  object ProtocolEdit {
+    def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
+       json get "#edit" match {
+         case Some(m:Map[_,_]) => Some(json)
+         case Some(b) => Log.error("unexpected value of #edit: "  + json); None
+         case _ => None
+       }
+    }
+  }
+  
+  object ProtocolControl {
+    def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
+      json find { 
+    	case(name:String,value) => name.charAt(0) == '#'
+        } map { _ => 
+          json  
+       }
+    }
+  }
+  
+  object ProtocolSync {
+    def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
+	  json get "id" map {_ => json}
+    } 
+  }
   
   /** pull out the parts of the json transaction message  */
   private def parseJsonMessageBody(elems:List[_]):Option[Message] = {
@@ -54,26 +86,13 @@ object ParseMessage {
   	// SOON (scala) -- change this to use ProtocolComponent subclasses e.g. TransactionProtocolComponent, EditProtocolComponent.  Use unapply and pattern matching..
     elems foreach {json => processJson(json)
       {jsonArray => Log.error("protocol error: sync protocol messages should not have nested json arrays")}
-      {jsonObj => {
-        { jsonObj get "#transaction" map { number => 
-        	xactNumber = Some(jsonValueToInt(number)) 
-          } 
-        } orElse {
-          jsonObj get "#edit" map {_ => 
-            edits + jsonObj; 
-          }               
-        } orElse {
-          jsonObj find { case(name:String,value) =>
-            name.charAt(0) == '#'
-          } map { _ => 
-            controls + jsonObj  
-          }
-          // SCALA: map returns None if the find returns None, so orElse works.
-        } orElse {
-          jsonObj get "id" map {_ => syncs + jsonObj}
-        } orElse {
+      {jsonObj => jsonObj match {
+        case ProtocolTransaction(num) => xactNumber = Some(num)
+        case ProtocolEdit(edit) => edits + edit
+        case ProtocolControl(ctl) => controls + ctl
+        case ProtocolSync(sync) => syncs + sync
+        case _ =>
           Log.error("protocol error: unexpected object received: " + jsonObj); None
-        }
       }}
     }
     

@@ -14,73 +14,81 @@
  */
 package com.digiting.sync
 
-import _root_.net.liftweb.util._
+import _root_.net.liftweb.util.Box
+import _root_.net.liftweb.util.Full
 import _root_.net.liftweb.http._
 import collection._
 import ActiveConnections._
+import net.lag.logging.Logger
+import scala.actors.Actor
 
 /**
  * Hooks to connect sync procesing to Lift http requests
  */
 object SyncRequestApi {
+  val log = Logger("SyncRequestApi")
   /** attach to the stateful dispatch */
   def dispatch:PartialFunction[Req, () => Box[LiftResponse]] = {
-    case req @ Req("sync" :: partition :: Nil, _, PostRequest) =>
-      () => sync(req, partition)
+    case req @ Req("sync" :: Nil, _, PostRequest) =>
+      () => sync(req)
+    case req @ Req("admin" :: "sync" :: Nil, _, PostRequest) =>
+      () => sync(req)
+    case Req("generatedModels" :: Nil, _, GetRequest) =>
+      () => jsModels
+  }
+  
+  private def error[T](message:String, params:String*):Option[T] = {
+    log.error(message, params:_*)
+    None
+  }
+  
+  private def jsModels:Box[LiftResponse] = {
+    val js = JavascriptModels.generate
+    
+    Full(InMemoryResponse(js.getBytes, 
+      ("Content-Type" -> "application/x-javascript") :: Nil, Nil, 200))
+  }
+  
+  import com.digiting.sync.ResponseManager.AwaitResponse
+  private def takeResponse(app:AppContext):Option[String] = {
+    val response = app.responses !? AwaitResponse(app.connection.debugId)
+    Some(response.asInstanceOf[String])
   }
 
   /** receive an incoming message from lift  */
-  private def sync(req:Req, partition:String):Box[LiftResponse] = {
+  private def sync(req:Req):Box[LiftResponse] = {
     try {
-      var responseStr = "[]"
-      var processed = false
-      // LATER if our server doesn't handle this partition, send a redirect to a different server
+      log.trace("sync request received: %s", req)
       
-//	  Console println ("sync request received: " + req + " in partition: " + partition)
+      val response = 
+        for {
+          bodyArray <- req.body orElse 
+            error("empty body") 
+          body = new String(bodyArray)
+	      app <- Applications.deliver(req.path.partPath, body) orElse 
+	      	error("app not found for body: %s", body)
+      	  response <- takeResponse(app) orElse 
+      	  	error("odd, no response at all for body: %s", body)
+          q = log.trace("sync() response: %s", response)}
+	    yield InMemoryResponse(response.getBytes,
+	      ("Content-Type" -> "application/json") :: Nil, Nil, 200)     
      
-	  // pass message to the appropriate connection
-	  for (body <- req.body; 
-	       message <- ParseMessage.parse(new String(body))) {
-	    val connection = connectionFor(message)
-	    
-	    if (!message.isEmpty)
-	      connection.receiver ! Receiver.ReceiveMessage(message)
+     response orElse {
+       notUnderstood(req)
+     }
      
-    	// fetch any responses that are ready, waiting up to 15sec.
-	    import SendBuffer._
-	    val response = connection.sendBuffer !? (15000, Take())
-	    responseStr = response match {
-	      case Some(Pending(json)) => json
-	      case _ => 
-	      	Console println ("Sync API, no response ready, returning []")
-	      	"[]"
-	    }
-	    Log.info("sync() response for " + connection.connectionId + ":\n" + responseStr);
-        processed = true
-	  }
-      if (!processed) 
-        Log.error("error processing request to /sync/" + partition + ": " + req)      
-
-	  Full(InMemoryResponse(responseStr.getBytes,
-	                       ("Content-Type" -> "application/json") :: Nil, Nil, 200))     
     } catch {
       case e:Exception => 
-        Log.error("exception processing request " + req, e)
+        log.error(e, "exception processing request %s", req)
 	    Full(InMemoryResponse("[]".getBytes,
-	                         ("Content-Type" -> "application/json") :: Nil, Nil, 200))        
+	                         ("Content-Type" -> "application/json") :: Nil, Nil, 500))        
     }
   }
   
-  /** find a Connection based on the token, create a new one if necessary */
-  private def connectionFor(message:Message):Connection = {
-    message.findControlProperty("#token") match {
-      case Some(token:String) => ActiveConnections.findConnection(token)
-      case _ =>  
-        message.findControlProperty("#start") getOrElse {
-          Log.error("message contains neither #token nor #start : " + message.toJson)
-        }
-        ActiveConnections.createConnection()
-    }
+  private def notUnderstood(req:Req):Box[LiftResponse] = {
+    log.error("request not understood: %s", req.body)
+	  Full(InMemoryResponse("[]".getBytes,
+        ("Content-Type" -> "application/json") :: Nil, Nil, 500))
   }
   
 }

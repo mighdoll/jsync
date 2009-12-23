@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="pragma" content="no-cache"/>
+    <title>Interactive Log Test</title>
+    <script type="text/javascript" src="../../vendor/jquery-1.3.1.js"></script>
+    <script type="text/javascript" src="../../util/log.js"></script>
+    <script type="text/javascript" src="../debug.js"></script>
+    <script type="text/javascript">
+      // before document load
+      function oneOfEach(prefix) {
+	$debug.log(prefix + ' log');
+	$debug.error(prefix + ' error');
+	$debug.info(prefix + ' info');
+	$debug.warn(prefix + ' warn');
+      }
+      oneOfEach('before document load');
+      $(function() {oneOfEach('on load')});
+    </script>
+  </head>
+  <body>
+    <h1>Interactive Log Test</h1>
+    <p>These tests aren't automated.  Check the console, for now, and
+    compare the output against the expected output (which you'll have
+    to remember, or know from reading the source :-( ).</p>
+  </body>
+</html>

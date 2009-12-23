@@ -21,6 +21,7 @@ import com.digiting.sync.syncable._
 import com.digiting.sync.aspects.Observable
 import JsonUtil._
 import JsonObject._
+import net.lag.logging.Logger
 
 
 /** A JsonSync protocol message in a form that's easy to convert to/from json strings */
@@ -53,9 +54,8 @@ class Message(var xactNumber: Int, val controls:List[JsonMap], val edits:List[Js
     }
     found
   }
-  
   def isEmpty:Boolean = {
-    edits.isEmpty && syncs.isEmpty && 
+    edits.isEmpty && syncs.isEmpty && xactNumber == -1 && 
       (controls.isEmpty || (controls.length ==1 && (controls.first contains("#token"))))
   }
   
@@ -65,16 +65,18 @@ class Message(var xactNumber: Int, val controls:List[JsonMap], val edits:List[Js
   private def appendJsonMaps(jsons:mutable.ListBuffer[String], maps:List[JsonMap]*) {
     for (map <- maps;
          elem <- map) {
-      jsons append JsonUtil.toJson(elem, 2)
+//      var json = JsonUtil.toJson(elem, 2)
+//      Log.info("appendJsonMaps() elem toJson: " + json)
+      jsons append JsonUtil.toJson(elem, 2, false)
     }
-  }
-  
+  }  
 }
 
 /**
  * Utility functions for creating Messages and Message components 
  */
 object Message {
+  val log = Logger("Message")
   /** create a protocol message from set of observed changes to syncable objects
    * and syncable collections */
   def makeMessage(pendingChanges:Seq[ChangeDescription]):Message = {    
@@ -85,24 +87,31 @@ object Message {
 //      Console println ("make message from change " + change)
       change match {
         case propChange:PropertyChange => 
-          val target = propChange.target.asInstanceOf[Syncable]
-          val value = toJsonMapValue(propChange.newValue)
-          val props = immutable.Map(propChange.property -> value) ++ target.fullId.toJsonMap
-          syncs + props
+          syncs + propertyChange(propChange)
         case watch:WatchChange => 
-          val newObj = watch.newValue.asInstanceOf[Syncable]
-          syncs + toJsonMap(newObj)
-          newObj match {
-            case collection:SyncableCollection =>
-              edits ++ putCollectionContents(collection)
+          syncs + toJsonMap(watch.newValue.asInstanceOf[Syncable])
+        case base:BaseMembership =>
+          base.target match {
+            case set:SyncableSet[_] =>
+              edits ++ putContents(base)
+            case seq:SyncableSeq[_] =>
+              edits ++ insertAtContents(base)              
             case _ =>
           }
         case put:PutChange =>           
           edits + memberChangeToEdit(put, put.newValue)
         case remove:RemoveChange =>
           edits + memberChangeToEdit(remove, remove.oldValue)
+        case removeAt:RemoveAtChange =>
+          edits + removeAtChange(removeAt)
+        case insertAt:InsertAtChange =>
+          edits + insertAtChange(insertAt)
         case unwatch:UnwatchChange => // do nothing (client garbage collects on its own)
-        case change => Log.error("makeMessage() unhandled change: " + change)
+        case clear:ClearChange =>
+          edits + clearChange(clear) 
+        case move:MoveChange =>
+          edits + moveChange(move)
+        case change => Log.error("Message.makeMessage() unhandled change: " + change)
       }
     }
      
@@ -110,8 +119,52 @@ object Message {
     new Message(edits.toList, syncs.toList)
   }
   
+  private def propertyChange(propChange:PropertyChange):JsonMap = {              
+    val target = propChange.target.asInstanceOf[Syncable]
+    val value = toJsonMapValue(propChange.newValue)
+    immutable.Map(propChange.property -> value) ++ target.fullId.toJsonMap
+  }
+  
+  private def clearChange(change:ClearChange):JsonMap = {
+    ImmutableJsonMap(editTarget(change), change.operation -> "true")
+  }
+  
+  private def moveChange(change:MoveChange):JsonMap = {
+    val moveDex = ImmutableJsonMap("from" -> change.fromDex, "to" -> change.toDex)
+	ImmutableJsonMap(editTarget(change), change.operation -> moveDex)	  
+  }
+  
+  private def removeAtChange(change:RemoveAtChange):JsonMap = {
+    ImmutableJsonMap(editTarget(change), change.operation -> change.at) 
+  }
+  
+  private def insertAtChange(change:InsertAtChange):JsonMap = {
+    val ats = ImmutableJsonMap("at" -> change.at, 
+      "elem" -> change.newValue.asInstanceOf[Syncable].fullId.toJsonMap) :: Nil
+    
+    ImmutableJsonMap(editTarget(change), 
+      change.operation -> ats)
+  }
+  
+  private def editTarget(change:ChangeDescription) = {
+	val target = change.target.asInstanceOf[Syncable]       
+    ("#edit" -> target.fullId.toJsonMap)
+  }
+  
+  private def insertAtContents(base:BaseMembership):List[JsonMap] = {
+    val inserts = 
+      for ((elem, index) <- base.members.asInstanceOf[List[Syncable]].zipWithIndex) 
+        yield ImmutableJsonMap("at" -> index, "elem" -> elem.fullId.toJsonMap) 
+    
+    log.trace("insertAt: %s", inserts.size)
+    val edit= ImmutableJsonMap(
+      "#edit" -> base.target.asInstanceOf[Syncable].fullId.toJsonMap,
+      "insertAt" -> inserts) :: Nil
+    
+    edit
+  }
+  
   private def memberChangeToEdit(change:MembershipChange, operandElements:Any):JsonMap = {
-	val target = change.target.asInstanceOf[Syncable]   
 	val editItems = operandElements match {
 	 case single:Syncable => single.fullId.toJsonMap :: Nil
 	 case list:List[_] => for (elem <- list) 
@@ -119,24 +172,20 @@ object Message {
 	      
 	  case _ => Log.error("memberChangeToEdit() unexpected change values " + change) 
 	}
-    val edit = ImmutableJsonMap("#edit" -> target.fullId.toJsonMap,	
+    val edit = ImmutableJsonMap(editTarget(change),	
                                 change.operation -> editItems)
     edit
   }
   
-  private def putCollectionContents(collection:SyncableCollection):List[JsonMap] = {
-    val edits = new mutable.ListBuffer[JsonMap]
-    val ids = for (elem <- collection.syncableElements) yield elem.fullId.toJsonMap
+  private def putContents(base:BaseMembership):List[JsonMap] = {
+    val ids = for (elem <- base.members.asInstanceOf[List[Syncable]]) yield elem.fullId.toJsonMap
     if (!ids.isEmpty) {
-	  val edit = ImmutableJsonMap("#edit" -> collection.fullId.toJsonMap,
-	                              "put" -> ids)
-	  edits + edit
-      edits.toList
+	  ImmutableJsonMap("#edit" -> base.target.asInstanceOf[Syncable].fullId.toJsonMap,
+	    "put" -> ids) :: Nil
     } else {
       Nil
     }
   }
-
   
   /* convert a syncable object to a map of name,value properties.
    * In the returned map, the property names are strings.  The values
@@ -152,12 +201,13 @@ object Message {
     props
   }
 
-  /** convert objects intended for json values into a generic form.
+  /** convert objects intended for json values into a json std forms
    * (JsonUtil.toJson will later convert them to json text) */
   private def toJsonMapValue(value:Any):Any = {
     value match {
       case syncable:Syncable => new JsonRef(syncable.fullId)
-      case array:List[_] => array
+      case map:Map[_,_] => map
+      case seq:Seq[_] => seq.toList
       case any => any                                      
     }                                        
   }

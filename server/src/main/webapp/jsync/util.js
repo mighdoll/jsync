@@ -33,8 +33,8 @@ $sync.util = (function() {
       !(value.propertyIsEnumerable('length'));
     },
     
-    /* calls function on each element of object array or, just on object if it is truthy */
-    optionalArray: function(objOrArray, fn) {
+    /** calls function on each element of object array or, just on object if it is truthy */
+    each: function(objOrArray, fn) {
       if (!objOrArray) {
         return;
       }
@@ -86,16 +86,16 @@ $sync.util = (function() {
     },
     
     /** run a function on each defined element in an array, until the function
-     * returns a non-false value.
+     * returns a value other than undefined.
      *
      * @return the value returned by the supplied function, or false
      */
     arrayFind: function(array, eachFn) {
       var i;
-      var result = false;
+      var result;
       
-      for (i = 0; (result === false) && i < array.length; i++) {
-        if (typeof array[i] != 'undefined') 
+      for (i = 0; (result === undefined) && i < array.length; i++) {
+        if (array[i] !== undefined) 
           result = eachFn(array[i]);
       }
       return result;

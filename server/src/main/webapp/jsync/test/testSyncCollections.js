@@ -15,14 +15,16 @@
 // TODO test sequence.each
 // TODO test that elements in sequence are sorted
 
+
 function testCollectionClass(className, creator) {
   test(className + ".put", function() {
+    $sync.manager.setDefaultPartition("test");
     var set = creator();
 
     expect(8);
 
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
+    var item1 = $sync.test.nameObj();
+    var item2 = $sync.test.nameObj();
 
     ok(set.size() == 0);
     ok(set.contains(item1) == 0);
@@ -41,9 +43,10 @@ function testCollectionClass(className, creator) {
   });
 
   test(className + ".remove", function() {
+    $sync.manager.setDefaultPartition("test");
     var set = creator();
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
+    var item1 = $sync.test.nameObj();
+    var item2 = $sync.test.nameObj();
 
     expect(3);
 
@@ -59,8 +62,9 @@ function testCollectionClass(className, creator) {
   });
 
   test(className + ".clear", function() {
+    $sync.manager.setDefaultPartition("test");
     var set = creator();
-    var item1 = $sync.test.named();
+    var item1 = $sync.test.nameObj();
 
     expect(2);
 
@@ -72,16 +76,23 @@ function testCollectionClass(className, creator) {
     $sync.manager.reset();
   });
 
-  test(className + ".notification", function() {
+  test(className + ".notification1", function() {
+    $sync.manager.setDefaultPartition("test");
     var set = creator();
-    var item1 = $sync.test.named();
+    var item1 = $sync.test.nameObj();
 
     expect(7);
     set.put(item1);
     withWatch(set, function(change) {
       ok(change.target === set);
       ok(change.changeType == 'edit');
-      ok(change.remove === item1);
+	  if (set.kind == "$sync.set") {
+	  	ok(change.remove === item1);	
+	  } else if (set.kind == "$sync.sequence") {
+	  	ok(change.removeAt === 0);
+	  } else {
+	    $debug.error("unexpected collection type in test: " + className + ".notification");	  	
+	  }
     })(function() {
       set.remove(item1);
     });
@@ -103,8 +114,9 @@ testCollectionClass("set", $sync.set);
 testCollectionClass("sequence", $sync.sequence);
 
 test("set.notification2", function() {
+  $sync.manager.setDefaultPartition("test");
   var set = $sync.set();
-  var item1 = $sync.test.named();
+  var item1 = $sync.test.nameObj();
   
   withWatch(set, function(change) {
     ok(change.target === set);
@@ -116,8 +128,9 @@ test("set.notification2", function() {
 });
 
 test("sequence.notification2", function() {
+  $sync.manager.setDefaultPartition("test");
   var set = $sync.sequence();
-  var item1 = $sync.test.named();
+  var item1 = $sync.test.nameObj();
   
   withWatch(set, function(change) {
     ok(change.target === set);
@@ -129,77 +142,85 @@ test("sequence.notification2", function() {
 });
 
 test("sequence.indexOf", function() {
-    var seq = $sync.sequence();
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
-    seq.put(item1);
-    seq.put(item2);
-    ok(seq.indexOf(item1) === 0);
-    ok(seq.indexOf(item2) === 1);
-  });
+  $sync.manager.setDefaultPartition("test");
+  var seq = $sync.sequence();
+  var item1 = $sync.test.nameObj();
+  var item2 = $sync.test.nameObj();
+  seq.put(item1);
+  seq.put(item2);
+  ok(seq.indexOf(item1) === 0);
+  ok(seq.indexOf(item2) === 1);
+});
 
 test("sequence.insert", function() {
-    var seq = $sync.sequence();
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
-    var item3 = $sync.test.named();
-    seq.put(item1);
-    seq.put(item2);
-    seq.insert(item3, item1);
-    ok(seq.size() == 3);
-    ok(seq.indexOf(item1) === 0);
-    ok(seq.indexOf(item3) === 1);
-    ok(seq.indexOf(item2) === 2);
-  });
+  $sync.manager.setDefaultPartition("test");
+  var seq = $sync.sequence();
+  var item1 = $sync.test.nameObj();
+  var item2 = $sync.test.nameObj();
+  var item3 = $sync.test.nameObj();
+  seq.put(item1);
+  seq.put(item2);
+  seq.insert(item3, item1);
+  ok(seq.size() == 3);
+  matchSequenceItems(seq, [item1, item3, item2]);
+});
 
 test("sequence.move", function() {
-    var seq = $sync.sequence();
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
-    var item3 = $sync.test.named();
-    seq.put(item1);
-    seq.put(item2);
-    seq.put(item3);
-    withWatch(seq, function(change) {
-      ok(change.changeType == 'edit');
-      ok(change.move === item3);
-      ok(change.after === item1);
-    })(function() {
-        seq.move(item3, item1);
-      });
-    ok(seq.size() == 3);
-    ok(seq.indexOf(item1) === 0);
-    ok(seq.indexOf(item3) === 1);
-    ok(seq.indexOf(item2) === 2);
-    withWatch(seq, function(change) {
-      ok(change.changeType == 'edit');
-      ok(change.move === item2);
-      ok(change.after == null);
-    })(function() {
-        seq.move(item2);
-      });
-    ok(seq.size() == 3);
-    ok(seq.indexOf(item2) === 0);
-    ok(seq.indexOf(item1) === 1);
-    ok(seq.indexOf(item3) === 2);
+  $sync.manager.setDefaultPartition("test");
+  var seq = $sync.sequence();
+  var item1 = $sync.test.nameObj();
+  var item2 = $sync.test.nameObj();
+  var item3 = $sync.test.nameObj();
+  seq.put(item1);
+  seq.put(item2);
+  seq.put(item3);
+  withWatch(seq, function(change) {
+    ok(change.changeType == 'edit');
+    ok(change.move.from === 2);
+    ok(change.move.to === 1);
+  })(function() {
+    seq.move(item3, 1);
   });
-
+  ok(seq.size() == 3);
+  matchSequenceItems(seq, [item1, item3, item2]);
+  withWatch(seq, function(change) {
+    ok(change.changeType == 'edit');
+    ok(change.move.from === 2);
+    ok(change.move.to == 0);
+  })(function() {
+    seq.move(item2);
+  });
+  ok(seq.size() == 3);
+  matchSequenceItems(seq, [item2, item1, item3]);
+});
 
 test("sequence.each", function() {
-    var seq = $sync.sequence();
-    var item1 = $sync.test.named();
-    var item2 = $sync.test.named();
-    seq.put(item1);
-    seq.put(item2);
-    var i_expect = 0;
-    var items_expect = [item1, item2];
-    seq.each(function(item, i) {
-        ok(i === i_expect);
-        i_expect++;
-        ok(item == items_expect[i]);
-      })
-  });
+  $sync.manager.setDefaultPartition("test");
+  var seq = $sync.sequence();
+  var item1 = $sync.test.nameObj();
+  var item2 = $sync.test.nameObj();
+  seq.put(item1);
+  seq.put(item2);
+  var i_expect = 0;
+  var items_expect = [item1, item2];
+  seq.each(function(item, i) {
+    ok(i === i_expect);
+    i_expect++;
+    ok(item == items_expect[i]);
+  })
+});
 
+/** verify a sequence matches an array
+ * undefined elements in the match array are skipped. */
+function matchSequenceItems(seq, matchArray) {
+  var i, match;
+  for (i = 0; i < matchArray.length; i++) {
+  	match = matchArray[i];
+	if (match !== undefined) {
+	  ok(match === seq.getAt(i));
+	}
+  }
+}
 
 // usage:
 //   withWatch(collection, fn, owner)(function() {body})
