@@ -1,6 +1,0 @@
-#!/bin/sh
-
-set +x 
-
-unison-gtk ../../digiting/sync ..
-
