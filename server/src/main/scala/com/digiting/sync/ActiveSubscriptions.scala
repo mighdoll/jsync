@@ -18,6 +18,7 @@ import actors.Actor
 import collection._
 import com.digiting.sync.syncable.Subscription
 import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 
 /**
  * Maintains a set of observations on the syncable object trees referenced by a given
@@ -26,7 +27,7 @@ import net.lag.logging.Logger
  * The changes to subscribed objects are queued.  Clients of this class can retrieve 
  * the queued changes via takePending().
  */
-class ActiveSubscriptions(connection:Connection) extends Actor {
+class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   val log = Logger("ActiveSubscriptions")
   val subscriptions = new mutable.HashSet[Syncable] 		 // active subscription roots
   val deepWatches = new mutable.HashSet[DeepWatch] 		 	 // active subscription root deep watches
@@ -47,10 +48,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor {
           case Some(root) => 
             log.trace("#%s subscribe to: %s,  root: %s", connection.debugId, sub.name, root)
             subscriptions += root
-            deepWatches += 
-              Observers.currentMutator.withValue(serverOnlyMutator) {
-                Observers.watchDeep(sub, queueChanges, "ActiveSubscriptions")
-              }
+            subscribeRoot(sub)
             Observers.currentMutator.withValue("ActiveSubscriptions") {
               sub.root = root;	// update will propogate to client
             }
@@ -59,6 +57,42 @@ class ActiveSubscriptions(connection:Connection) extends Actor {
         }
       case None => log.error("subscribe: partition not found: " + sub.inPartition)
     }
+  }
+
+  def unsubscribe(sub:Subscription) {
+    subscriptions -= sub
+    unsubscribeRoot(sub)
+  }
+  
+  def unsubscribeRoot(root:Syncable) {
+    deepWatches find {deep:DeepWatch => deep.root == root} map {deep =>
+      log.trace("unsubscribe deepwatch: %s", deep)
+      deepWatches -= deep
+      deep disable
+    } orElse {
+      err("deepWatch not found for root: " + root)
+    }    
+  }
+  
+  def subscribeRoot(root:Syncable) {
+    deepWatches += 
+      Observers.currentMutator.withValue(serverOnlyMutator) {
+        val deep = Observers.watchDeep(root, queueChanges, "ActiveSubscriptions")
+        log.trace("subscribe deepwatch: %s", deep)
+        deep
+      }
+  }
+  
+  def withTempRootSubscription[T](root:Syncable)(fn: => T) = {
+    subscribeRoot(root)
+    val result = 
+      try {
+        fn      
+      } finally {
+        unsubscribeRoot(root)
+      }
+    
+    result
   }
   
   /** remember a change that we'll later send to the client */
@@ -69,12 +103,12 @@ class ActiveSubscriptions(connection:Connection) extends Actor {
     	  connection.debugId, change)
       case WatchChange(_,_,watcher:DeepWatch) if deepWatches.contains(watcher) =>
         queueChange(change)
-      case WatchChange(_,_,_) =>
+      case WatchChange(_,_,watcher:DeepWatch) =>
         log.trace("ActiveSubscriptions #%s not queueing watch change from another deepwatch: %s", 
-    	  connection.debugId, change)
+                  watcher.debugId, change)
       case _ if change.source == serverOnlyMutator =>
-        log.warning("ActiveSubscriptions #%s unexpected serverOnly mutator,  shouldn't the deepwatch check catch this?  change: %s", 
-    	  connection.debugId, change)
+        log.warning("ActiveSubscriptions #%s unexpected serverOnly mutator,  shouldn't the deepwatch check above catch this?  change: %s", 
+                    connection.debugId, change)
       case _ =>  
         queueChange(change)
       }
@@ -87,8 +121,8 @@ class ActiveSubscriptions(connection:Connection) extends Actor {
   }
   
   // if a collection is was added to the active set of the subscription,
-  // queue edits to the collection to add the elements (the elements themselves will get 
-  // own Watch changes sent from DeepWatch)  
+  // synthesize queue edits to the collection to add the elements 
+  // (the elements themselves will get own Watch changes sent from DeepWatch)  
   private def queueCollectionEdits(change:ChangeDescription) {
     change match {
       case watchChange:WatchChange =>
@@ -135,3 +169,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor {
     }
   }
 }
+
+/** 
+ * LATER multiple watches on the same objects will queue duplicate changes.  Fix that.
+ */

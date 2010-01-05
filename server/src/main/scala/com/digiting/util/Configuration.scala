@@ -53,7 +53,7 @@ import com.digiting.sync.ImplementationError
    * LATER consider merging all attributes into one map, it would simplify the code.
 */
 import net.lag.configgy.ConfigException
-object Configuration {   
+object Configuration extends LogHelper {   
   var propOverrides:Map[String,Option[String]] = new immutable.HashMap[String,Option[String]]
   lazy val log = Logger("Configuration")
   var initialized = false
@@ -158,7 +158,7 @@ object Configuration {
       { throw new ConfigException("level can't be unset in Configgy: " + packageName) }
     for {
       level <- Logger.levelNames get levelName.toUpperCase orElse 
-        error("log level %s for %s not recognized", levelName, packageName)
+        err("log level %s for %s not recognized", levelName, packageName)
      } {
       log.info("log %s to %s", packageName, level)
       Logger(packageName).setLevel(level)

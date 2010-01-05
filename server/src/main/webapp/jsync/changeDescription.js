@@ -51,7 +51,7 @@ $sync.changeDescription = function(changeType, target, params) {
   setParams();
 //  $debug.log("created: " + self);
   return self;
-}
+};
 
 /* Here are some examples of the change description object that's passed
  * to observation functions.

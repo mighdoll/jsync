@@ -20,7 +20,7 @@
 (function() {
     var method = function(cls, methodName, func) {
         cls.prototype[methodName] || (cls.prototype[methodName] = func);
-    }
+    };
     
     /** calls @param fn for each element in the array.
      * iteration stops early if fn() returns a value */

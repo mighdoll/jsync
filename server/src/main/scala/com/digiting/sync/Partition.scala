@@ -49,6 +49,19 @@ abstract class Partition(val partitionId:String) {
   // LATER make this is a transactional interface, see Partition2 for an early sketch
 }
 
+/** this is a trick to allow a simulated client to refer to a Partition instance 
+  * with the name ".transient".  LATER we should change the SyncableIdentity to use a string
+  * for the partition id, rather than the partition reference.
+  */
+object TransientPartition extends FakePartition(".transient")
+
+class FakePartition(partitionId:String) extends Partition(partitionId) {
+  def deleteContents() {}
+  def get(instanceId:String):Option[Syncable] = None
+  def put(syncable:Syncable):Unit = {}
+  def delete(instanceId:String):Unit = {}
+  def update(change:ChangeDescription):Unit  = {}
+}
 
 
 class RamPartition(partId:String) extends Partition(partId) {

@@ -55,8 +55,7 @@ $sync.util = (function() {
     
     /* create a new javascript object with the provided prototype */
     createObject: function(proto) {
-      function fn() {
-      };
+      function fn() { }
       fn.prototype = proto;
       return new fn();
     },
@@ -109,7 +108,7 @@ $sync.util = (function() {
     /** return a concise printout of local fields */
     fieldsToString: function(obj) {
       var str = "";
-      for (field in obj) {
+      for (var field in obj) {
         if (typeof obj[field] !== 'function' &&
         obj.hasOwnProperty(field)) {
           str += field + ":" + obj[field] + "  ";
@@ -120,13 +119,13 @@ $sync.util = (function() {
     
     /** copy local fields from extension to obj */ 
     extend: function(obj, extension) {
-      for (field in extension) {
+      for (var field in extension) {
         if (extension.hasOwnProperty(field)) {
           obj[field] = extension[field];
         }
       }
     }
-  }
+  };
   
   return self;
 })();

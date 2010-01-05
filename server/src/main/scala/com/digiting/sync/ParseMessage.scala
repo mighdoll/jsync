@@ -14,31 +14,39 @@
  */
 package com.digiting.sync
 
-import _root_.net.liftweb.util._
 import JsonUtil._
 import collection._
+import net.lag.logging.Logger
+import net.liftweb.util.JSONParser
+import net.liftweb.util.Full
 
 /**
  * Utility routine to parse a Message from a json string.
- * 
- * CONSIDER -- move this into Message? 
  */
 object ParseMessage {
-  /** parses a string containing a json transaction message from the client.  */
-  def parse(receivedXact:String):Option[Message] = {
-//    Log.info("ParseMessage.receiveTransaction " + receivedXact)
-    var message:Option[Message] = None
+  val log = Logger("ParseMessage")
+  
+  /** parses a string containing one or more json transaction messages from the client.  */
+  def parse(receivedXact:String):List[Message] = {
+    log.ifTrace("ParseMessage.receiveTransaction " + receivedXact)
     
 	// extract the transaction number object and the transaction body objects
 	JSONParser.parse(receivedXact) match {
-	  case Full(json) => 
-        processJson(json) 
-          {jsonArray => message = parseJsonMessageBody(jsonArray) } 
-          {jsonObj => Log.error("protocol error: sync messages should start be enclosed in json array []:\n" + receivedXact);}
+      case Full(jsonArray:List[_]) => 
+        jsonArray head match {
+          case jsonObj:Map[_,_] => 
+            // old protocol rev -- one transaction message array per string.  SOON get rid of this
+            val message = parseJsonMessageBody(jsonArray) 
+            message toList
+          case multi:List[_] =>
+            jsonArray flatMap {list => 
+              parseJsonMessageBody(list.asInstanceOf[List[_]]) toList
+            }
+        }
 	  case _ => 
-	    Log.error("hard to parse transaction received: " + receivedXact)	           
+	    log.error("hard to parse transaction received: " + receivedXact)
+	    Nil
 	}
-    message
   }  
 
   object ProtocolTransaction {
@@ -52,7 +60,7 @@ object ParseMessage {
     def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
        json get "#edit" match {
          case Some(m:Map[_,_]) => Some(json)
-         case Some(b) => Log.error("unexpected value of #edit: "  + json); None
+         case Some(b) => log.error("unexpected value of #edit: "  + json); None
          case _ => None
        }
     }
@@ -85,14 +93,14 @@ object ParseMessage {
     // parse the json string into json objects, separating out control messages e.g. #transaction
   	// SOON (scala) -- change this to use ProtocolComponent subclasses e.g. TransactionProtocolComponent, EditProtocolComponent.  Use unapply and pattern matching..
     elems foreach {json => processJson(json)
-      {jsonArray => Log.error("protocol error: sync protocol messages should not have nested json arrays")}
+      {jsonArray => jsonArray}
       {jsonObj => jsonObj match {
         case ProtocolTransaction(num) => xactNumber = Some(num)
         case ProtocolEdit(edit) => edits + edit
         case ProtocolControl(ctl) => controls + ctl
         case ProtocolSync(sync) => syncs + sync
         case _ =>
-          Log.error("protocol error: unexpected object received: " + jsonObj); None
+          log.error("protocol error: unexpected object received: " + jsonObj); None
       }}
     }
     
@@ -104,11 +112,11 @@ object ParseMessage {
           if (controls.length == 1 && (controls.first contains "#token")) {
             Some(new Message(-1, controls.toList, edits.toList, syncs.toList))
           } else {
-            Log.error("protocol error: no transaction number recieved " + elems)
+            log.error("protocol error: no transaction number recieved " + elems)
             None
           }  
         } else {
-          Log.error("protocol error: no transaction number recieved " + elems)
+          log.error("protocol error: no transaction number recieved " + elems)
           None
         }
     }

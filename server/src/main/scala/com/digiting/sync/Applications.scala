@@ -14,35 +14,35 @@
  */
 package com.digiting.sync
 import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 import net.lag.logging.Level._
 import scala.collection.mutable
-import Receiver.ReceiveMessage
 
-object Applications {
-  var log = Logger("Applications")
+object Applications extends LogHelper {
+  val log = Logger("Applications")
 
   private def error[T](message:String, params:String*):Option[T] = {
     log.error(message, params:_*)
     None
   }
 
-  /** deliver a message to a registered application, 
-   * return the application */
+  /** deliver a message to the appropriate registered application (asynchronously). 
+   * returns the application that is processing the message */
   def deliver(syncPath:List[String], messageBody:String):Option[AppContext] = {
-    var found:Option[AppContext] = None
-	for {
-	  message <- ParseMessage.parse(messageBody) orElse
-        error("message not parsed: %s", messageBody)
-      app <- getAppFor(syncPath, message) orElse
-		error("app not found for: %s", message.toString)} {
-	  
-	  log.logLazy(TRACE, {"delivering to app" + app.connection.debugId + "  messsage to: " +
-                       syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody})
-      if (!message.isEmpty) 	  
-	    app.connection.receiver ! ReceiveMessage(message)
-      found = Some(app)
-	}
-    found
+    val apps = 
+      for {
+        message <- ParseMessage.parse(messageBody) 
+        app <- getAppFor(syncPath, message) orElse
+          err("app not found for: %s", message.toString)
+      } yield {
+        log.ifTrace("delivering to app" + app.connection.debugId + "  messsage to: " +
+           syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
+        if (!message.isEmpty) 	  
+          app receiveMessage(message)
+        app
+      } 
+    
+    apps find {_ => true}   // return Some(app) for the first app found, if any    
   }
   
   
@@ -59,17 +59,17 @@ object Applications {
   }
   
   private def createAppContext(syncPath:List[String], message:Message, connection:Connection):AppContext = {
-	appContextCreators.find(creator =>
-	  creator.isDefinedAt(syncPath, message,connection)
-	) match {
-	  case Some(creator) =>
-	    creator(syncPath, message, connection)
+    appContextCreators.find(creator =>
+      creator.isDefinedAt(syncPath, message,connection)
+    ) match {
+      case Some(creator) =>
+        creator(syncPath, message, connection)
       case None =>
-	    log.logLazy(WARNING, ("using default context, because no application context is defined for: message" + message.toJson))
-	    new AppContext(connection)
-	}
-    // CONSIDER: probably should allow registered apps to return true to isDefinedAt and a None response, meaning
-    // that they might match, but didn't in this case.  
+        log.warning("using default context, because no application context is defined for: message" + message.toJson)
+        new AppContext(connection)
+    }
+      // CONSIDER: probably should allow registered apps to return true to isDefinedAt and a None response, meaning
+      // that they might match, but didn't in this case.  
   }
   
   

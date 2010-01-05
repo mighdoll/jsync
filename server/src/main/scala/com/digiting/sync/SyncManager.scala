@@ -28,10 +28,12 @@ import net.lag.logging.Logger
  * SOON some more cleanup here, it's kind of a grab bag of functionality
  */
 object SyncManager {
-  type Kind = String	// buys a little documentation benefit.. consider conversion to case class?
+  type Kind = String	// buys a little documentation benefit.. CONSIDER conversion to case class?
+  
   case class VersionedKind (val kind:Kind, val version:String)
   val log = Logger("SyncManager")
   
+  // global instance cache.  SOON this should be per-connection
   val instanceCache = new InstancePool("SyncManager")
   
   // prebuilt reflection tools, one for each $kind of Syncable
@@ -46,17 +48,18 @@ object SyncManager {
   // default partition for new objects
   val currentPartition = new DynamicVariable[Partition](null)	
 
-  // don't register a creation change while this is true (so partitions can intantiate objects)
+  // don't register a creation change while this is true (so partitions can instantiate objects)
   val quietCreate = new DynamicVariable[Boolean](false)
   
   // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed
   private var creatingFake = new DynamicVariable[Boolean](false);  
   
   // dummy partition for fake objects
-  private val fakePartition = new RamPartition("fake")
-
+  private val fakePartition = new FakePartition("fake")
+  
   reset()
 
+  // watch for changes, and commit them to the partitions.  This should be per-connection
   instanceCache.watchCommit(commitToPartitions)
 
   /** write pending changes to persistent storage */
@@ -72,7 +75,7 @@ object SyncManager {
     metaAccessors.clear
     registerSyncableKinds()
     setNextId.set(None)
-    TestData.setup()
+    TestData.setup()  // SOON, move this to test application
   }
   
   /** untested.  create a local JsonMap for*/
@@ -96,8 +99,9 @@ object SyncManager {
     }
   }
     
-  /** construct a new syncable or migration.  
+  /** construct a new blank syncable instance.
    * does not send a creation notification to observers.
+   * if the requested kindVersion is obsolete (due to Migration), then return the migrated-to type
    */
   def newBlankSyncable(kind:Kind, kindVersion:String, ids:SyncableIdentity):Option[Syncable] = {
     quietCreate.withValue(true) {
@@ -109,11 +113,13 @@ object SyncManager {
       }
     }
   }
-  
+
+  /** reflection access to this kind of syncable */
   def propertyAccessor(syncable:Syncable):ClassAccessor = {
     propertyAccessor(syncable.kind)
   }
   
+  /** reflection access to this kind of syncable */
   def propertyAccessor(kind:Kind):ClassAccessor = {
     metaAccessors.get(kind) getOrElse {
       log.error("accessor not found for kind: %s", kind)
@@ -125,7 +131,7 @@ object SyncManager {
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(partitionId:String, syncableId:String):Option[Syncable] = {    
-	  instanceCache get(partitionId, syncableId) orElse {
+    instanceCache get(partitionId, syncableId) orElse {
       val foundOpt = Partitions.get(partitionId) match {
         case Some(partition) => partition.get(syncableId) 
         case _ =>
@@ -134,8 +140,7 @@ object SyncManager {
       }
       foundOpt map (instanceCache put _)	
       foundOpt
-    }
-   
+	}   
   }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
@@ -156,6 +161,7 @@ object SyncManager {
     }
   }
   
+  /** register kind to class mapping, so we can receive and instantiate objects of this kind */
   def registerKind(clazz:Class[_ <: Syncable]) = {
     withFakeObject {  
       val syncable:Syncable = clazz.newInstance  // make a fake object to read the kind field
@@ -170,6 +176,8 @@ object SyncManager {
     }
   }
   
+  /** register kind to class mappings, so we can receive and instantiate objects of those kinds
+    * uses reflection to find all classes in the same package as the provided class */
   def registerKindsInPackage(clazz:Class[_ <: Syncable]) {
     val classes = ClassReflection.collectClasses(clazz, classOf[Syncable])
     classes foreach {syncClass =>
@@ -188,6 +196,7 @@ object SyncManager {
     }      
   }
   
+  /** handy routine for making a temporary object, that will not be saved in a persistent partition */
   def withFakeObject[T](fn: => T):T = {
     try {
       creatingFake.value = true
@@ -198,9 +207,9 @@ object SyncManager {
       creatingFake.value = false;
     }
   }
-    
+  
   private def registerSyncableKinds() {
-    /* manually for now, SOON search packages for all Syncable classes, and register them */
+    /* one class from each package, package search finds the rest */
     SyncManager.registerKindsInPackage(classOf[Subscription])    
     SyncManager.registerKindsInPackage(classOf[TestNameObj])
     SyncManager.registerKindsInPackage(classOf[SyncableSet[_]])
@@ -242,4 +251,6 @@ object SyncManager {
 
 case class SyncableIdentity(val instanceId:String, val partition:Partition) {
   override def toString():String = instanceId + "/" + partition.partitionId
+  
+  /** LATER change partition to a partitionId string */
 }

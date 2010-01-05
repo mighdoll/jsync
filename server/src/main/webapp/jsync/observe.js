@@ -244,7 +244,7 @@ $sync.observation = function() {
         return true;
       });
     }
-  };
+  }
     
   self.reset();
   return self;

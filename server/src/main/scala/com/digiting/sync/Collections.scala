@@ -142,6 +142,8 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
     list.insert(toDex, elem)            
     Observers.notify(new MoveChange(this, fromDex, toDex))
   }
+  
+  def toList = list.toList
 }
 
 /** A collection of syncable objects */

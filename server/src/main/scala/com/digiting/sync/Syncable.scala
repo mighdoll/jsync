@@ -54,7 +54,7 @@ trait Syncable extends Observable {
     if (_log.getLevel != null && _log.getLevel.intValue >= TRACE.intValue) {    
       JsonUtil.toJson(Message.toJsonMap(this), 0, true)      
     } else {
-      String.format("{%s:%s}", shortKind, shortCompositeId)
+      String.format("{%s:%s}", shortKind, compositeId)
     }
   }
   
@@ -129,10 +129,10 @@ object SyncableInfo {
         case "kind" => true
         case "kindVersion" => true
         case "id" => true
-        case "$partition" => true
         case "partition" => true
         case "newIds" => true
-        case "_log" => true
+        case _ if fieldName contains "$" => true
+        case _ if fieldName startsWith "_" => true
         case _ => false
       }
     log.trace("isReserved %s = %s", fieldName, result)

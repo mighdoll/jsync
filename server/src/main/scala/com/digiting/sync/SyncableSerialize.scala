@@ -13,15 +13,15 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import com.digiting.util.HandyLog
+import com.digiting.util.LogHelper
+import net.lag.logging.Logger
 import scala.collection.mutable.ListBuffer
 import SyncableInfo.isReserved
 
 /** utilities to serialize/deserialize a syncable to from a map of key,value strings */
-object SyncableSerialize extends HandyLog {
+object SyncableSerialize extends LogHelper {
   case class Reference(val partition:String, id:String, kind:SyncManager.Kind)
-  val logging = "SyncableSerialize"
-
+  val log = Logger("SyncableSerialize")
   
   def syncableAttributes(syncable:Syncable):Map[String, String] = {
     val props = new ListBuffer[(String,String)]
@@ -44,11 +44,11 @@ object SyncableSerialize extends HandyLog {
     val syncable:Syncable = null
     for {
       kind <- attributes get "kind" orElse
-        error("createFromAttributes() no kind found for atributes %s", attributes.toString)
+        err("createFromAttributes() no kind found for atributes %s", attributes.toString)
       kindVersion <- attributes get "kindVersion" orElse Some("0")    
       ids = SyncableIdentity(instanceId, partition)      
       syncable <- SyncManager.newBlankSyncable(kind, kindVersion, ids) orElse 
-	    error("getRaw() can't create syncable for kind: %s", kind)
+        err("getRaw() can't create syncable for kind: %s", kind)
     } yield {
       Observers.withNoNotice {
         applyAttributes(syncable, attributes)
@@ -85,7 +85,7 @@ object SyncableSerialize extends HandyLog {
       for {
         (prop, valueString) <- attributes  if !isReserved(prop)
         propAccess <- classAccess.propertyAccessors get prop orElse 
-          error("applyAttributes:  property %s not found for kind: %s  read data: %s",
+          err("applyAttributes:  property %s not found for kind: %s  read data: %s",
                 prop, syncable.kind, valueString)
         value = parsePropertyValue(propAccess, valueString)
       } yield

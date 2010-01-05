@@ -139,26 +139,37 @@ object Message {
   }
   
   private def insertAtChange(change:InsertAtChange):JsonMap = {
-    val ats = ImmutableJsonMap("at" -> change.at, 
-      "elem" -> change.newValue.asInstanceOf[Syncable].fullId.toJsonMap) :: Nil
+    insertAtToJsonMap(change.target.asInstanceOf[Syncable].fullId, change.newValue.asInstanceOf[Syncable], change.at)
+  }
+  
+  def insertAtToJsonMap(target:SyncableId, elem:Syncable, at:Int):JsonMap = {
+    val ats = ImmutableJsonMap("at" -> at, 
+      "elem" -> elem.fullId.toJsonMap) :: Nil
     
-    ImmutableJsonMap(editTarget(change), 
-      change.operation -> ats)
+    ImmutableJsonMap(editTargetJsonPair(target), 
+      "insertAt" -> ats)   
+  }
+
+  private def editTargetJsonPair(targetId:SyncableId) = {
+    ("#edit" -> targetId.toJsonMap)
   }
   
   private def editTarget(change:ChangeDescription) = {
-	val target = change.target.asInstanceOf[Syncable]       
-    ("#edit" -> target.fullId.toJsonMap)
+    editTargetJsonPair(change.target.asInstanceOf[Syncable].fullId)
   }
   
-  private def insertAtContents(base:BaseMembership):List[JsonMap] = {
+  private def insertAtContents(base:BaseMembership):Iterable[JsonMap] = {
+    insertAts(base.target.asInstanceOf[Syncable], base.members.asInstanceOf[List[Syncable]])
+  }
+  
+  def insertAts(target:Syncable, list:List[Syncable]):List[JsonMap] = {
     val inserts = 
-      for ((elem, index) <- base.members.asInstanceOf[List[Syncable]].zipWithIndex) 
+      for ((elem, index) <- list.zipWithIndex) 
         yield ImmutableJsonMap("at" -> index, "elem" -> elem.fullId.toJsonMap) 
     
     log.trace("insertAt: %s", inserts.size)
-    val edit= ImmutableJsonMap(
-      "#edit" -> base.target.asInstanceOf[Syncable].fullId.toJsonMap,
+    val edit = ImmutableJsonMap(
+      "#edit" -> target.fullId.toJsonMap,
       "insertAt" -> inserts) :: Nil
     
     edit
@@ -178,10 +189,16 @@ object Message {
   }
   
   private def putContents(base:BaseMembership):List[JsonMap] = {
-    val ids = for (elem <- base.members.asInstanceOf[List[Syncable]]) yield elem.fullId.toJsonMap
-    if (!ids.isEmpty) {
-	  ImmutableJsonMap("#edit" -> base.target.asInstanceOf[Syncable].fullId.toJsonMap,
-	    "put" -> ids) :: Nil
+    putToJsonMap(base.target.asInstanceOf[Syncable].fullId, 
+              base.members.asInstanceOf[List[Syncable]])
+  }
+  
+  def putToJsonMap(target:SyncableId, puts:List[Syncable]):List[JsonMap] = {
+    if (!puts.isEmpty) {
+      val putIds = puts map toJsonMap
+      ImmutableJsonMap(
+        "#edit" -> target.toJsonMap,
+        "put" -> putIds) :: Nil
     } else {
       Nil
     }
@@ -213,7 +230,7 @@ object Message {
   }
     
   /** format a syncable object as a json object */
-  private def toJson(obj:Syncable):String = {      
+  def toJson(obj:Syncable):String = {      
     val map = toJsonMap(obj)
     JsonUtil.toJson(map)
   }

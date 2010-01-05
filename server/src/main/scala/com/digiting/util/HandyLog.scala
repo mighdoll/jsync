@@ -15,24 +15,15 @@
 package com.digiting.util
 import net.lag.logging.Logger
 
-trait HandyLog {
-  val logging:String
-  lazy val log = Logger(logging)
-  
-  def error[T](message:String, params:String*):Option[T] = {
-    log.error(message, params:_*)
-    None
-  }
-
-}
 
 trait LogHelper {
   val log:Logger
   
   /* handy error logging in for comprehensions */ 
-  def error[T](message:String, params:String*):Option[T] = {
+  def err[T](message:String, params:String*):Option[T] = {
     log.error(message, params:_*)
     None
   }
   
 }
+

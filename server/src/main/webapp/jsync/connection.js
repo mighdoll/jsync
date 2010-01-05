@@ -62,12 +62,12 @@ $sync.connect = function(feedUrl, params) {
    */
   self.close = function(params) {   
     isClosed = params;  
-  }
+  };
 
   /** @return true if we've an active sync connection to the server */
   self.isConnected = function() {
     return connectionToken !== undefined;
-  }
+  };
   
     
   /** accept a json message for testing as if it came from the server */
@@ -107,20 +107,20 @@ $sync.connect = function(feedUrl, params) {
 //        $debug.log(".sending delta: " + JSON.stringify(delta));
       } else if (changeType === "edit") {
         edit = {};
-        $debug.assert(target.$partition != undefined);
+        $debug.assert(target.$partition !== undefined);
         edit['#edit'] = {id:target.id, "$partition":target.$partition};
         if (typeof(change.put) !== 'undefined') {
           edit.put = {id:change.put.id, "$partition":change.put.$partition};
         } else if (typeof(change.clear) !== 'undefined') {
           edit.clear = true;
         } else if (typeof(change.insertAt) !== 'undefined') {
-          edit.insertAt = {
+          edit.insertAt = [{
             at:change.insertAt.index, 
             elem:{
               id:change.insertAt.elem.id,
               $partition:change.insertAt.elem.$partition
             }
-          };
+          }];
         } else if (typeof(change.move) !=='undefined') {
           edit.move = {
             from:change.move.from,
@@ -155,12 +155,12 @@ $sync.connect = function(feedUrl, params) {
     var toSend = {kind: syncable.kind };
     var value;
     
-    for (property in syncable) {
+    for (var property in syncable) {
       if (syncable.hasOwnProperty(property) && property[0] != '_') {
         value = syncable[property];
         if (typeof value !== 'function' &&
-        value != null &&
-        value != undefined) {
+            value !== null &&
+            value !== undefined) {
           // modify properties for sending (replace refs with $ref objects)
           toSend[property] = outgoingValue(syncable[property]);
         }
@@ -210,7 +210,7 @@ $sync.connect = function(feedUrl, params) {
     subscriptions.put(sub);
     if (watchFunc) {
       $sync.observation.watch(sub, function(changes) {
-        watchFunc(changes.target.root)
+        watchFunc(changes.target.root);
       });
     }
 
@@ -266,7 +266,7 @@ $sync.connect = function(feedUrl, params) {
     function retryDelay() {
       var delay, backoffDex, fixedDelay = 10;
       
-      if (consecutiveFailed == 0) {
+      if (consecutiveFailed === 0) {
         return fixedDelay;
       }
       
@@ -338,7 +338,7 @@ $sync.connect = function(feedUrl, params) {
     var xact = [];
     xact.push({ '#transaction': sentTransaction++ });
     return xact;
-  };
+  }
   
   /** accept an array of messages from the network, process immediately 
    * if we have next message in the protocol transaction # sequence, othewise 
@@ -438,7 +438,7 @@ $sync.connect = function(feedUrl, params) {
     // 1st pass through through the contents of the entire transaction
     for (i = 0; i < message.length; i++) {
       obj = message[i];
-      if (obj == undefined) {
+      if (obj === undefined) {
         // empty elements oughtn't be in the stream 
         $debug.warn("empty object in JSON stream");
       }
@@ -495,7 +495,7 @@ $sync.connect = function(feedUrl, params) {
    * properties starting with '#' are resevered for jsync control messages
    */   
   function hasHashProperty(obj) {
-    for (prop in obj) {
+    for (var prop in obj) {
       if (prop[0] === '#')
         return true;
     }

@@ -31,9 +31,9 @@ class TestValueObj extends Syncable {
   var value:String = _
 }
 
-class TestRefObj extends Syncable {
+class TestRefObj(var ref:Syncable) extends Syncable {
+  def this() = this(null)
   val kind = "$sync.test.refObj"
-  var ref:Syncable = null
 }
 
 class TestTwoRefsObj extends Syncable {

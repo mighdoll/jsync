@@ -80,7 +80,7 @@ $sync.manager = function() {
     } else {
       autoCommit = auto;
     }
-  }
+  };
 
   /** @return true iff obj has the requisite sync fields (kind and id) and
    * registered with the sync manager */
@@ -234,33 +234,18 @@ $sync.manager = function() {
   /** handy access to the current connection */
   self.connection = function() {
   	return connection;
-  }
+  };
 
   /** log the entire local syncable instance table for debugging */
   self.printLocal = function() {
     $debug.log("local syncable instances:");
-    for (id in ids) {
+    for (var id in ids) {
       if (typeof id !== 'function' && ids.hasOwnProperty(id)) {
          $debug.log("  " + ids[id]);
       }
     }
   };
 	
-	/** assert for debugging that it's legal to have a reference between two syncable objects
-	 * generally, objects may not directly reference objects in other partitions
-	 * 
-	 * one exception: object in the .implicit partition may reference objects in other partitions
-	 * 
-	 * return false if for an illegal reference
-   */
-	self.assertLegalReference = function(from, to) {
-    if (from.$partition == '.implicit') {
-			return true;
-		}
-		$debug.assert(from.$partition == to.$partition);
-		return (from.$partition == to.$partition);
-	}
-
   /** update a syncable object by copying fieldwise from a received data object.
    * the target object is identified by the id of the received object
    *
@@ -399,7 +384,7 @@ $sync.manager = function() {
    * @param {String} partitionId  -- partition for newly created syncable objects
    */
   self.setDefaultPartition = function(partitionId) {
-    $debug.assert(partitionId != undefined, 'setDefaultPartition(undefined)');
+    $debug.assert(partitionId !== undefined, 'setDefaultPartition(undefined)');
     defaultPartition = partitionId;
   };
 
@@ -434,13 +419,13 @@ $sync.manager = function() {
    */
   self.eachPropertyName = function(syncable, fn) {
     var kindProto = kindPrototype(syncable.kind);
-    for (propName in kindProto) {
+    for (var propName in kindProto) {
       if (typeof kindProto[propName] == 'function' 
         && propName[propName.length - 1] == '_') {
         fn(propName.slice(0,propName.length - 1));
       }
     }
-  }
+  };
 
   /** called when any object changes.  update the change set for
    * future commits() */
@@ -504,7 +489,7 @@ $sync.manager = function() {
     populateKindPrototype(kindProto, model);
     kindPrototypes[kind] = kindProto;
     return kindProto;
-  };
+  }
 
   /** add field setters to the prototype for this kind */
   function populateKindPrototype(kindProto, model) {
@@ -517,7 +502,7 @@ $sync.manager = function() {
       }
     }
     // CONSIDER allowing functions in the model.  they become methods on this kind
-  };
+  }
 
   /** properties of syncable objects used by the framework, clients shouldn't
    * use these.
@@ -529,7 +514,7 @@ $sync.manager = function() {
       return true;
     }
     return false;
-  };
+  }
 
   /** add a property setter to an observable object.  The
    * setter is the property name with an underscore appended.
@@ -571,7 +556,7 @@ $sync.manager = function() {
       // (LATER consider using eval to create a custom function with the property
       //  inserted for speed)
     }
-  };
+  }
 
   /** process changes to a sync.set */
   function editSet(set, changes) {
@@ -588,7 +573,7 @@ $sync.manager = function() {
           // these changes came from the server, no sense sending them back)
           $debug.assert($sync.observation.currentMutator() === "server");
 //          $debug.log("manager.editSet: put" + onePut + " into: " + set);
-          set.put(obj)
+          set.put(obj);
         }
       }
     }
@@ -619,4 +604,3 @@ $sync.manager = function() {
 
   return self;
 }();
-

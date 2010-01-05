@@ -20,14 +20,16 @@ import _root_.net.liftweb.http._
 import collection._
 import ActiveConnections._
 import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 import scala.actors.Actor
 
 /**
- * Hooks to connect sync procesing to Lift http requests
+ * Hooks to connect sync processing to Lift http requests
  */
-object SyncRequestApi {
+object SyncRequestApi extends LogHelper {
   val log = Logger("SyncRequestApi")
-  /** attach to the stateful dispatch */
+  
+  // attach to the stateful dispatch (CONSIDER using stateless dispatch)
   def dispatch:PartialFunction[Req, () => Box[LiftResponse]] = {
     case req @ Req("sync" :: Nil, _, PostRequest) =>
       () => sync(req)
@@ -63,16 +65,18 @@ object SyncRequestApi {
       val response = 
         for {
           bodyArray <- req.body orElse 
-            error("empty body") 
+            err("empty body") 
           body = new String(bodyArray)
-	      app <- Applications.deliver(req.path.partPath, body) orElse 
-	      	error("app not found for body: %s", body)
+          app <- Applications.deliver(req.path.partPath, body) orElse 
+            err("app not found for body: %s", body)
       	  response <- takeResponse(app) orElse 
-      	  	error("odd, no response at all for body: %s", body)
-          q = log.trace("sync() response: %s", response)}
-	    yield InMemoryResponse(response.getBytes,
-	      ("Content-Type" -> "application/json") :: Nil, Nil, 200)     
-     
+      	  	err("odd, no response at all for body: %s", body)
+        } yield {
+          log.trace("sync() response: %s", response)
+          InMemoryResponse(response.getBytes,
+	          ("Content-Type" -> "application/json") :: Nil, Nil, 200)     
+        }
+      
      response orElse {
        notUnderstood(req)
      }

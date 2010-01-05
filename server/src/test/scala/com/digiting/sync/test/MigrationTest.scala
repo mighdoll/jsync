@@ -13,34 +13,42 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-
 import com.jteigen.scalatest.JUnit4Runner
 import org.junit.runner.RunWith
-import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Spec
-import org.scalatest.SuperSuite
-import com.digiting.sync._
-import com.digiting.sync.aspects.Observable
+import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
-import com.digiting.util._
-import collection._
-import ObserveUtil._
 import com.digiting.util.Configuration
+import ObserveUtil.withTestEnvironment
+import com.digiting.sync.SyncableSerialize._
 
 @RunWith(classOf[JUnit4Runner])
-class SyncableTest extends Spec with ShouldMatchers {
-  describe("Syncable") {
+class MigrationTest extends Spec with ShouldMatchers {
+  describe("Migration") {
     it("should initialize configuration") {
       Configuration.init()
     }
-    it("should allow setting an id") {
+    
+    it("should migrate a simple object from an old to a new schema") {
       withTestEnvironment {
-        val obj = 
-          SyncManager.setNextId.withValue(SyncableIdentity("foo", SyncManager.currentPartition.value)) {
-            new SyncableSet
-          }
-        obj.id should be ("foo")
-        SyncManager.get(SyncManager.currentPartition.value.partitionId, "foo") should be (Some(obj))
+        val old = new KindVersion0
+        old.ref = new TestNameObj("wheel")
+        val oldAttributes = syncableAttributes(old)
+        
+        val created = createFromAttributes(old.id, old.partition, oldAttributes)
+        created match {
+          case Some(migration:Migration[_]) =>
+            migration.migrate match {
+              case migrated:KindVersion =>
+                migrated.kind should be (old.kind)
+                migrated.kindVersion should be ("1")
+                migrated.ref.ref should be (old.ref)
+              case _ =>
+                assert(false)
+            }
+          case _ =>
+            assert(false)
+        }
       } 
     }        
   }

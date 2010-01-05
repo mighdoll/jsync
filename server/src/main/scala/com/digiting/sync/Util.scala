@@ -53,18 +53,3 @@ object StringUtil {
     s.lines.take(1).mkString    
   }
 }
-
-object TryCast {
-  /** try doing a cast at runtime.  Note this is slower than compile time match tests.  */
-  def tryCast[T](instance:Any, clazz:Class[T]):Option[T] = {
-    instance match {
-      case ref:AnyRef if clazz.isAssignableFrom(ref.getClass) => 
-        Some(ref.asInstanceOf[T])
-      case _ => None
-    }
-  }
-  
-  /** cast Option[Any] to Option[String] */
-  def toSomeString(option: Option[Any]):Option[String] =
-    option flatMap (_ match { case s:String => Some(s) })  
-}

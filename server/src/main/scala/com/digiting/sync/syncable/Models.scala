@@ -36,9 +36,9 @@ class StringParameter extends Syncable {
   var string:String = _
 }
 
-class ServiceCall extends Syncable {
+class ServiceCall[T <: Syncable] extends Syncable {
   val kind = "$sync.serviceCall"
-  var parameters:SyncableSeq[_ <: Syncable] = _   
+  var parameters:SyncableSeq[T] = _   
   var results:Syncable = _
   
   def arguments(method:java.lang.reflect.Method):Seq[AnyRef] = {

@@ -48,7 +48,7 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
       $sync.observation.watch(root, changed); // wait for more changes
       $sync.manager.commit();
     } else if (subscribedAgainFn) {
-	  subscribeAgain();
+	    subscribeAgain();
     } else {
       finish();
     }

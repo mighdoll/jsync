@@ -39,7 +39,6 @@ $sync._sequenceWrap = function() {
   
   function doAppend(item) {
     log.assert($sync.manager.isSyncable(item), "sequence.put: elem isn't syncable: " + item);
-    if (!$sync.manager.assertLegalReference(this, item)) return;
         
     if (this.contains(item)) 
       return;
@@ -105,11 +104,10 @@ $sync._sequenceWrap = function() {
     insert: function(item, prev) {
       log.assert($sync.manager.isSyncable(item), "sequence.insert: elem isn't syncable: " + item);
       log.assert(!prev || this.contains(prev));
-      if (!$sync.manager.assertLegalReference(this, item)) return;
       
       var index = 0;
       var prevDex = prev && this.indexOf(prev);
-      if (prevDex != undefined) {
+      if (prevDex !== undefined) {
         index = prevDex + 1;
       }
       
@@ -124,7 +122,6 @@ $sync._sequenceWrap = function() {
      */
     insertAt: function(item, index) {
       log.assert($sync.manager.isSyncable(item), "sequence.insertAt: elem isn't syncable: " + item);
-      if (!$sync.manager.assertLegalReference(this, item)) return;
       
       this._elems.splice(index, 0, item);
       notifyInsertAt.apply(this, [item, index]);
@@ -185,8 +182,6 @@ $sync._setWrap = function() {
     
     put: function(elem) {
       log.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: " + elem);
-      if (!$sync.manager.assertLegalReference(this, elem)) 
-        return;
       if (!this.contains(elem)) {
         this._elems[elem.id] = elem; // TODO: include partition in index
         this._size += 1;
@@ -209,10 +204,7 @@ $sync._setWrap = function() {
      * @param {Object} elem
      * @param {Object} after is ignored
      */
-    insert: function(elem, after) {
-      if (!$sync.manager.assertLegalReference(this, elem)) 
-        return;
-      
+    insert: function(elem, after) {      
       this.put(elem);
     },
     

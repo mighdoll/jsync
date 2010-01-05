@@ -81,7 +81,8 @@ class TakeSendBuffer(debugId:Int, queue:BlockingQueue[String]) extends Actor {
       }
     }    
   }
-    /** combine the first message with any available remaining messages and wrap 'em up
+  
+  /** combine the first message with any available remaining messages and wrap 'em up
    * in a json array.
    * 
    * @param first - a json object for the first object in the message
@@ -134,6 +135,7 @@ class PutSendBuffer(val debugId:Int) extends Actor {
   private def put(message:Message) = {
     message.xactNumber = nextXactNum
     nextXactNum += 1
+    log.ifTrace("putting message in buffer: " + message.toJson)
     pending.offer(message.toJson)
   }
 

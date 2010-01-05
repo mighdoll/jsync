@@ -28,7 +28,7 @@ $sync.future = function(resolved) {
   
   function init() {
     completions = resolved ? [resolved] : [];
-  };
+  }
   
   /* trigger the future, causing all registered callbacks to be called
    * @param payload - data that will be passed to all await function */
@@ -108,7 +108,7 @@ $sync.futuresWatch = function(futureArray, complete) {
       if (!future.triggered) {
         // create a wrapper for each element, so that we can remove 'em later
         checkFunc = function() {
-          checkTriggered()
+          checkTriggered();
         };
         registered.push({
           future: future,
@@ -118,6 +118,6 @@ $sync.futuresWatch = function(futureArray, complete) {
       }
     }
   }
-}
+};
 
 

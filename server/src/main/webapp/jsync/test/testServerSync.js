@@ -44,6 +44,7 @@ test("sync.subscribe.oneSet", function() {
     });
     stop();
   }
+  
   function connected() {
     connection.subscribe("oneSet", "test", function(set) {
       ok(set.size() === 1);
@@ -99,7 +100,7 @@ test("sync.bothModifyTwoSet", function() {
 	  	
       // modify the name and send it to the server
 	  twoSet.clear();
-      twoSet.put(ourName);
+    twoSet.put(ourName);
   }
     
   function verify(twoSet) {
@@ -129,8 +130,9 @@ test("sync.modifyReference", function() {
   
   function modify(root) {
   	newRef = $sync.test.refObj();
-	newRef.ref_(root);
+    newRef.ref_(root);
   	root.ref_(newRef);
+    // root -> clientNew -> root
   }
   
   function changed(changed) {
@@ -138,6 +140,7 @@ test("sync.modifyReference", function() {
     // verify that server inserts an element
   	ok(root.ref.ref === newRef);
   	ok(root.ref.ref.ref === root);
+    // root -> serverNew -> clientNew -> root
   }
   
 });

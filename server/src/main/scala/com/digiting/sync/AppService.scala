@@ -14,13 +14,13 @@
  */
 package com.digiting.sync
 import net.lag.logging.Logger
-import com.digiting.util.HandyLog
-import TryCast.tryCast
+import com.digiting.util.LogHelper
+import com.digiting.util.TryCast.tryCast
 
 /** this should replace AppService below */
 class AppService3[T <: Syncable](val serviceName:String, debugId:String, messageClass:Class[T],
-                                 val queue:SyncableSeq[T], handler:(T)=>Unit) extends HandyLog {
-  val logging = "AppService." + serviceName
+                                 val queue:SyncableSeq[T], handler:(T)=>Unit) extends LogHelper {
+  val log = Logger("AppService." + serviceName)
   
   log.trace("init()")
   Observers.watch(queue, queueChanged, serviceName)
@@ -29,11 +29,11 @@ class AppService3[T <: Syncable](val serviceName:String, debugId:String, message
     log.trace("queueChanged(): %s", change)
     for {
       insertAt <- AsInsertAtChange.unapply(change) orElse 
-        error("unexpected change %s in queue", change.toString)
+        err("unexpected change %s in queue", change.toString)
       (queue, messageObj, at) <- InsertAtChange.unapply(insertAt) orElse
-        error("can't unapply InsertAtChange !?", insertAt.toString)
+        err("can't unapply InsertAtChange !?", insertAt.toString)
       message <- tryCast(messageObj, messageClass) orElse 
-        error("unexpected type of message received: ", messageObj.toString)        
+        err("unexpected type of message received: ", messageObj.toString)        
     } { 
       handler(message)
     }
@@ -55,14 +55,14 @@ object AsInsertAtChange {
  * syncable objects.  Subclasses of AppService are responsible for handling the received objects
  * appropriately.
  */
-trait AppService extends HasTransientPartition with HandyLog {
+trait AppService extends HasTransientPartition with LogHelper {
   type MessageHandler = PartialFunction[AnyRef, Unit]
   
   val handleMessage:MessageHandler		// set by message handler
   val serviceName:String    			// set by subTrait 
   val app:AppContext					// set by instantiator
   
-  lazy val logging = serviceName
+  lazy val log = Logger(serviceName)
   lazy val transientPartition = app.transientPartition  
   lazy val clientQueue = createMessageQueue()
   
@@ -88,9 +88,9 @@ trait AppService extends HasTransientPartition with HandyLog {
   private def queueChanged(change:ChangeDescription) {
     for {
       insertAt <- AsInsertAtChange.unapply(change) orElse 
-        error("unexpected change %s in queue", change.toString)
+        err("unexpected change %s in queue", change.toString)
       (queue, messageObj, at) <- InsertAtChange.unapply(insertAt) orElse
-        error("can't unapply InsertAtChange !?", insertAt.toString)
+        err("can't unapply InsertAtChange !?", insertAt.toString)
       message = messageObj.asInstanceOf[AnyRef]} {
             
         if (handleMessage.isDefinedAt(message)) {

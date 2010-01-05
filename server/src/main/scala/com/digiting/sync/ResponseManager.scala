@@ -42,7 +42,6 @@ import ResponseManager._
   * an empty response is sent to the excess requests.  
   */
 class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
-  // TODO show debugId for logging 
 	/* Connections waiting for data, sort most recent first */
 	case class AwaitingResponse(val requestor:OutputChannel[Any], val debugId:Int) {
 	  val waitStart = System.currentTimeMillis
@@ -59,8 +58,8 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
     loop {
       react {
         case ResponseManager.AwaitResponse(debugId) => 
-          log.trace("AwaitResponse() #%d", debugId)
           waiters += AwaitingResponse(sender, debugId)
+          log.trace("AwaitResponse() #%d. waiters:%d", debugId, waiters.length)
           sendEmptyResponse(maxWaiters)  // prune excess waiters
           waitForSendBuffer(false)
         case TakeSendBuffer.TakeResponse(Some(response:String)) =>  

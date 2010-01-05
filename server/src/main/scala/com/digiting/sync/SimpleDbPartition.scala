@@ -15,12 +15,14 @@
 package com.digiting.sync
 import org.sublime.amazon.simpleDB.api._
 import net.lag.logging.Logger
-import com.digiting.util.HandyLog
+import com.digiting.util.LogHelper
 import com.digiting.sync.aspects.Observable
 import scala.collection.mutable
 import SyncableSerialize._
 
-object SimpleDbPartition {
+object SimpleDbPartition extends LogHelper {
+  val log = Logger("SimpleDbPartition")
+  
     /** convert multimap to to map (we never store more than one value) */ 
   def attributeMap(snapshot:Map[String,Set[String]]):Map[String,String] = {
     val attributes = mutable.HashMap[String,String]()
@@ -28,7 +30,7 @@ object SimpleDbPartition {
     for {
       (key, values) <- snapshot
       value <- values find(_ => true) orElse
-        error("attributeMap() no values found for attribute: %s in %s", 
+        err("attributeMap() no values found for attribute: %s in %s", 
               key, snapshot.toString)
     } {
       attributes += (key -> value)
@@ -41,9 +43,9 @@ object SimpleDbPartition {
 import SimpleDbPartition._
 
 class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, domain:Domain) 
-   extends Partition(partitionRef.partitionName) with HandyLog {
+   extends Partition(partitionRef.partitionName) with LogHelper {
   
-  val logging = "SimpleDbPartition"
+  val log = Logger("SimpleDbPartition")
   
   def put(syncable:Syncable) {
     log.ifTrace("put: " + syncable)
@@ -264,19 +266,19 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
     for {
       snap <- snapshots
       elemValues <- snap.get("elem") orElse {
-        error("loadFromSnapshots can't find attribute 'elem' in: %s ", snap.toString)        
+        err("loadFromSnapshots can't find attribute 'elem' in: %s ", snap.toString)        
         throw new InconsistentCollection
       }
       elemRefString <- elemValues find {_ => true} orElse {
-        error("loadFromSnapshots found no values for attribute 'elem'")
+        err("loadFromSnapshots found no values for attribute 'elem'")
         throw new InconsistentCollection
       }
       elemRef <- ReferenceString.unapply(elemRefString) orElse {
-        error("loadFromSnapshots can't parse reference: %s", elemRefString)        
+        err("loadFromSnapshots can't parse reference: %s", elemRefString)        
         throw new InconsistentCollection
       }
       member <- getFromRef(elemRef) orElse {				// Consider CONSISTENCY here, if the referenced element is missing, should we clean it up?
-        error("loadFromSnapshots can't find referenced object %s", elemRef.toString)
+        err("loadFromSnapshots can't find referenced object %s", elemRef.toString)
         throw new InconsistentCollection
       }
     } yield {
@@ -290,7 +292,7 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
     for {
       indexValues <- snap.get("index") 
       indexString <- indexValues find {_ => true} orElse
-        error("getIndex found no attributes for 'index' in %s", snap.toString)
+        err("getIndex found no attributes for 'index' in %s", snap.toString)
     } yield
       Integer.valueOf(indexString).intValue
   }

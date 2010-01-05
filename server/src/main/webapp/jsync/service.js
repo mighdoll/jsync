@@ -29,14 +29,13 @@ $sync.service = function(serviceName, messageCreateFn) {
       var message;
       if (formOrEvent.target) { // TODO, more robust way to distinguish forms from events
         message = formToMessage(formOrEvent.target, messageCreateFn);
-      }
-      else {
+      } else {
         message = formToMessage(formOrEvent, messageCreateFn);
       }
       queue.append(message);
       return false; // so that it can be used directly in a click or onsubmit handler
     }
-  }
+  };
   
   function formToMessage(form, createMessage) {
     var message = $sync.manager.withTransientPartition(messageCreateFn);
@@ -55,7 +54,7 @@ $sync.service = function(serviceName, messageCreateFn) {
   }
   
   return self;
-}
+};
 
 /** 
  * Connect an html form to syncable service endpoint.  Automatically converts the argments.
@@ -124,4 +123,4 @@ $sync.serviceForm = function(responseFn) {
   }
   
   return processForm;
-}
+};

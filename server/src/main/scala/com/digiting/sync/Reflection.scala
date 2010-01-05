@@ -17,6 +17,8 @@ package com.digiting.sync
 import scala.collection._
 import java.lang.reflect.Method
 import net.lag.logging.Logger
+import com.digiting.sync.aspects.Observable
+
 
 /** utility function for identifying property methods in scala classes */
 object Properties {
@@ -137,6 +139,7 @@ object SyncableAccessor {
   }
 }
 
+
 /**
  * Cache of ClassAccessors and other convenience routines for working with scala 
  * classes and instances via reflection
@@ -146,6 +149,29 @@ object Accessor {
      references to reserved Syncable fields are ignored.  Fine for me for now,
      but LATER give this a separate cache if it's used for another purpose.  */
   def references(obj:AnyRef):Iterable[AnyRef] = SyncableAccessor.references(obj)
+  
+  /* Collect every reference to an Observable object directly from a given object
+   * 
+   * @param base  object instance to scan for references
+   */
+  def observableReferences(obj:AnyRef):Seq[Observable] = {
+    val refs = new mutable.ListBuffer[Observable]()
+    references(obj) foreach {_ match {
+      case ref:Observable => refs + ref
+      case _ =>      
+    } }
+    obj match {
+      case collection:SyncableCollection => 
+        refs ++ collection.syncableElements
+//        for (elem <- collection.syncableElements) {
+//          Console println ("observable element: " + elem)
+//        }
+      case _ =>
+    }
+
+    refs.toSeq
+  }      
+
 }
 
 /* LATER move the Syncable, isReserved stuff out of this file -- it should be generic.  */

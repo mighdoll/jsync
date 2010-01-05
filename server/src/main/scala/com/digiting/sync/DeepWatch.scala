@@ -18,6 +18,7 @@ import net.liftweb.util.Log
 
 import com.digiting.sync.aspects.Observable
 import Observers._
+import Accessor.observableReferences
 
 object DeepWatchDebug {
   var nextId = -1
@@ -39,6 +40,7 @@ object DeepWatchDebug {
 class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   private val connectedSet = mutable.Map[AnyRef, Int]()  // tracked observables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()
+  var disabled = false
  
   init()
   
@@ -64,6 +66,11 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     for ((obj, count) <- connectedSet) {
       assert(count > 0)
     }
+  }
+  
+  def disable() {
+    Observers.unwatchAll(this)
+    disabled = true
   }
   
   /** called when on one of the objects we're watching has changed */
@@ -140,7 +147,7 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     fn(change)
  
     // update reference counts 
-    for (ref <- observableRefs(obj)) 
+    for (ref <- observableReferences(obj)) 
     removedRef(ref)
   }
       
@@ -163,35 +170,13 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     val change = new WatchChange(root, obj, this)
     fn(change)
     
-    for (ref <- observableRefs(obj)) 
+    for (ref <- observableReferences(obj)) 
     addedRef(ref)
   }
-  
-  
-  /* Collect every reference to an Observable object directly from a given object
-   * 
-   * @param base  object instance to scan for references
-   */
-  private def observableRefs(obj:AnyRef):Seq[Observable] = {
-    val refs = new mutable.ListBuffer[Observable]()
-    Accessor.references(obj) foreach {_ match {
-      case ref:Observable => refs + ref
-      case _ =>      
-    } }
-    obj match {
-      case collection:SyncableCollection => 
-        refs ++ collection.syncableElements
-//        for (elem <- collection.syncableElements) {
-//          Console println ("observable element: " + elem)
-//        }
-      case _ =>
-    }
-
-    refs.toSeq
-  }      
+   
   
   override def finalize {  // LATER: consider some kind of loan wrapper approach
-    Observers.unwatchAll(this)
+    disable()
   }
   
   override def toString:String = "DeepWatch #" + debugId

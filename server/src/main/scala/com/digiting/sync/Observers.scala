@@ -73,14 +73,14 @@ object Observers {
   def notify(change:ChangeDescription):Unit = {            
     holdNotify.value match {
       case Some(paused) => 
-	    watchers.foreachValue(change.target) {watch =>  
-	      val notify = Notification(watch, change)
-	      log.trace("queing notification: %s", notify)
-	      paused += notify
-	    }
+        watchers.foreachValue(change.target) {watch =>  
+          val notify = Notification(watch, change)
+          log.trace("queing notification: %s", notify)
+          paused += notify
+        }
       case _ =>
-	    watchers.foreachValue(change.target) {watch =>  
-	      watch.changed(change)
+  	    watchers.foreachValue(change.target) {watch =>  
+  	      watch.changed(change)
 	    }        
     }
   }
@@ -88,7 +88,10 @@ object Observers {
   def withNoNotice[T](fn: => T):T = {
     // just use a pause buffer and throw away the contents 
     holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
-      fn
+      log.trace("notices disabled")
+      val result = fn
+      log.trace("notices re-enabled")
+      result
     }
   }
 
@@ -101,7 +104,7 @@ object Observers {
   
   /* Register a function to be called when the object or any referenced object is changed 
    * 
-   * @param root  	  root of the branch of Observable objects to be watched
+   * @param root        root of the branch of Observable objects to be watched
    * @param fn          function called on each change
    * @param watchClass  names this watch, which enables removing the watch by name
    */
@@ -140,36 +143,45 @@ object Observers {
   }
   
   def pauseNotification[T](fn: =>T):T = {    
-      // install pause buffer
-      holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
-        val result = fn	// call function
-
-	    // send held notifications
-	    holdNotify.value match {	// note that the fn could change the holdNotify value, so we refetch
-	      case Some(paused) => 
-		    for (notification <- paused) {
-		      log.trace("pauseNotification, releasing: %s : %s", notification.watcher.watchClass, notification.change)
-		      notification.watcher.changed(notification.change)
-		    }
-	      case _ =>
-	        log.warning("pauseNotification, that's odd.  where'd the pause buffer go?")
-	    }
-        result
-      }
+    log.trace("pausing notification")    
+    val origHold = holdNotify.value
+    holdNotify.value = Some(new mutable.ListBuffer[Notification])
+    val (result, pausedBuffer) = 
+      try {
+        (fn, holdNotify.value) // note that the fn could change the holdNotify value (e.g via releasePaused), so we refetch
+      } finally {
+        holdNotify.value = origHold
+      }    
+    
+    log.trace("releasing paused notifications")
+    pausedBuffer match {	
+      case Some(paused) => 
+        paused foreach { notification =>
+          log.trace("pauseNotification, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+          notification.watcher.changed(notification.change)
+        }
+      case _ =>
+        log.warning("pauseNotification, that's odd.  where'd the pause buffer go?")
+    }
+    log.trace("all paused notifications released")
+    result
   }
   
   def releasePaused(matchFn:(Any)=>Boolean) {
     // accumulate notifiations that we're leaking out of the pause buffer
-	val releasing = new mutable.ListBuffer[Notification]
+    val releasing = new mutable.ListBuffer[Notification]
  
     // release notifications that match 	                                      
     holdNotify.value map {held =>
-      for {notification <- held
-           if matchFn(notification.watcher.watchClass)} {        
+      for {
+        notification <- held
+        if matchFn(notification.watcher.watchClass)
+      } {        
         releasing += notification
-	    log.trace("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
-	    notification.watcher.changed(notification.change)
+        log.trace("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+        notification.watcher.changed(notification.change)
       }
+      
       // remove released notifications from pause buffer
       val remainder = new mutable.ListBuffer[Notification]
       remainder ++= (held.toList -- releasing.toList)

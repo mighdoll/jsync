@@ -15,6 +15,7 @@
 package com.digiting.sync
 import net.lag.logging.Logger
 import scala.util.DynamicVariable
+import Receiver.ReceiveMessage
 
 /** global access to the current application, not currently used */
 object App {
@@ -22,6 +23,14 @@ object App {
   def currentAppName:String = current.value match {
     case Some(app) => app.appName
     case _ => "<no-current-app>"
+  }
+  
+  def withTransientPartition[T](fn: =>T):T = {
+    current.value match {
+      case Some(app:AppContext) => app.withTransientPartition(fn)
+      case _ => 
+        throw new ImplementationError()
+    }  
   }
 }
 
@@ -33,6 +42,7 @@ trait HasTransientPartition {
       fn
     }
   }
+  
 }
 
 
@@ -42,7 +52,6 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   private val log = Logger("AppContext")
   override val transientPartition = new RamPartition(connection.connectionId)
   val appName = "server-application"
-  val processMessage = new ProcessMessage(this)  
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   val defaultPartition = new RamPartition("user") 		// we'll create new client objects here, TODO make this a per user persistent partition
   val subscriptionService = new {val app = this} with SubscriptionService
@@ -52,14 +61,19 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   watchCommit(sendPendingChanges)
       
   def commit() {
-	SyncManager.instanceCache.commit();
+    SyncManager.instanceCache.commit();
   }
       
   /** LATER make this use STM, but for now just feed through to the sync manager */
   def watchCommit(func:(Seq[ChangeDescription])=>Unit) {
   	SyncManager.instanceCache.watchCommit(func)
   }
-    
+  
+  /** accept a protocol message for this application */
+  def receiveMessage(message:Message) {
+    connection.receiver ! ReceiveMessage(message)
+  }
+  
   /** send any queued model changes to the client in a single transaction 
    * 
    * (Note that this may be called from an arbitrary thread)
@@ -89,7 +103,7 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   def createImplicitService[T <: Syncable](serviceName:String, messageClass:Class[T], 
                                            fn:(T)=>Unit):AppService3[T] = {
     log.info("createImplicitService: %s(%s)", serviceName, messageClass.getName)
-	val ids = new SyncableIdentity(serviceName, implicitPartition)
+    val ids = new SyncableIdentity(serviceName, implicitPartition)
     val messageQueue = SyncManager.setNextId.withValue(ids) {
       new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
     }
@@ -118,10 +132,15 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
             if (classAnnotation != null && classAnnotation.value() != "") {
               classAnnotation.value()
             } else {
-              services.getClass.getName
+              val rawName = services.getClass.getName
+              if (rawName.endsWith("$")) {
+                rawName.take(rawName.length - 1)
+              } else {
+                rawName
+              }
             } 
           val serviceName = className + "." + methodName
-          createImplicitService(serviceName, classOf[ServiceCall], serviceCall(method, services))
+          createImplicitService(serviceName, classOf[ServiceCall[_]], serviceCall(method, services))
         case _ =>
           log.error("createImplicitServices: can't create service for method signature: " + methodSignature(method))
           throw new NotYetImplemented("createImplicitServices: can't create service for method signature: " + methodSignature(method))
@@ -130,13 +149,15 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   }
   
   /** return a function which accepts a ServiceCall message, calls the service method, and 
-    * modifies the ServiceCAll result value to reflect the result */
-  private def serviceCall(method:Method, target:AnyRef):(ServiceCall)=>Unit = {
-    { serviceCall:ServiceCall =>
+    * modifies the ServiceCall result value to reflect the result */
+  private def serviceCall(method:Method, target:AnyRef):(ServiceCall[_])=>Unit = {
+    (serviceCall:ServiceCall[_]) =>
       val args = serviceCall.arguments(method).toArray;
-      val results = method.invoke(target, args: _*) 
-      serviceCall.results = results.asInstanceOf[Syncable]
-    }
+      val results = method.invoke(target, args: _*) // (may be null, if method returns void)
+      subscriptionService.active.withTempRootSubscription(serviceCall) {
+        log.trace("calling service %s", method.getName)
+        serviceCall.results = results.asInstanceOf[Syncable]        
+      }
   }
   
   private def methodSignature(method:java.lang.reflect.Method):String = {

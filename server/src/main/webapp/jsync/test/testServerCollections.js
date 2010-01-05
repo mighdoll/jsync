@@ -22,21 +22,21 @@ test("sync.serverSequence.insertClear", function() {
 
   function modifySequence(seq) {
   	var elem = $sync.test.nameObj();
-	elem.name_(uniqueName);
+    elem.name_(uniqueName);
 	
   	seq.clear();
-	seq.insert(elem);
+    seq.insert(elem);
   }
 
   function seqChanged(change) {	
-	var seq = change.target;
-	var seq2;
-	ok(seq.size() == 3);
-	matchSequenceNames(seq, [,"val",uniqueName]);
-	seq2 = seq.getAt(0);
-	ok(seq2.kind === '$sync.sequence');
-	ok(seq2.size() == 3);
-	matchSequenceNames(seq2, ["chris","anya","bryan"]);
+  	var seq = change.target;
+  	var seq2;
+  	ok(seq.size() == 3);
+  	matchSequenceNames(seq, [,"val",uniqueName]);
+  	seq2 = seq.getAt(0);
+  	ok(seq2.kind === '$sync.sequence');
+  	ok(seq2.size() == 3);
+  	matchSequenceNames(seq2, ["chris","anya","bryan"]);
   }  
 });
 
@@ -47,15 +47,15 @@ test("sync.serverSequence.move", function() {
   
   
   function moveElements(seq) {
-	ok(seq.size() === 3);	
-	matchSequenceNames(seq, ['a','b','c']);
-	seq.moveAt(0, 1);		
-	matchSequenceNames(seq, ['b','a','c']);
+    ok(seq.size() === 3);	
+    matchSequenceNames(seq, ['a','b','c']);
+    seq.moveAt(0, 1);		
+    matchSequenceNames(seq, ['b','a','c']);
   }
   
   function verify(change) {	
 	   // server moves 2,0 -> c,b,a
-	matchSequenceNames(change.target, ['c','b','a']);
+    matchSequenceNames(change.target, ['c','b','a']);
   }   
 });
 
@@ -63,14 +63,14 @@ test("sync.serverSequence.remove", function() {
   withTestSubscription("removeSequence", removeElement, verify);
   
   function removeElement(seq) {
-	matchSequenceNames(seq, ['a','b','c']);
-	seq.removeAt(0);
-	matchSequenceNames(seq, ['b','c']);
+    matchSequenceNames(seq, ['a','b','c']);
+    seq.removeAt(0);
+    matchSequenceNames(seq, ['b','c']);
   }
   
   function verify(change) {	
 	   // server removes(1) 
-	matchSequenceNames(change.target, ['b']);
+    matchSequenceNames(change.target, ['b']);
   }   
 });
 
@@ -82,9 +82,9 @@ function matchSequenceNames(seq, matchArray) {
   var i, match;
   for (i = 0; i < matchArray.length; i++) {
   	match = matchArray[i];
-	if (match !== undefined) {
-	  ok(match === seq.getAt(i).name);
-	}
+    if (match !== undefined) {
+      ok(match === seq.getAt(i).name);
+    }
   }		
 }
 

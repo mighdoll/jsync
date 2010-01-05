@@ -89,26 +89,28 @@ object TestData {
   }
   
   def refChange(change:ChangeDescription) = {
-	change match {
-	  case modify:PropertyChange if change.source != "server-application" =>
-	    change.target match {
-	      case root:TestRefObj =>
-	        root.ref match {
-	          case clientRef:TestRefObj =>
-	            Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
- 	              val newRef = withTestPartition {new TestRefObj}
-                  newRef.ref = clientRef;
-	              root.ref = newRef               
+    change match {
+      case modify:PropertyChange if change.source != "server-application" =>
+        change.target match {
+          case root:TestRefObj =>
+            root.ref match {
+              case clientRef:TestRefObj if (clientRef.ref == root) =>      // only insert one time
+                Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
+                  // root -> clientNewRef -> root   
+                  val serverRef = withTestPartition {new TestRefObj(clientRef)}
+                  root.ref = serverRef               
+                  // root -> serverNewRef -> clientNewRef -> root
                 }
-	            SyncManager.instanceCache.commit()	// TODO - not necessary?
+                SyncManager.instanceCache.commit()	// TODO - not necessary?
+              case clientRef:TestRefObj =>
               case _ =>
-               log.error("Test.refChange() unexpected change made by client: not a ref: " + root.ref);
-	         }
-	      case _ =>
-            log.error("Test.refChange() root changed, not a TestRefObj!");
-	    }
+                 log.error("Test.refChange() unexpected change made by client: not a ref: " + root.ref);
+             }
+          case _ =>
+              log.error("Test.refChange() root changed, not a TestRefObj!");
+        }
       case _ =>
-	}
+    }
   }
   
   def createRemoveSequence():Option[Syncable] = {
@@ -145,11 +147,12 @@ object TestData {
   }
   
   def moveSequenceChanged(change:ChangeDescription) {
-	 change match {
-       case move:MoveChange if (change.source != "server-application") =>
-         moveSeq(move.target)
-       case _ => // ignore
-	 } 
+    log.debug("moveSequnceChanged: %s", change.toString)
+    change match {
+      case move:MoveChange if (change.source != "server-application") =>
+        moveSeq(move.target)
+      case _ => // ignore
+    } 
   }
   
   def moveSeq(possibleSeq:Observable) {
