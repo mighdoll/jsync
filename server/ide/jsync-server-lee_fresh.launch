@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="scala.application">
+<stringAttribute key="bad_container_name" value="/jsync-server/id"/>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/jsync-server"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.ui.favoriteGroups">
+<listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="RunWebApp"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="jsync-server"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-javaagent:${resource_loc:/jsync-server}/lib/aspectjweaver-1.6.2.jar  -DjsyncServer_runMode=&quot;lee_fresh&quot; -DjsyncServerConfig=&quot;lee.conf&quot;"/>
+</launchConfiguration>
