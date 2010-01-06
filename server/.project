@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Sync-Server</name>
+	<name>jsync-server</name>
 	<comment></comment>
 	<projects>
 		<project>Sync-Aspects</project>

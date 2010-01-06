@@ -26,11 +26,9 @@ class Boot {
       Nil
 
     LiftRules.setSiteMap(SiteMap(entries:_*))
-    LiftRules.early.append(makeUtf8)
     LiftRules.enableLiftGC = false;
     LiftRules.autoIncludeAjax = (_) => false;
     LiftRules.autoIncludeComet = (_) => false;
-    LiftRules.dispatch.prepend(SyncRequestApi.dispatch)
   }
 
   /**
