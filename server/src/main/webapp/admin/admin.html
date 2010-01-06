@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns:lift="http://liftweb.net/" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+    <meta http-equiv="pragma" content="no-cache"></meta>
+    <link rel="stylesheet" href="/admin/admin.css" type="text/css" media="screen" />
+    <title>Digiting SimpleDB Admin</title>
+    <lift:embed what="/templates/_jquery+plugins_js"/>
+    <lift:embed what="/templates/_jsync_includes_js"/>
+    <script type="text/javascript" src="/vendor/jquery-validate-1.5.5/jquery.validate.js"></script>
+    <script type="text/javascript" src="/admin/admin.js"></script>    
+  </head>
+  <body>
+    <div class="status">
+      <span class="connected">connected</span>
+    </div>
+    <div class='commands'>
+      <div id='simpleDbQuery'>
+        <form action="">
+          <input type="hidden" name="serviceName" value="Admin2.simpleDbQuery" />
+          <table>
+          	<colgroup> <col class="col1" /> <col class="col2" /> </colgroup>
+            <tr>
+              <td>
+                <input class="commandButton" value="SimpleDbQuery" type="submit" />
+              </td>
+              <td>
+                <input class="lineEntry" name="param-0" type="text" />
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
