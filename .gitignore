@@ -1,5 +1,3 @@
-<<<<<<< HEAD:.gitignore
 target
-=======
+bin
 *.swp
->>>>>>> origin/master:.gitignore
