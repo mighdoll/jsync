@@ -40,4 +40,13 @@ object TryCast {
     }
   }
 
+  /** possibly null string to Option[String] */
+  def nullableStringToOption(value:String):Option[String] = {
+    if (value != null) {
+      Some(value)
+    } else {
+      None
+    }    
+  }
+
 }

@@ -26,7 +26,7 @@ import com.digiting.util.Configuration
 class ParseTest extends Spec with ShouldMatchers {
   describe("JsonSync") {
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should convert maps to messages and back") {
       withTestEnvironment {

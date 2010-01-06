@@ -38,7 +38,7 @@ class ServicesTest extends Spec with ShouldMatchers {
   describe("AppContext") {
     it("should initialize configuration") {
       SyncManager.reset()
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should create implicit services") {
       val app = new AppContext(new Connection("ServicesTest"))

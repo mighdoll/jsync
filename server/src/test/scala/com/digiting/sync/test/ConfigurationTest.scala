@@ -27,7 +27,7 @@ import net.lag.configgy.Configgy
 class ConfigurationTest extends Spec with ShouldMatchers {
   describe("Configuration") {
     it("should setup the test") {
-      Configuration.init()      
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     
     it("should load configuration in debug mode") {

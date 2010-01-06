@@ -24,7 +24,7 @@
 	-->
 
 	<weaver options="-verbose">
-		<include within="com.digiting.sync.models.*" />
+    <include within="com.digiting.sync.syncable.*"/>
 	</weaver>
 
 </aspectj>

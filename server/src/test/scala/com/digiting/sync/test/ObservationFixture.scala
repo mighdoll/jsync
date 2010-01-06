@@ -33,7 +33,7 @@ object ObserveUtil {
   }
   
   def setup() {
-    Configuration.init()
+    Configuration.initFromVariable("jsyncServerConfig")      
     changes.clear()
     SyncManager.currentPartition.value = testPartition
   }

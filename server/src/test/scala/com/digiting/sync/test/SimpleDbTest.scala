@@ -80,7 +80,7 @@ class SimpleDbTest extends Spec with ShouldMatchers {
   describe("SimpleDbTest") {
     it("should initialize configuration") {
       SyncManager.reset()
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
 
     it("should create an admin") {

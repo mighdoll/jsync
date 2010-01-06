@@ -30,7 +30,7 @@ class ProtocolReferenceTest extends Spec with ShouldMatchers {
   describe("JsonSync") {    
     val log = Logger("ProtocolReferenceTest")
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
       TestApplication.registerTestServices(ProtocolReferenceTestServer)
     }
     

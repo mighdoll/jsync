@@ -53,13 +53,15 @@ import com.digiting.sync.ImplementationError
    * LATER consider merging all attributes into one map, it would simplify the code.
 */
 import net.lag.configgy.ConfigException
+import com.digiting.util.SystemConfig.getPropertyOrEnv
+  
 object Configuration extends LogHelper {   
   var propOverrides:Map[String,Option[String]] = new immutable.HashMap[String,Option[String]]
   lazy val log = Logger("Configuration")
   var initialized = false
   var runMode:String = null
   var runModeMap:ConfigMap = null
-    
+  var configFile:String = "no-config-file-specified"
 
   private def error[T](message:String, params:String*):Option[T] = {
     log.error(message, params:_*)
@@ -67,7 +69,7 @@ object Configuration extends LogHelper {
   }
 
   def reset() {
-    Configgy.configureFromResource("context.conf", this.getClass.getClassLoader)
+    Configgy.configureFromResource(configFile, this.getClass.getClassLoader)
     runMode = determineRunMode
     runModeMap = findRunModeMap(runMode)
 
@@ -81,10 +83,20 @@ object Configuration extends LogHelper {
       throw new ConfigException("can't find runMode: " + mode)}
   }
       
-  def init() {
+  def initFromFile(fileName:String) {
+    configFile = fileName
     if (!initialized)
       reset();
     initialized = true
+  }
+  
+  def initFromVariable(variableName:String) {
+    getPropertyOrEnv(variableName) orElse {
+      error("Configuration: variable not found in java property or OS environment variable: " + variableName) 
+    } map initFromFile
+  }
+  
+  private def init() {
   }  
 
   /** apply our special sauce to each configuration element */
@@ -249,32 +261,5 @@ object Configuration extends LogHelper {
     }
   } 
   
-}
-
-
-object SystemConfig {  
-  def getenv(key:String) = {
-    toOption(System.getenv(key))
-  }
-  
-  def getProperty(key:String) = {
-    toOption(System.getProperty(key))
-  }
-  
-  def toOption(value:String):Option[String] = {
-    if (value != null) {
-      Some(value)
-    } else {
-      None
-    }    
-  }
-  
-  /** get a value from java system properties or the operating system
-    * environment varaibles.   */
-  def getPropertyOrEnv(key:String):Option[String] = {
-    getProperty(key) orElse 
-      getenv(key)
-  }
-
 }
 

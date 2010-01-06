@@ -31,7 +31,7 @@ import com.digiting.util.Configuration
 class SyncableTest extends Spec with ShouldMatchers {
   describe("Syncable") {
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should allow setting an id") {
       withTestEnvironment {

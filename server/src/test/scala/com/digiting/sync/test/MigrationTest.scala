@@ -26,7 +26,7 @@ import com.digiting.sync.SyncableSerialize._
 class MigrationTest extends Spec with ShouldMatchers {
   describe("Migration") {
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     
     it("should migrate a simple object from an old to a new schema") {

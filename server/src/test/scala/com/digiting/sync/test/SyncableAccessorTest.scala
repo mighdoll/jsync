@@ -27,7 +27,7 @@ class SyncableAccessorTest extends Spec with ShouldMatchers {
   describe("A SyncableAccessor") {
     
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     
     it("should find references from object properties") {

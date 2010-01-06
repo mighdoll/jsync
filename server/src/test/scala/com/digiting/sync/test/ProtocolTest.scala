@@ -27,7 +27,7 @@ class ProtocolTest extends Spec with ShouldMatchers {
   describe("JsonSync") {    
 	val log = Logger("ProtocolTest")
     it("should initialize configuration") {
-      Configuration.init()
+      Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should support subscribe on a simple object") {
       withTestEnvironment {
