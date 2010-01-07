@@ -62,11 +62,11 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
           log.trace("AwaitResponse() #%d. waiters:%d", debugId, waiters.length)
           sendEmptyResponse(maxWaiters)  // prune excess waiters
           waitForSendBuffer(false)
-        case TakeSendBuffer.TakeResponse(Some(response:String)) =>  
+        case TakeSendBuffer.TakeResponse(Some(response:String)) =>  // response from our request to TakeSendBuffer
           log.ifTrace("TakeResponse() received: " + response.lines.take(1).mkString)
           responseToWaiter(response)
           waitForSendBuffer(true)
-        case TakeSendBuffer.TakeResponse(None) => 
+        case TakeSendBuffer.TakeResponse(None) =>   // response from our request to TakeSendBuffer
           log.trace("TakeResponse() received: None")
           responseToWaiter("[]")
           waitForSendBuffer(true)
@@ -75,7 +75,7 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
     }
   }
 
-  /* send one take request to to the TakeSendBuffer if appropriate.
+  /** send one take request to to the TakeSendBuffer if appropriate.
    * 
    * only one take request should be outstanding at any time, lest
    * a second response arrive after we've pruned the requestor
@@ -113,4 +113,41 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
     }    
   }
 }
+
+/** a response manager that always sends a closed message */
+class ClosedResponses(delay:Int) extends Actor {
+  def this() = this(0)
+  val log = Logger("ClosedResponses")
+  
+
+  start
+  def act() {
+    loop {
+      react {
+        case ResponseManager.AwaitResponse(debugId) => 
+          log.trace("AwaitResponse() #%d", debugId)  
+          new SendClose(delay, sender, debugId)
+        case x => 
+          log.error("unexpected message received: %s", x)
+      }
+    }
+  } 
+}
+
+import actors.OutputChannel
+
+class SendClose(delay:Int, target:OutputChannel[Any], debugId:Int) extends Actor {  
+  val log = Logger("SendClose")
+  
+  start 
+  
+  def act() {
+    Thread.sleep(delay)
+    log.trace("Sending close () #%d", debugId)  
+    target !  """[{"#close": { """ + 
+    				  """   "appVersion":"0.0", """ + 			// SOON, use real version numbers 
+              """   "protocolVersion":"0.2"}}]"""	
+  }
+}
+
 

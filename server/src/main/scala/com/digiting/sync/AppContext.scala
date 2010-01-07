@@ -53,7 +53,7 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   override val transientPartition = new RamPartition(connection.connectionId)
   val appName = "server-application"
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
-  val defaultPartition = new RamPartition("user") 		// we'll create new client objects here, TODO make this a per user persistent partition
+  def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
   val subscriptionService = new {val app = this} with SubscriptionService
   val responses = new ResponseManager(connection.takeSendBuffer)
   

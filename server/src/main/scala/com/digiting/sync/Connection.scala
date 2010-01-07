@@ -29,11 +29,16 @@ object ConnectionDebug {
  * Manages a connection to a client using the json sync protocol.
  */
 class Connection(val connectionId:String) {
+  val log = Logger("Connection")
   val debugId = ConnectionDebug.nextDebugId()
   val putSendBuffer = new PutSendBuffer(debugId)		// put interface to buffer messages to go to the client
   val takeSendBuffer = putSendBuffer.take				// take interface for messages to go to the client
   val receiver = new Receiver(this)					 	// processes messages from the client     
   var appContext:Option[AppContext] = None				// application handling this connection
   
+  def close() {
+    log.info("close() #%d", debugId)
+    putSendBuffer
+  }
 }
 

@@ -99,9 +99,10 @@ object Applications extends LogHelper {
               log.error("connection found for %s, but missing no application set", message.toJson)
             app
           case None =>
-            // need to reset the client, etc.
-            log.error("appFor: token %s not found, need to reset the client connection. Not yet implemented", token)
-            None
+            log.error("appFor: token %s not found, closing the client connection", token)
+            // LATER get rid of delay, it's a temp measure so that pre 0.2 (27.10.2009) clients don't re-request
+            val app = new ClosedApp(ActiveConnections.createConnection(), 2000)
+            Some(app)
         }
       case HasStart(start) => 
         val connection = ActiveConnections.createConnection()

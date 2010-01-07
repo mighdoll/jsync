@@ -37,20 +37,27 @@ JsonSync messages normally contain:
 Messages are encoded as json arrays.  Here are some sample messages
   
  * Start a new connection (client -> server) 
-      [{"#transaction":0},      // sequence number
+      [{"#transaction":0},              // sequence number
   
-       {"#start":true}]         // start a connection
+       {"#start":{                      // start a connection
+        "appVersion":"0.9.1",           // application version
+        "protocolVersion":"0.3.1" } ]   // jsync version      
+
+ * Close a new connection 
+      [{"#close":{                      // close the connection
+        "appVersion":"0.9.1",           // application version
+        "protocolVersion":"0.3.1" } ]   // jsync version      
    
  * Share a new object (server -> client)
       [ {"#transaction":0}, 
-        {"#token":"0-+eB2jh3jcq"},                        // unique identifier for this JsonSync connection
+        {"#token":"0-+eB2jh3jcq"},            // unique identifier for this connection
   
         {"$kind":"digiting.test.simpleName",  // $kind is sent, it's a new object
          "$id":"server-2",
          "$partition":"part2",
          "name":"john"} ]
         
- * Modify a shared object (client -> server)
+ * Modify a property on a shared object (client -> server)
       [ {"#transaction":2}, {"#token":"0-+eB2jh3jcq"},
   
         {"$id":"server-2",                              // no '$kind', it's an object modification
@@ -67,4 +74,9 @@ Messages are encoded as json arrays.  Here are some sample messages
          "$id":"server-1", "$partition":"part1",
          "name":"Jules"} ]
   
-
+ * Add an object to a sequence (message is structured as above for set.put, but instead of "put", we "insertAt" 
+     "insertAt":[{at:7, elem:{$id:"s-2", $partition:"part1"}}]  // put object part1,s-2 in the sequence at position 7
+   
+ * Remove an object from a sequence (just the pithy part) 
+     "removeAt":[{at:7}]     // put object part1,server-1 in the set 
+   
