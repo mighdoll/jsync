@@ -1,7 +1,6 @@
 import sbt._
 
-
-class HelloWorldProject(info: ProjectInfo) extends DefaultProject(info)
+class LiquidJServer(info: ProjectInfo) extends DefaultProject(info)
 {
   val configgyRepo = "lag.net" at "http://www.lag.net/repo"
   val scalaToolsRespo = "scala-tools.org" at "http://scala-tools.org/repo-releases"
