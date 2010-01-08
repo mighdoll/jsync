@@ -29,7 +29,6 @@
 	<classpathentry kind="var" path="M2_REPO/com/jteigen/scalatest/junit4runner/1.0-SNAPSHOT/junit4runner-1.0-SNAPSHOT.jar"/>
 	<classpathentry kind="var" path="M2_REPO/junit/junit/4.5/junit-4.5.jar"/>
 	<classpathentry kind="var" path="M2_REPO/net/lag/configgy/1.3.2/configgy-1.3.2.jar"/>
-	<classpathentry kind="var" path="M2_REPO/org/sublime/sublime-simpleDB/0.9-SNAPSHOT/sublime-simpleDB-0.9-SNAPSHOT.jar"/>
 	<classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.4/commons-lang-2.4.jar"/>
 	<classpathentry kind="var" path="M2_REPO/geronimo-spec/geronimo-spec-ejb/2.1-rc4/geronimo-spec-ejb-2.1-rc4.jar"/>
 	<classpathentry kind="var" path="M2_REPO/geronimo-spec/geronimo-spec-jta/1.0.1B-rc4/geronimo-spec-jta-1.0.1B-rc4.jar"/>
@@ -52,5 +51,6 @@
 	<classpathentry kind="var" path="M2_REPO/org/hibernate/hibernate-c3p0/3.3.2.GA/hibernate-c3p0-3.3.2.GA.jar"/>
 	<classpathentry kind="var" path="M2_REPO/c3p0/c3p0/0.9.1/c3p0-0.9.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.5.8/slf4j-api-1.5.8.jar"/>
+	<classpathentry kind="lib" path="lib/sublime-simpleDB-0.9-SNAPSHOT.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
