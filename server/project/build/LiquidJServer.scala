@@ -38,8 +38,11 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   lazy val classpathCompile = task { Console println mainCompileConfiguration.classpath.getPaths.mkString("\n") ; None }
   lazy val classpathJetty = task { Console println webappClasspath.getPaths.mkString("\n") ; None }
   lazy val foo = execTask (<x>ls ../aspects/target/classes/com/digiting/sync/aspects/ </x>)
-  lazy val processAspects = execTask (<x> ajc -verbose -aspectpath ../aspects/target/classes/com/digiting/sync/aspects/
-    -inpath target/classes/com/digiting/sync/syncable/ -Xlint:ignore -1.6 -d target/classes/com/digiting/sync/syncable </x>)
+  lazy val processAspects = execTask (<x> ajc -verbose -showWeaveInfo 
+    -aspectpath ../aspects/target/classes/com/digiting/sync/aspects/
+    -inpath target/classes/com/digiting/sync/syncable/ 
+    -cp ../tools/aspectj/lib/aspectjrt.jar:target/classes/com/digiting/sync/syncable 
+    -Xlint:ignore -1.6 -d target/classes/com/digiting/sync/syncable </x>)
 }
 
 
