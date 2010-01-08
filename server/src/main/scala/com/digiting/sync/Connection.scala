@@ -14,11 +14,7 @@
  */
 package com.digiting.sync
 
-import _root_.net.liftweb.util._
-import net.liftweb.util.JSONParser
-import collection._
 import com.digiting.sync.aspects.Observable
-import JsonUtil._
 import net.lag.logging.Logger
 
 object ConnectionDebug {

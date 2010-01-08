@@ -18,7 +18,7 @@ import JsonUtil._
 import collection._
 import net.lag.logging.Logger
 import net.liftweb.util.JSONParser
-import net.liftweb.util.Full
+import net.liftweb.common.Full
 
 /**
  * Utility routine to parse a Message from a json string.
