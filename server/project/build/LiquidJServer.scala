@@ -4,9 +4,8 @@ import Process._
 class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
 {
   lazy val parentPath = Path.fromFile("..")
-  lazy val aspects = project(parentPath / "aspects", "Aspects").asInstanceOf[ManagedProject]
-
-  override def deliverProjectDependencies = super.deliverProjectDependencies ++ Seq(aspects.projectID)
+//  lazy val aspects = project(parentPath / "aspects", "Aspects").asInstanceOf[ManagedProject]
+//  override def deliverProjectDependencies = super.deliverProjectDependencies ++ Seq(aspects.projectID)
 
   // managed library repositories
   val scalaToolsSnapshotsRespo = ScalaToolsSnapshots
@@ -35,18 +34,21 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val ejb = "geronimo-spec" % "geronimo-spec-ejb" % "2.1-rc4"
   val jta = "geronimo-spec" % "geronimo-spec-jta" % "1.0.1B-rc4"   // FIXME should be runtime scope?
 
+
+  val aspectsJarPath = parentPath / "aspects" / "target" / "liquidjaspects-0.2.jar" 
+  val aspectInterface = "liquidj" % "liquid-aspects" % "0.2" from ("file:///" + aspectsJarPath.absolutePath)  
+
   lazy val classpathCompile = task { Console println mainCompileConfiguration.classpath.getPaths.mkString("\n") ; None }
   lazy val classpathJetty = task { Console println webappClasspath.getPaths.mkString("\n") ; None }
   lazy val foo = execTask (<x>ls ../aspects/target/classes/com/digiting/sync/aspects/ </x>)
   lazy val processAspects = execTask (<x> 
     ../tools/aspectj/ajc 
     -showWeaveInfo 
-    -aspectpath ../aspects/target/classes/com/digiting/sync/aspects/
+    -aspectpath ../aspects/target/com/digiting/sync/aspects/
     -inpath target/classes/com/digiting/sync/syncable/ 
-    -cp /home/lee/projects/jsync/server/target/classes:/home/lee/projects/jsync/tools/aspectj/lib/aspectjrt.jar
-    -Xlint:ignore 
+    -cp target/classes:../tools/aspectj/lib/aspectjrt.jar:/usr/local/scala-2.7.7/lib/scala-library.jar
     -1.6 -source 1.6 -target 1.6
-    -d woven </x>)
+    -d target/classes </x>)
 }
 
 
