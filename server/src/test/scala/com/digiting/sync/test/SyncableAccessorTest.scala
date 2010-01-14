@@ -13,8 +13,8 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import com.jteigen.scalatest.JUnit4Runner
 import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
@@ -22,7 +22,7 @@ import ObserveUtil._
 import com.digiting.util.Configuration
 
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class SyncableAccessorTest extends Spec with ShouldMatchers {
   describe("A SyncableAccessor") {
     

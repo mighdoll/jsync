@@ -13,10 +13,6 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import com.jteigen.scalatest.JUnit4Runner
-import org.junit.runner.RunWith
-import org.scalatest.Spec
-import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import ObserveUtil._
 import com.digiting.util.Configuration
@@ -24,8 +20,12 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import com.digiting.sync.ResponseManager.AwaitResponse
 import com.digiting.sync.test.ProtocolTester.callService
+import org.scalatest.Spec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class ProtocolReferenceTest extends Spec with ShouldMatchers {
   describe("JsonSync") {    
     val log = Logger("ProtocolReferenceTest")

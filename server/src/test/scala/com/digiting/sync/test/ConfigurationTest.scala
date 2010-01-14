@@ -13,17 +13,15 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import com.jteigen.scalatest.JUnit4Runner
-import org.junit.runner.RunWith
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.util.Configuration
 import net.lag.logging.Logger
 import net.lag.configgy.Configgy
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-
-
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class ConfigurationTest extends Spec with ShouldMatchers {
   describe("Configuration") {
     it("should setup the test") {
@@ -31,14 +29,14 @@ class ConfigurationTest extends Spec with ShouldMatchers {
     }
     
     it("should load configuration in debug mode") {
-      Configuration.withOverride("context_runMode" -> None) {
+      Configuration.withOverride("jsyncServer_runMode" -> None) {
         Configuration.reset()
         Configuration("digiting") should be ("true")
         Configuration.runMode should be ("debug")
       }
     }
     it("should configuration in productionTest mode") {
-      Configuration.withOverride("context_runMode" -> Some("productionTest")) {
+      Configuration.withOverride("jsyncServer_runMode" -> Some("productionTest")) {
         Configuration.reset()
         Configuration("digiting") should be ("true")       
         Configuration.runMode should be ("productionTest")

@@ -13,9 +13,12 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val configgyRepo = "lag.net" at "http://www.lag.net/repo"
   val jbossRespo = "repository.jboss.org" at "http://repository.jboss.org/maven2"
 
-  // utilities
+  // liquid J libraries
   val configgy = "net.lag" % "configgy" % "1.3.2"
-  val junit = "junit" % "junit" % "4.5" % "test"
+
+  // test libraries
+  val junit = "junit" % "junit" % "4.8.1" % "test"
+  val scalatest = "org.scalatest" % "scalatest" % "1.0" % "test"
 
   // lift
   val liftWebkit = "net.liftweb" % "lift-webkit" % "1.1-M8"
@@ -43,7 +46,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val ejb = "geronimo-spec" % "geronimo-spec-ejb" % "2.1-rc4"
   val jta = "geronimo-spec" % "geronimo-spec-jta" % "1.0.1B-rc4"   // FIXME should be runtime scope?
 
-  // attach the aspect compiler to run after the compiler, (could improve this with sbt)
+  // attach the aspect compiler to run after the compiler, (could improve this SBT)
   override def compileAction = super.compileAction && processAspects
 
   lazy val aspectProjectPath = projectRootPath / "aspects" 
@@ -51,7 +54,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
     mainCompilePath.absolutePath ::
     (projectRootPath / "tools" / "aspectj" / "lib" / "aspectjrt.jar").absolutePath :: 
     FileUtilities.scalaLibraryJar.getAbsolutePath :: Nil
-  lazy val syncableClasses = (mainCompilePath / "com" / "digiting" / "sync" / "syncable" absolutePath) :: Nil
+  lazy val syncableClasses = (mainCompilePath / "com" / "digiting" / "sync" / "syncable").absolutePath :: Nil
 
   lazy val aspectCmd = <o> 
     ../tools/aspectj/ajc 
@@ -66,12 +69,21 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   lazy val processAspects = task {Console println aspectCmd.text; None} && execTask(aspectCmd)
 
   lazy val personalEnv = new PersonalEnvironment(info, log)
-  override def jettyRunAction= task {
+
+  override def jettyRunAction = task {
     System.setProperty("jsyncServerConfig", personalEnv.liquidjConfig.value)
     System.setProperty("jsyncServer_runMode", personalEnv.liquidjRunMode.value)
     None
   } && super.jettyRunAction
 
+  lazy val setServerConfigTest = task {
+    Console println ("setServerConfigTest")
+    System.setProperty("jsyncServerConfig", "jsync-server.conf")
+    System.setProperty("jsyncServer_runMode", "debug")
+    None
+  }
+
+  override def testAction = super.testAction dependsOn(setServerConfigTest)
 }
 
 class PersonalEnvironment(info:ProjectInfo, logger:Logger) extends BasicEnvironment {

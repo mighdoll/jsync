@@ -43,13 +43,13 @@
 	<classpathentry kind="lib" path="lib_managed/compile/mail-1.4.2.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/mysql-connector-java-5.1.6.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/scalajpa-1.1.jar"/>
-	<classpathentry kind="lib" path="lib_managed/compile/servlet-api-2.5.jar"/>
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/provided/servlet-api-2.5.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/slf4j-api-1.5.8.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/slf4j-jdk14-1.5.8.jar"/>
- 	<classpathentry kind="var" path="M2_REPO/org/scala-tools/testing/scalatest/0.9.5/scalatest-0.9.5.jar"/>
- 	<classpathentry kind="var" path="M2_REPO/com/jteigen/scalatest/junit4runner/1.0-SNAPSHOT/junit4runner-1.0-SNAPSHOT.jar"/>
- 	<classpathentry kind="var" path="M2_REPO/junit/junit/4.5/junit-4.5.jar"/>
- 	<classpathentry kind="var" path="M2_REPO/org/mortbay/jetty/jetty/6.1.21/jetty-6.1.21.jar" />
-	<classpathentry kind="var" path="M2_REPO/org/mortbay/jetty/jetty-util/6.1.21/jetty-util-6.1.21.jar" />
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/test/jetty-6.1.21.jar"/>
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/test/jetty-util-6.1.21.jar"/>
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/test/junit-4.8.1.jar"/>
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/test/scalatest-1.0.jar"/>
+	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/compile/activation-1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
