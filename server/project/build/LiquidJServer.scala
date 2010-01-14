@@ -4,9 +4,9 @@ import Process._
 
 class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
 {
-  lazy val parentPath = Path.fromFile("..")
-  lazy val aspects = project(parentPath / "aspects").asInstanceOf[ManagedProject]
-  override def deliverProjectDependencies = super.deliverProjectDependencies ++ Seq(aspects.projectID % "compile->compile")
+  lazy val projectRootPath = Path.fromFile(outputPath.asFile.getParentFile.getParentFile) 
+  lazy val aspects = project(projectRootPath / "aspects").asInstanceOf[DefaultProject]
+  override def deliverProjectDependencies = super.deliverProjectDependencies ++ Seq(aspects.projectID)
 
   // managed library repositories
   val scalaToolsSnapshotsRespo = ScalaToolsSnapshots
@@ -35,19 +35,26 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val ejb = "geronimo-spec" % "geronimo-spec-ejb" % "2.1-rc4"
   val jta = "geronimo-spec" % "geronimo-spec-jta" % "1.0.1B-rc4"   // FIXME should be runtime scope?
 
+  // attach the aspect compiler to run after the compiler, (could improve this with sbt)
   override def compileAction = super.compileAction && processAspects
 
-  lazy val classpathCompile = task { Console println mainCompileConfiguration.classpath.getPaths.mkString("\n") ; None }
-  lazy val classpathJetty = task { Console println webappClasspath.getPaths.mkString("\n") ; None }
-  lazy val foo = execTask (<x>ls ../aspects/target/classes/com/digiting/sync/aspects/ </x>)
-  lazy val processAspects = execTask (<x> 
+  lazy val aspectProjectPath = projectRootPath / "aspects" 
+  lazy val ajcClassLibs = 
+    mainCompilePath.absolutePath ::
+    (projectRootPath / "tools" / "aspectj" / "lib" / "aspectjrt.jar").absolutePath :: 
+    FileUtilities.scalaLibraryJar.getAbsolutePath :: Nil
+  lazy val syncableClasses = (mainCompilePath / "com" / "digiting" / "sync" / "syncable" absolutePath) :: Nil
+
+  lazy val aspectCmd = <o> 
     ../tools/aspectj/ajc 
     -showWeaveInfo 
-    -verbose
-    -aspectpath ../aspects/target/classes/com/digiting/sync/aspects/
-    -inpath target/classes/com/digiting/sync/syncable/ 
-    -cp target/classes:../tools/aspectj/lib/aspectjrt.jar:/usr/local/scala-2.7.7/lib/scala-library.jar
+    -aspectpath {Path.fromFile(aspects.mainCompilePath.absolutePath) / 
+      "com" / "digiting" / "sync" / "aspects" toString}
+    -inpath {syncableClasses mkString(":")}
+    -cp {ajcClassLibs mkString(":") }
     -1.6 -source 1.6 -target 1.6
-    -d target/classes </x>)
+    -d target/classes </o>
+
+  lazy val processAspects = task {Console println aspectCmd.text; None} && execTask(aspectCmd)
 }
 
