@@ -13,13 +13,21 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val configgyRepo = "lag.net" at "http://www.lag.net/repo"
   val jbossRespo = "repository.jboss.org" at "http://repository.jboss.org/maven2"
 
+  // utilities
   val configgy = "net.lag" % "configgy" % "1.3.2"
+  val junit = "junit" % "junit" % "4.5" % "test"
 
   // lift
   val liftWebkit = "net.liftweb" % "lift-webkit" % "1.1-M8"
   val liftActor = "net.liftweb" % "lift-actor" % "1.1-M8"
   val liftUtil = "net.liftweb" % "lift-util" % "1.1-M8"
-  val servlet = "javax.servlet" % "servlet-api" % "2.5" % "compile"  // is this right? don't need this be there for runtime..
+  val servlet = "javax.servlet" % "servlet-api" % "2.5" % "provided"  
+  val jetty6 = "org.mortbay.jetty" % "jetty" % "6.1.21" % "test"
+
+
+  // required because Ivy doesn't pull repositories from poms
+  val smackRepo = "m2-repository-smack" at "http://maven.reucon.com/public"
+
 
   // apache commons 
   val commonsLang = "commons-lang" % "commons-lang" % "2.4"
@@ -56,5 +64,15 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
     -d target/classes </o>
 
   lazy val processAspects = task {Console println aspectCmd.text; None} && execTask(aspectCmd)
+
+  lazy val liquidjConfig = propertyOptional[String]("jsync-server.conf")
+  lazy val liquidjRunMode = propertyOptional[String]("debug")
+
+  override def jettyRunAction= task {
+    System.setProperty("jsyncServerConfig", liquidjConfig.value)
+    System.setProperty("jsyncServer_runMode", liquidjRunMode.value)
+    None
+  } && super.jettyRunAction
+
 }
 
