@@ -65,14 +65,21 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
 
   lazy val processAspects = task {Console println aspectCmd.text; None} && execTask(aspectCmd)
 
-  lazy val liquidjConfig = propertyOptional[String]("jsync-server.conf")
-  lazy val liquidjRunMode = propertyOptional[String]("debug")
-
+  lazy val personalEnv = new PersonalEnvironment(info, log)
   override def jettyRunAction= task {
-    System.setProperty("jsyncServerConfig", liquidjConfig.value)
-    System.setProperty("jsyncServer_runMode", liquidjRunMode.value)
+    System.setProperty("jsyncServerConfig", personalEnv.liquidjConfig.value)
+    System.setProperty("jsyncServer_runMode", personalEnv.liquidjRunMode.value)
     None
   } && super.jettyRunAction
 
 }
+
+class PersonalEnvironment(info:ProjectInfo, logger:Logger) extends BasicEnvironment {
+  val log = logger
+  def envBackingPath = info.builderPath / "personal.properties"
+
+  lazy val liquidjConfig = propertyOptional[String]("jsync-server.conf")
+  lazy val liquidjRunMode = propertyOptional[String]("debug")
+}
+
 

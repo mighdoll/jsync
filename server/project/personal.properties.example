@@ -1,0 +1,7 @@
+# This is an example file to show how to set your own developer specific properties 
+# for launching the jsync server under sbt with jetty. 
+#
+# To use, copy this file to personal.properties and set the properties as you'd like.
+#
+liquidj.config=lee.conf
+liquidj.run.mode=lee_fresh
