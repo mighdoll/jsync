@@ -4,8 +4,11 @@ This is a technology preview release -- you can see the api, peek at the code,
 and try some small test cases.
 
 Here's how to try it:
-$ mvn install
-$ cd server && mvn jetty:run
+$ cd server 
+$ sbt 
+> jetty-run
+
+# from another shell
 $ firefox http://localhost:8080/jsync/test/tests.html
 
 Reading about jSync
