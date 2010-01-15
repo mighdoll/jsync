@@ -1,0 +1,25 @@
+  on ubuntu 9.10
+
+# install jetty via synaptic/apt 
+sudo apt-get install jetty
+
+# (oops, there's a mistake in the ubuntu jetty config)
+sudo mkdir -p /usr/share/java/webapps
+
+
+# copy descriptor to jetty (modify if necessary)
+cd server
+sudo cp conf/liquidjserver-0.2-SNAPSHOT.xml /usr/share/jetty/contexts
+
+# our config deploys to a well known spot (/srv). That way we
+# we can use e.g. nginx to front end jetty, perhaps to serve some deployed 
+# files statically.
+sudo chown jetty /srv
+
+# build the server
+sbt package
+
+# deploy .war file file to /usr/share/jetty/webapps  
+# (perhaps I should make an sbt task for this?)
+sudo cp target/liquidjserver-0.2.war /usr/share/jetty/webapps/
+
