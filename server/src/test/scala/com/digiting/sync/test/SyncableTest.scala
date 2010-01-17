@@ -14,8 +14,8 @@
  */
 package com.digiting.sync.test
 
-import com.jteigen.scalatest.JUnit4Runner
 import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.Spec
 import org.scalatest.SuperSuite
@@ -27,7 +27,7 @@ import collection._
 import ObserveUtil._
 import com.digiting.util.Configuration
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class SyncableTest extends Spec with ShouldMatchers {
   describe("Syncable") {
     it("should initialize configuration") {

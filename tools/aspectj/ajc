@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$JAVA_HOME" = "" ] ; then JAVA_HOME=/usr/lib/jvm/java-6-sun
+fi
+
+ASPECTJ_HOME=`dirname $0`
+
+"$JAVA_HOME/bin/java" -classpath "$ASPECTJ_HOME/lib/aspectjtools.jar:$JAVA_HOME/lib/tools.jar:$CLASSPATH" -Xmx64M org.aspectj.tools.ajc.Main "$@"

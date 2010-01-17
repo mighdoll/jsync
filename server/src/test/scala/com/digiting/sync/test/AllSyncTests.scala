@@ -14,10 +14,10 @@
  */
 package com.digiting.sync.test
 import org.scalatest.SuperSuite
-import com.jteigen.scalatest.JUnit4Runner
 import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class AllSyncTests extends SuperSuite (
   List(new ObservationTest, 
        new SyncableTest,
@@ -26,6 +26,7 @@ class AllSyncTests extends SuperSuite (
   	   new ParseTest,
   	   new MigrationTest,
   	   new ProtocolTest,
+       new ConfigurationTest,
        new ProtocolReferenceTest)
   ) 
 

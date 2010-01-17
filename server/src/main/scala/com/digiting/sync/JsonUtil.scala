@@ -16,7 +16,7 @@
 package com.digiting.sync
 
 import org.apache.commons.lang.StringEscapeUtils
-import _root_.net.liftweb.util.Empty
+import _root_.net.liftweb.common.Empty
 import collection._	// CONSIDER importing mutable,immutable explicitly, watch out for wildcards, you might get implicits!
 import JsonObject._	// CONSIDER good style on SCALA placement: import types at the top, constants/methods near to the use
 import net.lag.logging.Logger
@@ -141,7 +141,7 @@ object JsonUtil {
       case double:Double => double.toString
       case string:String => quote(StringEscapeUtils.escapeJavaScript(string))
       case null => "null"
-      case none:net.liftweb.util.EmptyBox[_] => "null"	
+      case none:net.liftweb.common.EmptyBox[_] => "null"	
       case other => quote(other.toString)  		// unfortunately, type erasure prevents matching on refs vs. vals here
     }
   }

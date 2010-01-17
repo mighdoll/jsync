@@ -15,7 +15,6 @@
 package com.digiting.sync
 
 import scala.util.DynamicVariable
-import net.liftweb.util.Log
 import scala.actors.Actor
 import scala.actors.Actor._
 import JsonObject._

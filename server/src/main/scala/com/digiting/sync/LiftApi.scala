@@ -14,8 +14,8 @@
  */
 package com.digiting.sync
 
-import _root_.net.liftweb.util.Box
-import _root_.net.liftweb.util.Full
+import _root_.net.liftweb.common.Box
+import _root_.net.liftweb.common.Full
 import _root_.net.liftweb.http._
 import collection._
 import ActiveConnections._

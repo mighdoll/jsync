@@ -13,16 +13,16 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import com.jteigen.scalatest.JUnit4Runner
-import org.junit.runner.RunWith
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import com.digiting.util.Configuration
 import ObserveUtil.withTestEnvironment
 import com.digiting.sync.SyncableSerialize._
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class MigrationTest extends Spec with ShouldMatchers {
   describe("Migration") {
     it("should initialize configuration") {

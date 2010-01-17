@@ -1,0 +1,247 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html >
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link REL="SHORTCUT ICON" HREF="/groups/img/3/favicon.ico">
+  <title>
+  Sublime SimpleDB |
+  Google Groups
+  </title>
+  <meta name="save" content="history">
+<noscript><style type="text/css"><!--
+  .noscripthide { display:none; } .noscriptinline { display:inline; } .noscriptblock { display:block; }
+--></style></noscript>
+<script language="javascript"><!--
+  document.write('<style type="text/css">.scripthide { display: none; } .scriptinline { display: inline; } .scriptblock { display: block; }</style>');
+//--></script>
+<script language="javascript1.2"><!--
+  if (document.getElementById)
+    document.write('<style type="text/css">.script12hide { display: none; } .script12inline { display: inline; } .script12block { display: block; } .lnav { position: absolute; } .lnavch { margin-left:23.0ex;}</style>');
+//--></script>
+<script language="javascript1.3"><!--
+  if (document.getElementById)
+    document.write('<style type="text/css">.script13hide { display: none; } .script13inline { display: inline; } .script13block { display: block; }</style>');
+//--></script>
+<style type="text/css"><!--
+  @import "/groups/style.css?ig=1&av=&hl=en&v=640";
+  
+--></style>
+  <script language="javascript1.3" src="/groups/static/release/g2_common-3f937e5dff8ba66e7c311f02176928dc.js"></script>
+<script language="javascript"><!--
+
+// ----------------------------------
+// used for dynamic function generation on event handlers
+
+var loaddef = "";
+var resizedef = "";
+
+//-----------------------------------
+// Browser detection and support
+
+var agt = navigator.userAgent.toLowerCase();
+var is_opera = (agt.indexOf("opera") != -1);
+var is_ie = (agt.indexOf("msie") != -1) && document.all && !is_opera;
+var is_ie5 = (agt.indexOf("msie 5") != -1) && document.all;
+window.agt = agt;
+window.is_opera = is_opera;
+window.is_ie = is_ie;
+window.is_ie5 = is_ie5;
+
+// ----------------------------------
+// cross-browser functions
+
+var IE_all_cache = new Object();
+function IE_getElementById(id) {
+  if (IE_all_cache[id] == null) {
+    IE_all_cache[id] = document.all[id];
+  }
+  return IE_all_cache[id];
+}
+
+if (document.all) {
+  if (!document.getElementById) {
+    document.getElementById = IE_getElementById;
+  }
+}
+
+
+
+  //----------------------------------
+  // Timezone detection (sets cookie)
+
+  try {
+    document.cookie = 'GTZ=' + (new Date()).getTimezoneOffset() + ';path=/;expires=Mon, 01-Jan-2024 00:00:01 GMT';
+  } catch(e) {}
+
+
+// ---------------------------------
+// shelled functions for old javascript
+function tog() {}
+
+//--></script>
+<script language="javascript1.3"><!--
+
+// ----------------------------------
+// visibility functions
+
+function tog() {
+  // tog: toggle the visibility of html elements (arguments[1..]) from none to
+  // arguments[0].  Return what should be returned in a javascript onevent().
+  display = arguments[0];
+  for( var i=1; i<arguments.length; i++ ) {    
+    var x = document.getElementById(arguments[i]);
+    if (!x) continue;
+    if (x.style.display == "none" || x.style.display == "") {
+      x.style.display = display;
+    } else {
+      x.style.display = "none";
+    }
+  }
+
+  var e = is_ie ? window.event : this;
+  if (e) {
+    if (is_ie) {
+      e.cancelBubble = true;
+      e.returnValue = false;
+      return false;
+    } else {
+      return false;
+    }
+  }
+}
+
+
+_G2_initCurrentDomain('googlegroups.com',
+            false,
+            true);
+
+_G2_initCurrentGroup('sublime-simpledb',
+            'a');
+
+
+
+
+//--></script>
+<script language="javascript"><!--
+  window.gbar={};(function(){function i(a,b,c){var d="on"+b;if(a.addEventListener)a.addEventListener(b,c,false);else if(a.attachEvent)a.attachEvent(d,c);else{var h=a[d];a[d]=function(){var e=h.apply(this,arguments),f=c.apply(this,arguments);return e==undefined?f:f==undefined?e:f&&e}}};var j=window.gbar,k,l;function m(a){var b=window.encodeURIComponent&&(document.forms[0].q||"").value;if(b)a.href=a.href.replace(/([?&])q=[^&]*|$/,function(c,d){return(d||"&")+"q="+encodeURIComponent(b)})}j.qs=m;function o(a,b,c,d,h,e){var f=document.getElementById(a),g=f.style;if(f){g.left=d?"auto":b+"px";g.right=d?b+"px":"auto";g.top=c+"px";g.visibility=l?"hidden":"visible";if(h&&e){g.width=h+"px";g.height=e+"px"}else{o(k,b,c,d,f.offsetWidth,f.offsetHeight);l=l?"":a}}}j.tg=function(a){a=a||window.event;var b=a.target||a.srcElement;a.cancelBubble=true;if(!k){a=document.createElement(Array.every||window.createPopup?"iframe":"div");a.frameBorder="0";a.src="javascript:''";k=b.parentNode.appendChild(a).id="gbs";i(document,"click",j.close);if(j.alld){j.alld(function(){p(b)});return}}p(b)};function q(a){var b,c=document.defaultView;if(c&&c.getComputedStyle){if(a=c.getComputedStyle(a,""))b=a.direction}else b=a.currentStyle?a.currentStyle.direction:a.style.direction;return b=="rtl"}function p(a){var b=0,c,d=window.navExtra;if(a.className!="gb3")a=a.parentNode;var h=a.getAttribute("aria-owns")||"gbi",e=a.offsetWidth,f=a.offsetTop>20?46:24,g=false;do b+=a.offsetLeft||0;while(a=a.offsetParent);e=(document.documentElement.clientWidth||document.body.clientWidth)-b-e;var n=q(document.body);if(h=="gbi"){for(a=document.getElementById(h);d&&(c=d.pop());)a.insertBefore(c,a.firstChild).className="gb2";if(n){b=e;g=true}}else if(!n){b=e;g=true}l!=h&&j.close();o(h,b,f,g)}j.close=function(){l&&o(l,0,0)}})();
+//--></script>
+<style type="text/css"><!--
+  #gbar{float:left;height:22px}.gbh,.gbd{border-top:1px solid #c9d7f1;font-size:1px}.gbh{height:0;position:absolute;top:24px;width:100%}#gbs,.gbm{background:#fff;left:0;position:absolute;text-align:left;visibility:hidden;z-index:1000}.gbm{border:1px solid;border-color:#c9d7f1 #36c #36c #a2bae7;z-index:1001}#guser{padding-bottom:7px !important;text-align:right}#gbar,#guser{font-size:13px;padding-top:1px !important}.gb1,.gb3,.gb3i,.gb3f{zoom:1;margin-right:.5em}.gb2,.gb2i,.gb2f{display:block;padding:.2em .5em}a.gb1,a.gb2,a.gb3,a.gb4{color:#00c !important}.gb2i,.gb3i,.gb4i{color:#dd8e27 !important}.gb2f,.gb4f,#gb5{color:#900 !important}.gb2,.gb2i,.gb2f,.gb3,.gb3i,.gb3f{text-decoration:none}a.gb2:hover{background:#36c;color:#fff !important}
+--></style>
+<script language="javascript"><!--
+function ad_resize() {}
+function if_resize() {}
+function fin_resize() {}
+function qs() {}
+//--></script>
+<script language="javascript1.2"><!--
+function if_resize(name, w, h) {
+  if (document.getElementById && document.getElementById(name)){
+    document.getElementById(name).style.height = h + "px";
+    document.getElementById(name).style.width = w + "px";
+  }
+}
+function ad_resize(w, h) {
+  if_resize("google_ads_frame",w,h);
+}
+function fin_resize(w, h) {
+  if_resize("google_finance_frame",w,h);
+}
+
+function qs(el) {
+  if (window.RegExp && window.encodeURIComponent) {
+    var qe=encodeURIComponent(document.gs.q.value);
+
+    if (qe == '') {
+      return 1;
+    }
+
+    if (el.href.indexOf("q=")!=-1) {
+      el.href=el.href.replace(new RegExp("q=[^&$]*"),"q="+qe);
+    } else {
+      el.href+="&q="+qe;
+    }
+  }
+  return 1;
+}
+
+//--></script>
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="http://sublime-simpledb.googlegroups.com/group/sublime-simpledb/feed/rss_v2_0_msgs.xml">
+  <link rel="alternate" type="application/atom+xml" title="Atom" href="http://sublime-simpledb.googlegroups.com/group/sublime-simpledb/feed/atom_v1_0_msgs.xml">
+</head>
+<body onresize=""
+      onload=""
+      
+        topmargin=0
+        leftmargin=0
+        marginheight=0
+        marginwidth=0
+      
+      bgcolor=white
+      
+      
+  >
+  <div class="ggaiabar">
+  <div id=gbar><nobr><a href="http://mail.google.com/mail/?tab=gm" class=gb1>Gmail</a> <a href="http://www.google.com/calendar/render?tab=gc" class=gb1>Calendar</a> <a href="http://docs.google.com/?tab=go" class=gb1>Documents</a> <a href="http://www.google.com/reader/view/?tab=gy" class=gb1>Reader</a> <a href="http://www.google.com/webhp?hl=en&tab=gw" onclick=gbar.qs(this) class=gb1>Web</a> <a href="http://www.google.com/intl/en/options/" onclick="this.blur();gbar.tg(event);return !1" aria-haspopup=true class=gb3><u>more</u> <small>&#9660;</small></a><div class=gbm id=gbi><a href="http://picasaweb.google.com/home?hl=en&tab=gq" onclick=gbar.qs(this) class=gb2>Photos</a> <a href="http://sites.google.com/?tab=g3" class=gb2>Sites</a> <b class=gb2>Groups</b> <a href="http://www.youtube.com/?hl=en&tab=g1" onclick=gbar.qs(this) class=gb2>YouTube</a> <div class=gb2><div class=gbd></div></div><a href="http://images.google.com/imghp?hl=en&tab=gi" onclick=gbar.qs(this) class=gb2>Images</a> <a href="http://video.google.com/?hl=en&tab=gv" onclick=gbar.qs(this) class=gb2>Videos</a> <a href="http://maps.google.com/maps?hl=en&tab=gl" onclick=gbar.qs(this) class=gb2>Maps</a> <a href="http://news.google.com/nwshp?hl=en&tab=gn" onclick=gbar.qs(this) class=gb2>News</a> <a href="http://www.google.com/prdhp?hl=en&tab=gf" onclick=gbar.qs(this) class=gb2>Shopping</a> <a href="http://books.google.com/bkshp?hl=en&tab=gp" onclick=gbar.qs(this) class=gb2>Books</a> <a href="http://translate.google.com/?hl=en&tab=gT" onclick=gbar.qs(this) class=gb2>Translate</a> <a href="http://scholar.google.com/schhp?hl=en&tab=gs" onclick=gbar.qs(this) class=gb2>Scholar</a> <a href="http://www.google.com/finance?hl=en&tab=ge" onclick=gbar.qs(this) class=gb2>Finance</a> <a href="http://blogsearch.google.com/?hl=en&tab=gb" onclick=gbar.qs(this) class=gb2>Blogs</a> <div class=gb2><div class=gbd></div></div><a href="http://www.google.com/intl/en/options/" class=gb2>even more &raquo;</a> </div></nobr></div><div class=gbh style=left:0></div><div class=gbh style=right:0></div>
+  <div align="right" id="guser" width="100%">
+  <nobr>
+  <a target="_blank" href="/support?hl=en">Help</a> |
+  <a target=_top href="https://www.google.com/accounts/ServiceLogin?passive=true&hl=en&service=groups2&continue=http%3A%2F%2Fsublime-simpledb.googlegroups.com%2Fweb%2Fsublime-simpleDB-0.9-SNAPSHOT.jar&cd=US&ssip=g3">Sign in</a>
+</nobr>
+  </div>
+  </div>
+  <div class="clear"></div>
+  <div class="gtopbar">
+  <table cellpadding=0 cellspacing=0 width=100% border=0>
+  <tr valign="top">
+  <td class="maincell">
+  <table cellpadding=0 cellspacing=0 border=0><tr valign="top"><td width="140" style="overflow: hidden;"><a href="/"><img src="/intl/en/images/logos/groups_logo_sm.gif" width="140" height="30" alt="Google Groups Home" border=0 style="position: relative; top: 2px; margin-right: 10px;"></a></td>
+  </table>
+  </td>
+  </tr>
+  </table>
+  </div>
+<BLOCKQUOTE>
+  <H2>Found</H2>
+  <p>
+  Please click the following link to continue.<p>
+  <a href="/web/sublime-simpleDB-0.9-SNAPSHOT.jar?gda=DMUYLlMAAADrfHSK1T-b88bCxICQ3LI1X68SeOK_IfTtcRrIW0kgFzvy6aW-xCuQVBSvaD6WZ61o2vTxu1rgEedI8vUlitglMrYifh3RmGHD4v9PaZfDexVi73jmlo822J6Z5KZsXFo">/web/sublime-simpleDB-0.9-SNAPSHOT.jar?gda=DMUYLlMAAADrfHSK1T-b88bCxICQ3LI1X68SeOK_IfTtcRrIW0kgFzvy6aW-xCuQVBSvaD6WZ61o2vTxu1rgEedI8vUlitglMrYifh3RmGHD4v9PaZfDexVi73jmlo822J6Z5KZsXFo</a>
+</BLOCKQUOTE>
+  <div class="padt10"></div>
+  <div style="border-bottom: 1px solid #999999;"></div>
+  <div style="background-color: #eeeeee">
+<div class="padt10 padb10">
+  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+  <tr valign=center>
+  <td align="center" style="padding-right:1em;" class="fontsize2">
+  <b><a style="color: #00c" target=_top href="/groups/create?lnk=gcf">Create a group</a></b><font color="#333"> - </font>
+  <a style="color: #00c" target=_top href="/">Google Groups</a><font color="#333"> - </font>
+  <a style="color: #00c" target=_top href="http://www.google.com/webhp?hl=en">Google Home</a><font color="#333"> - </font>
+  <a style="color: #00c" target=_top href="http://groups.google.com/intl/en/googlegroups/terms_of_service3.html">Terms of Service</a><font color="#333"> - </font>
+  <a style="color: #00c" target=_top href="http://groups.google.com/intl/en/googlegroups/privacy3.html">Privacy Policy</a>
+  </td>
+  </tr>
+  <tr>
+  <td align="center" style="color: #333" class="fontsize1 padt5" >&copy;2010 Google</td>
+  </tr>
+  </table>
+</div>
+  </div>
+<script language="javascript"><!--
+if( loaddef != "" ) {
+  window.onload=new Function( loaddef );
+}
+if( resizedef != "" ) {
+  window.onresize = new Function( resizedef );
+}
+//--></script>
+  <script src="http://www.google-analytics.com/urchin.js" type="text/javascript"> </script>
+  <script type="text/javascript"><!--
+      
+        _uacct = "UA-1044941-1";
+      
+      urchinTracker("\x2Fweb\x2Fsublime-simpleDB-0.9-SNAPSHOT.jar?als_gt=group\x26als_greg=US\x26als_gact=\x26als_gsubs=\x26als_gview=ANYONE\x26als_gpjoin=y\x26");
+    //--></script>
+</body>
+</html>

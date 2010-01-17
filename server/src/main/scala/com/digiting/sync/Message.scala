@@ -16,7 +16,6 @@ package com.digiting.sync
 
 import JsonObject._
 import collection._
-import _root_.net.liftweb.util._
 import com.digiting.sync.syncable._
 import com.digiting.sync.aspects.Observable
 import JsonUtil._
@@ -111,7 +110,7 @@ object Message {
           edits + clearChange(clear) 
         case move:MoveChange =>
           edits + moveChange(move)
-        case change => Log.error("Message.makeMessage() unhandled change: " + change)
+        case change => log.error("Message.makeMessage() unhandled change: " + change)
       }
     }
      
@@ -181,7 +180,7 @@ object Message {
 	 case list:List[_] => for (elem <- list) 
        yield elem.asInstanceOf[Syncable].fullId.toJsonMap
 	      
-	  case _ => Log.error("memberChangeToEdit() unexpected change values " + change) 
+	  case _ => log.error("memberChangeToEdit() unexpected change values " + change) 
 	}
     val edit = ImmutableJsonMap(editTarget(change),	
                                 change.operation -> editItems)

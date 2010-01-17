@@ -13,14 +13,13 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test		// LATER move this to com.digting.util.test
-import com.jteigen.scalatest.JUnit4Runner
-import org.junit.runner.RunWith
+import com.digiting.util.MultiMap
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
-import com.digiting.util.MultiMap
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class MultiMapTest extends Spec with ShouldMatchers {
   describe("MulitMap") {
     it("should support basic operations") {

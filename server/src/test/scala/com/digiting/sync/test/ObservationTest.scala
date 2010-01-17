@@ -13,14 +13,14 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import com.jteigen.scalatest.JUnit4Runner
-import org.junit.runner.RunWith
-import org.scalatest.Spec
-import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import ObserveUtil._
+import org.scalatest.Spec
+import org.scalatest.matchers.ShouldMatchers
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-@RunWith(classOf[JUnit4Runner])
+@RunWith(classOf[JUnitRunner])
 class ObservationTest extends Spec with ShouldMatchers {
   describe("Observation.watch") {
     it("should notice property change on an object") {
