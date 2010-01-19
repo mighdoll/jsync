@@ -55,7 +55,10 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   override val transientPartition = new RamPartition(connection.connectionId)
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
+  
+  /** provides a shared*/
   val subscriptionService = new {val app = this} with SubscriptionService
+
   /** override this the app */
   def appVersion = "unspecified"  
   
