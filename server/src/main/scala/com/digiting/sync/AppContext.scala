@@ -17,7 +17,7 @@ import net.lag.logging.Logger
 import scala.util.DynamicVariable
 import Receiver.ReceiveMessage
 
-/** global access to the current application, not currently used */
+/** thread local access to the currently running app context */
 object App {
   val current = new DynamicVariable[Option[AppContext]](None)
   def currentAppName:String = current.value match {
@@ -55,7 +55,6 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
   val subscriptionService = new {val app = this} with SubscriptionService
-  val responses = new ResponseManager(connection.takeSendBuffer)
   
   // when we commit, send changes to the client too
   watchCommit(sendPendingChanges)
@@ -64,7 +63,7 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
     SyncManager.instanceCache.commit();
   }
       
-  /** LATER make this use STM, but for now just feed through to the sync manager */
+  /** LATER move the instance cache out of the manager, and make it per app */
   def watchCommit(func:(Seq[ChangeDescription])=>Unit) {
   	SyncManager.instanceCache.watchCommit(func)
   }

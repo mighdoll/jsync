@@ -134,7 +134,7 @@ object ProtocolTester extends LogHelper {
   
   private def checkResponse[T](app:AppContext, verifyFn: (String)=>Option[T]):Option[T]= {
     for {
-      responseAny <- app.responses !?(500, AwaitResponse(37)) orElse
+      responseAny <- app.connection.responses !?(500, AwaitResponse(37)) orElse
         err("unexpected None from AwaitResponse")
       response <- matchString(responseAny)
       a = log.trace("gotResponse: %s", response)      

@@ -18,5 +18,5 @@ import actors.Actor.loop
 
 /** application context that alwyas sends close messages */
 class ClosedApp(conn:Connection, delay:Int) extends AppContext(conn) {
-  override val responses = new ClosedResponses(delay)
+//  override val responses = new ClosedResponses(delay)
 }

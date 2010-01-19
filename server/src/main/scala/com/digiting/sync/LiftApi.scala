@@ -51,12 +51,6 @@ object SyncRequestApi extends LogHelper {
       ("Content-Type" -> "application/x-javascript") :: Nil, Nil, 200))
   }
   
-  import com.digiting.sync.ResponseManager.AwaitResponse
-  private def takeResponse(app:AppContext):Option[String] = {
-    val response = app.responses !? AwaitResponse(app.connection.debugId)
-    log.trace("takeResponse() received %s", response)
-    Some(response.asInstanceOf[String])
-  }
   
   private def reqBody(req:Req):Option[String] = {
     req.body map {new String(_)} 
@@ -74,7 +68,7 @@ object SyncRequestApi extends LogHelper {
           body = new String(bodyArray)
           app <- Applications.deliver(req.path.partPath, body) orElse 
             err("app not found for body: %s", body)
-      	  response <- takeResponse(app) orElse 
+      	  response <- app.connection.takeResponse orElse 
       	  	err("odd, no response at all for body: %s", body)
         } yield {
           log.trace("sync() response: %s", response)
@@ -94,13 +88,6 @@ object SyncRequestApi extends LogHelper {
     }
   }
   
-  private def notUnderstood(req:Req):Box[LiftResponse] = {
-    log.error("request not understood: %s", req.body)
-	  Full(InMemoryResponse("[]".getBytes,
-        ("Content-Type" -> "application/json") :: Nil, Nil, 500))
-  }
-  
-}
   private def notUnderstood(req:Req):Box[LiftResponse] = {
     log.error("request not understood: %s", req.body)
 	  Full(InMemoryResponse("[]".getBytes,

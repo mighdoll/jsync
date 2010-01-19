@@ -43,8 +43,8 @@ import ResponseManager._
   */
 class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
 	/* Connections waiting for data, sort most recent first */
-	case class AwaitingResponse(val requestor:OutputChannel[Any], val debugId:Int) {
-	  val waitStart = System.currentTimeMillis
+  case class AwaitingResponse(val requestor:OutputChannel[Any], val debugId:Int) {
+    val waitStart = System.currentTimeMillis
 	}
 
   val maxWaiters = 1
@@ -119,7 +119,6 @@ class ClosedResponses(delay:Int) extends Actor {
   def this() = this(0)
   val log = Logger("ClosedResponses")
   
-
   start
   def act() {
     loop {
@@ -145,7 +144,7 @@ class SendClose(delay:Int, target:OutputChannel[Any], debugId:Int) extends Actor
     Thread.sleep(delay)
     log.trace("Sending close () #%d", debugId)  
     target !  """[{"#close": { """ + 
-    				  """   "appVersion":"0.0", """ + 			// SOON, use real version numbers 
+              """   "appVersion":"0.0", """ + 			// SOON, use real version numbers 
               """   "protocolVersion":"0.2"}}]"""	
   }
 }

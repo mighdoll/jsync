@@ -21,11 +21,6 @@ import scala.collection.mutable
 object Applications extends LogHelper {
   val log = Logger("Applications")
 
-  private def error[T](message:String, params:String*):Option[T] = {
-    log.error(message, params:_*)
-    None
-  }
-
   /** deliver a message to the appropriate registered application (asynchronously). 
    * returns the application that is processing the message */
   def deliver(syncPath:List[String], messageBody:String):Option[AppContext] = {

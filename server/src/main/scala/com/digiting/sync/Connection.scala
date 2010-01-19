@@ -16,11 +16,13 @@ package com.digiting.sync
 
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
+import com.digiting.sync.ResponseManager.AwaitResponse
 
 object ConnectionDebug {
   var nextId = -1
   def nextDebugId():Int = {nextId += 1; nextId}
 }
+
 /**
  * Manages a connection to a client using the json sync protocol.
  */
@@ -31,10 +33,18 @@ class Connection(val connectionId:String) {
   val takeSendBuffer = putSendBuffer.take				// take interface for messages to go to the client
   val receiver = new Receiver(this)					 	// processes messages from the client     
   var appContext:Option[AppContext] = None				// application handling this connection
+  val responses = new ResponseManager(takeSendBuffer)
   
   def close() {
     log.info("close() #%d", debugId)
     putSendBuffer
   }
+  
+  def takeResponse():Option[String] = {
+    val response = responses !? AwaitResponse(debugId)
+    log.trace("takeResponse() received %s", response)
+    Some(response.asInstanceOf[String])
+  }
+  
 }
 

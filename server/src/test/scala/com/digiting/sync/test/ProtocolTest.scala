@@ -66,7 +66,7 @@ class ProtocolTest extends Spec with ShouldMatchers {
       
         import ResponseManager.AwaitResponse
         def checkResponse(app:AppContext):Boolean = {
-          app.responses !?(1000, AwaitResponse(app.connection.debugId)) match {
+          app.connection.responses !?(1000, AwaitResponse(app.connection.debugId)) match {
             case Some(response:String) => response contains "emmett"
             case None => log.error("unexpected None response from AwaitResponse()")
               false
