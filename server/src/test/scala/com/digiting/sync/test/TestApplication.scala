@@ -40,8 +40,8 @@ object TestApplication {
   }
 }
 
-class TestContext(connection:Connection) extends AppContext(connection) {
-  val log = Logger("TestContext")
+class TestContext(connection:Connection) extends RichAppContext(connection) {
+  override val log = Logger("TestContext")
 }
   
 

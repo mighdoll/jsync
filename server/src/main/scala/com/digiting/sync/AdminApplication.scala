@@ -27,7 +27,7 @@ import com.digiting.sync._
 //  }
 //}
 //
-//class AdminContext(connection:Connection) extends AppContext(connection:Connection) with HasUserEntityManager {
+//class AdminContext(connection:Connection) extends RichAppContext(connection:Connection) with HasUserEntityManager {
 //  val log = Logger("AdminContext")
 //  
 //  createImplicitServices(Admin2)

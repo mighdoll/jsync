@@ -83,6 +83,8 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
       }
   }
   
+  /** temporarily subscribe to a root object so that changes to that objects 
+   * reference tree will be sent to the client */
   def withTempRootSubscription[T](root:Syncable)(fn: => T) = {
     subscribeRoot(root)
     val result = 

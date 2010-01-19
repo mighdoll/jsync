@@ -70,7 +70,7 @@ object TestData {
     
     def changed(change:ChangeDescription) {
       if (change.source != "test-application") {
-        log.info("createSequenceAdd: %s", change)
+        log.trace("createSequenceAdd: %s", change)
         val seq = withTestPartition  {new SyncableSeq[TestNameObj]}
         Observers.currentMutator.withValue("test-application") {	// SOON this should be done by the framework
           ref.ref = seq
@@ -211,7 +211,7 @@ object TestData {
 		    case _ => 
 		      log.error("twoSetChanged() unexpected target of change: " + change.target)
 		    }
-        }
       }
+    }
   }
 }

@@ -41,7 +41,7 @@ class ServicesTest extends Spec with ShouldMatchers {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should create implicit services") {
-      val app = new AppContext(new Connection("ServicesTest"))
+      val app = new RichAppContext(new Connection("ServicesTest"))
       app.createImplicitServices(SampleServices)      
     }
   }

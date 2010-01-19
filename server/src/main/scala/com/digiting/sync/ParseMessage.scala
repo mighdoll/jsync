@@ -58,11 +58,11 @@ object ParseMessage {
   
   object ProtocolEdit {
     def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
-       json get "#edit" match {
-         case Some(m:Map[_,_]) => Some(json)
-         case Some(b) => log.error("unexpected value of #edit: "  + json); None
-         case _ => None
-       }
+      json get "#edit" match {
+        case Some(m:Map[_,_]) => Some(json)
+        case Some(b) => log.error("unexpected value of #edit: "  + json); None
+        case _ => None
+      }
     }
   }
   
@@ -78,7 +78,7 @@ object ParseMessage {
   
   object ProtocolSync {
     def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
-	  json get "id" map {_ => json}
+      json get "id" map {_ => json}
     } 
   }
   
