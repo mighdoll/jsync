@@ -56,6 +56,8 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
   val subscriptionService = new {val app = this} with SubscriptionService
+  /** override this the app */
+  def appVersion = "unspecified"  
   
   // when we commit, send changes to the client too
   watchCommit(sendPendingChanges)
@@ -64,8 +66,6 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
     SyncManager.instanceCache.commit();
   }
   
-  /** override this the app */
-  def appVersion = "unspecified"
       
   /** LATER move the instance cache out of the manager, and make it per app */
   def watchCommit(func:(Seq[ChangeDescription])=>Unit) {

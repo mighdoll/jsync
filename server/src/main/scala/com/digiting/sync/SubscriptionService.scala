@@ -16,11 +16,17 @@ package com.digiting.sync
 import net.lag.logging.Logger
 import com.digiting.sync.syncable.Subscription
 
-/** A custom service for managing client subscriptions.  The SubscriptionService watches for changes to
-  * the implicitly shared set with the id:  #implicit/subscriptions 
-  * As Subscription objects are added and removed from the set by the client, the server (via ActiveSubscriptions)
-  * trackes changes to all subscribed objects and their (recursive) references.
-  */
+/**  A custom service for managing client subscriptions.  The API is a shared set 
+ * of Subscription objects.  The client adds and remove Subscriptions to the shared set.
+ * The server responds by by streaming updates to the subscribed objects and their 
+ * (deep) references.
+ * 
+ * The SubscriptionService API works by watching for changes to the implicitly shared
+ * SyncableSet with the id: .implicit/subscriptions .
+ * 
+ * SubscriptionService class provides the shared set API, the actual work of watching 
+ * subscription objects is managed by ActiveSubscriptions.
+ */
 trait SubscriptionService extends HasTransientPartition {
   val serviceName = "SubscriptionService"
   lazy val log = Logger(serviceName)
