@@ -68,12 +68,10 @@ object Applications extends LogHelper {
   }
   
   
+  import com.digiting.util.TryCast.matchString
   object HasToken {
     def unapply(message:Message):Option[String] = 
-      message.findControlProperty("#token") match {
-        case Some(token:String) => Some(token)
-        case _ => None
-      }      
+      message.findControlProperty("#token") flatMap matchString
   }
 
   
@@ -100,6 +98,7 @@ object Applications extends LogHelper {
             Some(app)
         }
       case HasStart(start) => 
+        log.trace("start message: %s", start)
         val connection = ActiveConnections.createConnection()
         val app = createAppContext(syncPath, message, connection)
         connection.appContext = Some(app)

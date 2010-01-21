@@ -42,7 +42,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val scalaJPA = "org.scala-libs" % "scalajpa" % "1.1"              // maven build had used a 1.2-SNAPSHOT, is 1.1 OK?
   val hibernate = "org.hibernate" % "hibernate-entitymanager" % "3.3.2.GA"  // FIXME need to exclude jta?
   val c3p0 = "org.hibernate" % "hibernate-c3p0" % "3.3.2.GA"
-  val slfjBinding = "org.slf4j" % "slf4j-jdk14" % "1.5.8"
+  val slfjBinding = "org.slf4j" % "slf4j-log4j12" % "1.5.10"
   val ejb = "geronimo-spec" % "geronimo-spec-ejb" % "2.1-rc4"
   val jta = "geronimo-spec" % "geronimo-spec-jta" % "1.0.1B-rc4"   // FIXME should be runtime scope?
 

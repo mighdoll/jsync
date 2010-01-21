@@ -24,7 +24,8 @@ var $sync = $sync || {};      // namespace
  * @param params - optional options { 
  *                  testMode: true/false, 
  *                  connected: function,
- *                  authorization: token }
+ *                  appVersion: string, 
+ *                  authorization: token (string) }
  */
 $sync.connect = function(feedUrl, params) {
   var self = {};
@@ -219,10 +220,16 @@ $sync.connect = function(feedUrl, params) {
         
   /** start connection to the server */
   function start() {
-//    $debug.log("starting connection to: " + feedUrl);
+    $log.info("starting connection to: " + feedUrl);
     var xact = startNextSendXact();
-    xact.push({'#start': true });
-    params.authorization && xact.push({'#authorization':params.authorization});
+    var startMessage = {
+      '#start': {
+        authorization: params.authorization || "",
+        appVersion: params.appVersion || "",
+        protocolVersion: "0.2"
+      }
+    };
+    xact.push(startMessage);
     sendNow(xact, connected);
   }
   

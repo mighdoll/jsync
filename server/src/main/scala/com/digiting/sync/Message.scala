@@ -53,6 +53,7 @@ class Message(var xactNumber: Int, val controls:List[JsonMap], val edits:List[Js
     }
     found
   }
+  
   def isEmpty:Boolean = {
     edits.isEmpty && syncs.isEmpty && xactNumber == -1 && 
       (controls.isEmpty || (controls.length ==1 && (controls.first contains("#token"))))

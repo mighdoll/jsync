@@ -31,7 +31,7 @@ object TryCast {
       case _ => None
     }
   }
-  
+    
   /** cast String as Option[String] */
   def matchString(any: Any):Option[String] = {
     any match {

@@ -40,16 +40,12 @@ Messages are encoded as json arrays.  Here are some sample messages
       [{"#transaction":0},              // sequence number
   
        {"#start":{                      // start a connection
+        "authorization":"fk38zh..",     // authorization token, permissions for this connection
         "appVersion":"0.9.1",           // application version
         "protocolVersion":"0.3.1" } ]   // jsync version      
 
- * Close a new connection 
-      [{"#close":{                      // close the connection
-        "appVersion":"0.9.1",           // application version
-        "protocolVersion":"0.3.1" } ]   // jsync version      
-   
  * Share a new object (server -> client)
-      [ {"#transaction":0}, 
+      [ {"#transaction":1000}, 
         {"#token":"0-+eB2jh3jcq"},            // unique identifier for this connection
   
         {"$kind":"digiting.test.simpleName",  // $kind is sent, it's a new object
@@ -58,22 +54,29 @@ Messages are encoded as json arrays.  Here are some sample messages
          "name":"john"} ]
         
  * Modify a property on a shared object (client -> server)
-      [ {"#transaction":2}, {"#token":"0-+eB2jh3jcq"},
+      [ {"#transaction":1}, 
+        {"#token":"0-+eB2jh3jcq"},
   
         {"$id":"server-2",                              // no '$kind', it's an object modification
          "$partition":"part2",
          "name":"fred"} ]
   
  * Share a new object and add it a set (server -> client)
-      [ {"#transaction":3}, {"#token":"0-+eB2jh3jcq"},
+      [ {"#transaction":1001}, 
+        {"#token":"0-+eB2jh3jcq"},
 
         {"#edit":{"$id":"server-0","$partition":"part1"},       // edit set part1,server-0
            "put":[{"$id":"server-1", "$partition":"part1"}]     // put object part1,server-1 in the set 
         },
-        {"$kind":"digiting.test.simpleName",    // new object
+        {"$kind":"digiting.test.simpleName",                  // new object
          "$id":"server-1", "$partition":"part1",
          "name":"Jules"} ]
   
+ * Close a connection  (client -> server)
+      [{"#transaction":2},              // transaction# is optional.  If omitted, close the connection immediately
+       {"#close":"reason"},             // close the connection
+       {"#token":"0-+eB2jh3jcq"} ]      // unique identifier for this connection
+   
  * Add an object to a sequence (message is structured as above for set.put, but instead of "put", we "insertAt" 
      "insertAt":[{at:7, elem:{$id:"s-2", $partition:"part1"}}]  // put object part1,s-2 in the sequence at position 7
    
