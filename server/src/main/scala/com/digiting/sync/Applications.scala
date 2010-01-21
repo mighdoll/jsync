@@ -18,6 +18,7 @@ import com.digiting.util.LogHelper
 import net.lag.logging.Level._
 import scala.collection.mutable
 import com.digiting.util.TryCast.matchString
+import com.digiting.util.RichEither._
 
 object Applications extends LogHelper {
   val log = Logger("Applications")
@@ -28,9 +29,8 @@ object Applications extends LogHelper {
     val apps = 
       for {
         message <- ParseMessage.parse(messageBody)
-        appEither = getAppFor(syncPath, message)
-        app <- appEither.right.toOption orElse
-          err("delivery failed: %s", appEither.left.get)
+        app <- getAppFor(syncPath, message) orElse
+          {err("delivery failed: %s", _)}
       } yield {
         log.ifTrace("delivering to app" + app.connection.debugId + "  messsage to: " +
            syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
