@@ -51,5 +51,7 @@
 	<classpathentry kind="lib" path="/home/lee/projects/jsync/server/lib_managed/compile/activation-1.1.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/slf4j-api-1.5.10.jar"/>
 	<classpathentry kind="lib" path="lib_managed/compile/slf4j-log4j12-1.5.10.jar"/>
+	<classpathentry kind="lib" path="lib_managed/compile/lift-json-1.1-M8.jar"/>
+	<classpathentry kind="lib" path="lib_managed/compile/paranamer-2.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -17,6 +17,7 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import net.lag.logging.Level._
 import scala.collection.mutable
+import com.digiting.util.TryCast.matchString
 
 object Applications extends LogHelper {
   val log = Logger("Applications")
@@ -26,9 +27,10 @@ object Applications extends LogHelper {
   def deliver(syncPath:List[String], messageBody:String):Option[AppContext] = {
     val apps = 
       for {
-        message <- ParseMessage.parse(messageBody) 
-        app <- getAppFor(syncPath, message) orElse
-          err("app not found for: %s", message.toString)
+        message <- ParseMessage.parse(messageBody)
+        appEither = getAppFor(syncPath, message)
+        app <- appEither.right.toOption orElse
+          err("delivery failed: %s", appEither.left.get)
       } yield {
         log.ifTrace("delivering to app" + app.connection.debugId + "  messsage to: " +
            syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
@@ -53,7 +55,7 @@ object Applications extends LogHelper {
     appContextCreators.insert(0, creator)
   }
   
-  private def createAppContext(syncPath:List[String], message:Message, connection:Connection):AppContext = {
+  private def createAppContext(syncPath:List[String], startParams:StartParameters, message:Message, connection:Connection):AppContext = {
     appContextCreators.find(creator =>
       creator.isDefinedAt(syncPath, message,connection)
     ) match {
@@ -68,44 +70,63 @@ object Applications extends LogHelper {
   }
   
   
-  import com.digiting.util.TryCast.matchString
   object HasToken {
     def unapply(message:Message):Option[String] = 
       message.findControlProperty("#token") flatMap matchString
   }
-
   
+  import com.digiting.sync.JsonObject.JsonMap
+  import net.liftweb.json.JsonParser
+    
   object HasStart {
-    def unapply(message:Message):Option[Any] = 
-      message.findControlProperty("#start")  
+    val log = Logger("HasStart")
+    implicit val formats = net.liftweb.json.DefaultFormats
+    def unapply(message:Message):Option[StartParameters] = 
+      message.findControlProperty("#start") flatMap {
+        _ match {
+          case map:Map[_,_] => 
+            // experimenting with lift-json a bit to extract StartParameters.  TODO get rid of this when we move to lift-json overall
+            val jsonMap = map.asInstanceOf[JsonMap]
+            val jsonString = JsonUtil.toJson(jsonMap)
+            val parsed = JsonParser.parse(jsonString)
+            val start = parsed.extract[StartParameters]
+            Some(start)
+          case x => 
+            log.error("unexpected target of #start: ", x)
+            None
+        }
+      } 
   }
+  
+  case class StartParameters(authorization:String, appVersion:String, protocolVersion:String)
   
     
   /** find an app context for the incoming message, creating a new app context if necessary */
-  private def getAppFor(syncPath:List[String], message:Message):Option[AppContext] = {
+  private def getAppFor(syncPath:List[String], message:Message):Either[String,AppContext] = {
     message match {
       case HasToken(token) =>
         ActiveConnections.get(token) match {
           case Some(connection) => 
             val app = connection.appContext
-            if (app.isEmpty)
-              log.error("connection found for %s, but missing no application set", message.toJson)
-            app
+            app.toRight(String.format("connection found for %s, but missing an application!", message.toJson))
           case None =>
             log.error("appFor: token %s not found, closing the client connection", token)
             // LATER get rid of delay, it's a temp measure so that pre 0.2 (27.10.2009) clients don't re-request
             val app = new ClosedApp(ActiveConnections.createConnection(), 2000)
-            Some(app)
+            Right(app)
         }
       case HasStart(start) => 
-        log.trace("start message: %s", start)
-        val connection = ActiveConnections.createConnection()
-        val app = createAppContext(syncPath, message, connection)
-        connection.appContext = Some(app)
-        Some(app)
-      case _ =>  
-        log.error("message contains neither #token nor #start : %s", message.toJson)
-        None
+        log.trace("#start parameters: %s", start)
+        if (start.protocolVersion != ProtocolVersion.version) {
+          errLeft("protocol version doesn't match %s %s", start.protocolVersion, ProtocolVersion.version)
+        } else {
+          val connection = ActiveConnections.createConnection()
+          val app = createAppContext(syncPath, start, message, connection)
+          connection.appContext = Some(app)
+          Right(app)
+        }
+      case _ => 
+        errLeft("message contains neither #token nor #start : %s", message.toJson)
     }
   }
   

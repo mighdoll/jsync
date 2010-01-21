@@ -15,6 +15,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
 
   // liquid J libraries
   val configgy = "net.lag" % "configgy" % "1.3.2"
+  val liftJson = "net.liftweb" % "lift-json" % "1.1-M8"
 
   // test libraries
   val junit = "junit" % "junit" % "4.8.1" % "test"

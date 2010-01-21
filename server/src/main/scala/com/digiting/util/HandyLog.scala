@@ -25,5 +25,11 @@ trait LogHelper {
     None
   }
   
+  def errLeft[T](message:String, params:String*):Left[String, T] = {
+    val errorMessage = String.format(message, params:_*)
+    log.error(errorMessage)
+    Left(errorMessage)
+  }
+  
 }
 
