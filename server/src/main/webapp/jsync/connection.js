@@ -60,7 +60,7 @@ $sync.connect = function(feedUrl, params) {
    * @param {Object} params
    */
   self.close = function(params) {   
-    self.isClosed = params;
+    self.isClosed = params !== undefined ? params : true;
   };
   
   self.isClosed = false;                 // true if this connection has been closed
@@ -317,7 +317,8 @@ $sync.connect = function(feedUrl, params) {
       contentType: "application/json",
       success: success,
       error: failed,
-      data: xactStr
+      data: xactStr,
+      timeout:2000
     });
     
     function success() {
@@ -330,11 +331,15 @@ $sync.connect = function(feedUrl, params) {
     /** called if there's a an error with the http request 
      * (also called, I think, if there's an error with json format in the result */
     function failed(xmlHttpRequest, textStatus, errorThrown) {
-      log.warn("$sync protocol request failed: ", xmlHttpRequest.status, xmlHttpRequest.statusText);
-      consecutiveFailed += 1;
-      requestsActive -= 1;
-      params.failFn && params.failFn.apply(this, arguments);       
-      longPoll();     
+//      log.warn("$sync protocol request failed: ", xmlHttpRequest.status, xmlHttpRequest.statusText);      // causes this error: (only when run in the test suite though..) uncaught exception: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIXMLHttpRequest.status]" nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)" location: "JS frame :: http://localhost:8080/jsync/connection.js :: failed :: line 334" data: no]
+      if (textStatus === "timeout") {
+        consecutiveFailed += 1;
+        requestsActive -= 1;
+        longPoll();     
+      } else {
+        self.close();
+      }         
+      params.failFn && params.failFn(self, this, xmlHttpRequest, textStatus, errorThrown);       
     }    
   }
 
