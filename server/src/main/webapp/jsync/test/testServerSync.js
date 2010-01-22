@@ -149,21 +149,27 @@ test("sync.modifyReference", function() {
 test("sync.protocolVersion", function() {
   expect(1);
   
-  var origVersion = $sync.protocolVersion;
-  $sync.protocolVersion = "0";
-  $sync.connect("/testing/sync", {connected:connected, failFn:failed});  
-  $sync.protocolVersion = origVersion;  
+  function withProtocolVersion(version, fn) {
+	  var origVersion = $sync.protocolVersion;
+	  $sync.protocolVersion = version;
+	  fn();
+	  $sync.protocolVersion = origVersion;  	
+  }
+  
+  withProtocolVersion("0", function() {
+    $sync.connect("/sync", {connected:connected, failFn:failed});  
+  });
+  
   stop();
   
   function connected(connection) {
     ok(false);
-    finish();
+    start();
   }
   
-  function failed() {
-    $log.log("failed");
-    ok(true);
-    finish();
+  function failed(xmlHttpRequest, textStatus, errorThrown) {
+    ok(xmlHttpRequest.status === 400);
+    start();
   }
   
 });

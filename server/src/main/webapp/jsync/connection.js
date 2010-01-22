@@ -29,8 +29,8 @@ var $sync = $sync || {};      // namespace
  *                  authorization: token (string) }
  */
 $sync.connect = function(feedUrl, params) {
-  var log = oops;   // triggers an internal firefox bug on 3.5: internal error cannot access optimized closure
-//  var log = $log.getLogger("connect");     
+//  var log = oops;   // triggers an internal firefox bug on 3.5: internal error cannot access optimized closure
+  var log = $log.getLogger("connect");     
   var self = {};
   var sentTransaction = 0;              // protocol sequence number sent
   var testModeOut;                      // output for test mode
@@ -327,19 +327,17 @@ $sync.connect = function(feedUrl, params) {
       longPoll();     
     }
     
-    function failed(XMLHttpRequest, textStatus, errorThrown) {
-      log.warn("$sync protocol request failed: " + textStatus);                
+    /** called if there's a an error with the http request 
+     * (also called, I think, if there's an error with json format in the result */
+    function failed(xmlHttpRequest, textStatus, errorThrown) {
+      log.warn("$sync protocol request failed: ", xmlHttpRequest.status, xmlHttpRequest.statusText);
       consecutiveFailed += 1;
       requestsActive -= 1;
-      params.failFn && pramas.failFn.apply(this, arguments);       
+      params.failFn && params.failFn.apply(this, arguments);       
       longPoll();     
     }    
   }
 
-  /** called if there's a an error with the http request 
-   * (also called, I think, if there's an error with json format in the result */
-  function syncFail(XMLHttpRequest, textStatus, errorThrown) {
-  }
     
   /** create the next transaction to send to the client */
   function startNextSendXact() {
