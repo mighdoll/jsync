@@ -1,7 +1,7 @@
 package com.digiting.sync
 
 object CurrentProtocolVersion {
-  def version = "0.3"
+  def version = "0.2"
   
 }
 

@@ -17,29 +17,50 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import net.lag.logging.Level._
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import com.digiting.util.TryCast.matchString
 import com.digiting.util.RichEither._
 
 object Applications extends LogHelper {
-  val log = Logger("Applications")
+  implicit val log = Logger("Applications")
 
   /** deliver a message to the appropriate registered application (asynchronously). 
    * returns the application that is processing the message */
-  def deliver(syncPath:List[String], messageBody:String):Option[AppContext] = {
-    val apps = 
-      for {
-        message <- ParseMessage.parse(messageBody)
-        app <- getAppFor(syncPath, message) orElse
-          {err("delivery failed: %s", _)}
-      } yield {
-        log.ifTrace("delivering to app" + app.connection.debugId + "  messsage to: " +
-           syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
-        if (!message.isEmpty) 	  
-          app receiveMessage(message)
-        app
-      } 
+  def deliver(syncPath:List[String], messageBody:String):Either[ConnectionError, Connection] = {
+    var foundError:Option[ConnectionError] = None
+    var foundApps = new ListBuffer[AppContext]
     
-    apps find {_ => true}   // return Some(app) for the first app found, if any    
+    ParseMessage.parse(messageBody) find {message =>
+      getAppFor(syncPath, message) match {
+        case Right(app) => 
+          foundApps += app
+          log.ifTrace("delivering to app" + app.connection.debugId + "  messsage to: " +
+             syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
+          if (!message.isEmpty)     
+            app receiveMessage(message)
+          app
+          false // continue delivering
+        case Left(err) => 
+          foundError = Some(err)
+          true  // stop iteration
+      }
+    }
+
+    // return error if we found one, otherwise grab the connection from any app (currently each connection has only one app anyway)
+    foundError match {
+      case Some(err) => Left(err)
+      case _ => 
+        foundApps find {_ => true} map {_.connection} match {
+          case Some(connection) => Right(connection)
+          case _ =>
+            messageBody match {
+              case "" => 
+                ConnectionError.leftError(400, "empty request received")
+              case _ =>
+                ConnectionError.leftError(500, "Odd that we didn't have an error on an app for message: %s", messageBody)
+            }
+        }
+    }
   }
   
   
@@ -102,13 +123,19 @@ object Applications extends LogHelper {
   
     
   /** find an app context for the incoming message, creating a new app context if necessary */
-  private def getAppFor(syncPath:List[String], message:Message):Either[String,AppContext] = {
+  private def getAppFor(syncPath:List[String], message:Message):Either[ConnectionError, AppContext] = {
     message match {
       case HasToken(token) =>
         ActiveConnections.get(token) match {
           case Some(connection) => 
-            val app = connection.appContext
-            app.toRight(String.format("connection found for %s, but missing an application!", message.toJson))
+            val appOpt = connection.appContext
+            appOpt match {
+              case Some(app) => Right(app)
+              case None => 
+                val msg = String.format("connection found for %s, but missing an application!", message.toJson)
+                err(msg)
+                Left(ConnectionError(500, msg))                
+            }
           case None =>
             log.error("appFor: token %s not found, closing the client connection", token)
             // LATER get rid of delay, it's a temp measure so that pre 0.2 (27.10.2009) clients don't re-request
@@ -118,7 +145,9 @@ object Applications extends LogHelper {
       case HasStart(start) => 
         log.trace("#start parameters: %s", start)
         if (start.protocolVersion != ProtocolVersion.version) {
-          errLeft("protocol version doesn't match %s %s", start.protocolVersion, ProtocolVersion.version)
+          val msg = String.format("client protocol version: %s doesn't match server version: %s", start.protocolVersion, ProtocolVersion.version)
+          err(msg)
+          Left(ConnectionError(400, msg))
         } else {
           val connection = ActiveConnections.createConnection()
           val app = createAppContext(syncPath, start, message, connection)
@@ -126,7 +155,7 @@ object Applications extends LogHelper {
           Right(app)
         }
       case _ => 
-        errLeft("message contains neither #token nor #start : %s", message.toJson)
+        ConnectionError.leftError(400, "message contains neither #token nor #start %s ", message.toJson)
     }
   }
   

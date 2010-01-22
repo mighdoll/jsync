@@ -21,59 +21,53 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import net.liftweb.json.JsonAST
+import net.liftweb.json.JsonDSL._  
 
 @RunWith(classOf[JUnitRunner])
 class ProtocolTest extends Spec with ShouldMatchers {
   describe("JsonSync") {    
 	val log = Logger("ProtocolTest")
-    it("should initialize configuration") {
-      Configuration.initFromVariable("jsyncServerConfig")      
-    }
-    it("should support subscribe on a simple object") {
-      withTestEnvironment {
-        import actors._
-        import actors.Actor._
-        val input = """ [
-          {"#transaction":0},
-          {"#start":true},
-          {"kind":"$sync.subscription",
-           "$partition":"test",
-           "id":"Browser-0",
-           "name":"oneName",
-           "inPartition":"test",
-           "root":null},
-          {"#edit":
-             { "id":"subscriptions",
-        	   "$partition":".implicit"
-             },
-           "put":
-             { "id":"Browser-0",
-               "$partition":"test"
-             }
-          }
-          ] """
-        var found = false;
-        Applications.deliver("sync"::Nil, input) foreach {app =>
-          var gotIt = false
-          var attempts = 0
-          while (!found && attempts < 2) {
-            attempts += 1
-            found = checkResponse(app)
-          }
-        }
-        
-        found should be (true)
-      
-        import ResponseManager.AwaitResponse
-        def checkResponse(app:AppContext):Boolean = {
-          app.connection.responses !?(1000, AwaitResponse(app.connection.debugId)) match {
-            case Some(response:String) => response contains "emmett"
-            case None => log.error("unexpected None response from AwaitResponse()")
-              false
-          }
-        }
-      None
+  it("should initialize configuration") {
+    Configuration.initFromVariable("jsyncServerConfig")      
+  }
+  it("should support subscribe on a simple object") {    
+    val jsonMsg = """[
+      {"#transaction":0},
+      {"#start":
+        {"appVersion":"",
+         "protocolVersion": """ + ProtocolVersion.version + """,
+         "authorization":""
+        },
+      },
+      {"kind":"$sync.subscription",
+       "$partition":"test",
+       "id":"Browser-0",
+       "name":"oneName",
+       "inPartition":"test",
+       "root":null
+      },
+      {"#edit":
+         { "id":"subscriptions",
+    	   "$partition":".implicit"
+         },
+       "put":
+         { "id":"Browser-0",
+           "$partition":"test"
+         }
       }
+    ] """
+    
+    def checkResponse(responseText:String):Option[Boolean] = {
+      if (responseText contains "emmett") 
+        Some(true)
+      else
+        None
+    }
+      
+    val result = ProtocolTester.sendTestMessage(jsonMsg, checkResponse)
+      
+    result should be (Some(true))
     }
   }
 }

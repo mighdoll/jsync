@@ -44,7 +44,18 @@ class Connection(val connectionId:String) {
     val response = responses !? AwaitResponse(debugId)
     log.trace("takeResponse() received %s", response)
     Some(response.asInstanceOf[String])
-  }
-  
+  }  
 }
 
+object ConnectionError {
+  def apply(errorCode:Int, message:String, params:String*) = 
+    new ConnectionError(errorCode, String.format(message, params:_*))
+  
+  def leftError[T](errorCode:Int, message:String, params:String*)(implicit log:Logger):Left[ConnectionError, T] = {
+    val errorMessage = String.format(message, params:_*)
+    log.error(errorMessage)
+    Left(ConnectionError(errorCode, errorMessage))
+  }
+}
+
+class ConnectionError(val errorCode:Int, val message:String)

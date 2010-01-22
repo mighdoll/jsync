@@ -27,7 +27,7 @@ import scala.actors.Actor
  * Hooks to connect sync processing to Lift http requests
  */
 object SyncRequestApi extends LogHelper {
-  val log = Logger("SyncRequestApi")
+  implicit val log = Logger("SyncRequestApi")
   
   // attach to the stateful dispatch (CONSIDER using stateless dispatch)
   def dispatch:PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -58,40 +58,39 @@ object SyncRequestApi extends LogHelper {
 
   /** receive an incoming message from lift  */
   private def sync(req:Req):Box[LiftResponse] = {
-    try {
-      log.trace("sync request received: %s", req)
-      
-      val response = 
-        for {
-          bodyArray <- req.body orElse 
-            err("empty body") 
-          body = new String(bodyArray)
-          app <- Applications.deliver(req.path.partPath, body) orElse 
-            err("app not found for body: %s", body)
-      	  response <- app.connection.takeResponse orElse 
-      	  	err("odd, no response at all for body: %s", body)
-        } yield {
-          log.trace("sync() response: %s", response)
-          InMemoryResponse(response.getBytes,
-	          ("Content-Type" -> "application/json") :: Nil, Nil, 200)     
+    log.trace("sync request received: %s", req)
+    
+    val body = req.body map {new String(_)} getOrElse ""
+    val responseEither:Either[ConnectionError, String] = {
+      try {
+        Applications.deliver(req.path.partPath, body) match {
+          case Right(connection) =>
+            connection.takeResponse match {
+              case Some(response) =>
+                Right(response)
+              case _ =>
+                ConnectionError.leftError(500, "odd, no response at all for body : %s", body)
+            }
+          case Left(left) => Left(left)
         }
-      
-     response orElse {
-       notUnderstood(req)
-     }
-     
-    } catch {
-      case e:Exception => 
-        log.error(e, "exception processing request %s", req)
-	    Full(InMemoryResponse("[]".getBytes,
-	                         ("Content-Type" -> "application/json") :: Nil, Nil, 500))        
+      } catch {
+        case e:Exception => 
+          ConnectionError.leftError(500, "exception processing request %s \n%e", req.toString, e.getStackTraceString)
+      }
     }
+    
+    responseEither match {
+      case Left(conError) => 
+        log.trace("sync() error: %s", conError)
+        Full(InMemoryResponse(conError.message.getBytes,
+          ("Content-Type" -> "text/html") :: Nil, Nil, conError.errorCode))     
+      case Right(response) => 
+        log.trace("sync() response: %s", response)
+        Full(InMemoryResponse(response.getBytes,
+          ("Content-Type" -> "application/json") :: Nil, Nil, 200))     
+    }      
+
   }
   
-  private def notUnderstood(req:Req):Box[LiftResponse] = {
-    log.error("request not understood: %s", req.body)
-	  Full(InMemoryResponse("[]".getBytes,
-        ("Content-Type" -> "application/json") :: Nil, Nil, 500))
-  }
-  
+ 
 }

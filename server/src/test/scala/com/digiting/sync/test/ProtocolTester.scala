@@ -112,7 +112,11 @@ object ProtocolTester extends LogHelper {
       insertAtToJsonMap(serviceQueueId, serviceCall, 0) :: Nil   
 
     // controls, edits, syncs => message
-    val controls = ImmutableJsonMap("#start" -> true) :: Nil
+    val startParams = ImmutableJsonMap(
+      "authorization" -> "",
+      "protocolVersion" -> ProtocolVersion.version,
+      "appVersion" -> "")
+    val controls = ImmutableJsonMap("#start" -> startParams) :: Nil
     val message = new Message(0, controls, edits, syncs.toList)
     
     (message.toJson, serviceCall)    
@@ -125,16 +129,16 @@ object ProtocolTester extends LogHelper {
 
   def sendTestMessage[T](msg:String, verifyFn: (String)=>Option[T]):Option[T] = {
     log.trace("sending message: %s", msg)
-    Applications.deliver("test" :: "sync":: Nil, msg) orElse {
+    Applications.deliver("test" :: "sync":: Nil, msg).right.toOption orElse {
       err("no app found") 
-    } flatMap {app =>      
-      repeatUntil (3, checkResponse(app, verifyFn))
+    } flatMap {connection =>      
+      repeatUntil (3, checkResponse(connection, verifyFn))
     }
   }
   
-  private def checkResponse[T](app:AppContext, verifyFn: (String)=>Option[T]):Option[T]= {
+  private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T]= {
     for {
-      responseAny <- app.connection.responses !?(500, AwaitResponse(37)) orElse
+      responseAny <- connection.responses !?(500, AwaitResponse(37)) orElse
         err("unexpected None from AwaitResponse")
       response <- matchString(responseAny)
       a = log.trace("gotResponse: %s", response)      
@@ -144,7 +148,7 @@ object ProtocolTester extends LogHelper {
     }
   }
 
-  /** repeat fn until it return Some(), up to max times */
+  /** repeat fn until it returns Some(), up to repeats times */
   private def repeatUntil[T](repeats:Int, fn: =>Option[T]):Option[T] = {
     var count = 0
     var done = false
