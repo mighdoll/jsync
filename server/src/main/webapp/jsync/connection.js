@@ -26,6 +26,7 @@ var $sync = $sync || {};      // namespace
  *                  connected: function,
  *                  failFn: function,   // called when any http request fails (useful for tests)
  *                  appVersion: string, 
+ *                  requestTimeout: int, // msec to wait on ajax requests
  *                  authorization: token (string) }
  */
 $sync.connect = function(feedUrl, params) {
@@ -40,7 +41,7 @@ $sync.connect = function(feedUrl, params) {
     (!window.location.search.match(/[?&]longpoll=false/));
   var minActiveRequests = 1;            // long poll should keep this many requests active 
   var requestsActive = 0;               // current number of active requests
-  var consecutiveFailed = 0;            // number of failures in a row from the server
+  var consecutiveTimeouts = 0;            // number of failures in a row from the server
   var backoffDelay =                    // exponential backoff rate for server requests
     [100,500,1000,10000,30000,120000,600000];
   var receive = $sync.receive(self);    // handle incoming messages
@@ -63,7 +64,11 @@ $sync.connect = function(feedUrl, params) {
     self.isClosed = params !== undefined ? params : true;
   };
   
-  self.isClosed = false;                 // true if this connection has been closed
+  self.requestsActive = function() { 
+    return requestsActive;
+  }
+  
+  self.isClosed = false;                 // true or object if this connection has been closed
   self.connectionToken = undefined;      // password for this connection 
 
   /** @return true if we've an active sync connection to the server */
@@ -274,11 +279,11 @@ $sync.connect = function(feedUrl, params) {
     function retryDelay() {
       var delay, backoffDex, fixedDelay = 10;
       
-      if (consecutiveFailed === 0) {
+      if (consecutiveTimeouts === 0) {
         return fixedDelay;
       }
       
-      backoffDex = Math.min(consecutiveFailed, backoffDelay.length - 1);
+      backoffDex = Math.min(consecutiveTimeouts, backoffDelay.length - 1);
       delay = fixedDelay + (Math.random() * backoffDelay[backoffDex]);      
       return Math.round(delay);
     }
@@ -318,11 +323,11 @@ $sync.connect = function(feedUrl, params) {
       success: success,
       error: failed,
       data: xactStr,
-      timeout:2000
+      timeout: params.requestTimeout || 20000
     });
     
     function success() {
-      consecutiveFailed = 0;
+      consecutiveTimeouts = 0;
       requestsActive -= 1;
       successFn.apply(this, arguments);
       longPoll();     
@@ -333,7 +338,7 @@ $sync.connect = function(feedUrl, params) {
     function failed(xmlHttpRequest, textStatus, errorThrown) {
 //      log.warn("$sync protocol request failed: ", xmlHttpRequest.status, xmlHttpRequest.statusText);      // causes this error: (only when run in the test suite though..) uncaught exception: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIXMLHttpRequest.status]" nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)" location: "JS frame :: http://localhost:8080/jsync/connection.js :: failed :: line 334" data: no]
       if (textStatus === "timeout") {
-        consecutiveFailed += 1;
+        consecutiveTimeouts += 1;
         requestsActive -= 1;
         longPoll();     
       } else {

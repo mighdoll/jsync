@@ -173,6 +173,26 @@ test("sync.protocolVersion", function() {
     ok(xmlHttpRequest.status === 400);
     ok(connection.isClosed);
     start();
+  }  
+});
+
+test("sync.ajaxTimeout", function() {
+  expect(2);
+  $sync.connect("/sync", {
+    requestTimeout : 1, // we want it to timeout
+    connected : connected,
+    failFn : failed
+  });    
+  stop();
+  
+  function connected() {
+    ok(false);
+    start();
   }
   
+  function failed(connection, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
+    ok(!connection.isClosed);
+    ok(connection.requestsActive() == 0);
+    start();
+  }  
 });
