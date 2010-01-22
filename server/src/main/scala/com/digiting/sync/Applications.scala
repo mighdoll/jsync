@@ -19,7 +19,6 @@ import net.lag.logging.Level._
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import com.digiting.util.TryCast.matchString
-import com.digiting.util.RichEither._
 
 object Applications extends LogHelper {
   implicit val log = Logger("Applications")
