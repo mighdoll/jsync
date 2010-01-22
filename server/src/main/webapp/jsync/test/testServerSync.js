@@ -145,3 +145,25 @@ test("sync.modifyReference", function() {
   
 });
 
+
+test("sync.protocolVersion", function() {
+  expect(1);
+  
+  var origVersion = $sync.protocolVersion;
+  $sync.protocolVersion = "0";
+  $sync.connect("/testing/sync", {connected:connected, failFn:failed});  
+  $sync.protocolVersion = origVersion;  
+  stop();
+  
+  function connected(connection) {
+    ok(false);
+    finish();
+  }
+  
+  function failed() {
+    $log.log("failed");
+    ok(true);
+    finish();
+  }
+  
+});

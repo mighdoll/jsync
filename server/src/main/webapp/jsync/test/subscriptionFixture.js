@@ -86,14 +86,14 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   
   /** called after second connection's subscription is received */
   function subscribed2(root) {  	
-	$sync.manager.setDefaultPartition("test");
-	subscribedAgainFn(root);
-	finish();
+    $sync.manager.setDefaultPartition("test");
+    subscribedAgainFn(root);
+    finish();
   }
   
   function finish() {
     $sync.manager.reset();
-	start();  	
+    start();  	
   }
   
   begin();
