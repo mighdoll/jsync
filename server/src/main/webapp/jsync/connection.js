@@ -220,13 +220,13 @@ $sync.connect = function(feedUrl, params) {
         
   /** start connection to the server */
   function start() {
-    $log.info("starting connection to: " + feedUrl);
+//    $log.info("starting connection to: " + feedUrl);
     var xact = startNextSendXact();
     var startMessage = {
       '#start': {
         authorization: params.authorization || "",
         appVersion: params.appVersion || "",
-        protocolVersion: "0.2"
+        protocolVersion: $sync.protocolVersion
       }
     };
     xact.push(startMessage);
