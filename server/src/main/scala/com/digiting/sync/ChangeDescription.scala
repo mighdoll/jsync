@@ -30,22 +30,9 @@ case class PropertyChange(changed:Observable, property:String, val newValue:Any,
       extends ChangeDescription(changed){
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }
-
-/** initial state of a collection */      
-case class BaseMembership(collection:Observable, members:List[Observable]) 
-  extends ChangeDescription(collection)
-
-/** remove all contents from a collection */
-case class ClearChange(collection:Observable, members:List[Observable])
-  extends ChangeDescription(collection) {
-	def operation = "clear"
-}
-
-/** move an element in a sequence */
-case class MoveChange(collection:Observable, fromDex:Int, toDex:Int)
-  extends ChangeDescription(collection) {
-	def operation = "move"
-}
+  
+/** create a new object */
+case class CreatedChange(created:Observable) extends ChangeDescription(created)
 
 /** changes to a collection's membership. */
 abstract class MembershipChange(target:Observable, val operation:String, 
@@ -53,35 +40,49 @@ abstract class MembershipChange(target:Observable, val operation:String,
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
 }
 
+/** remove all contents from a collection */
+case class ClearChange(collection:Observable, members:List[Observable])
+  extends ChangeDescription(collection) {
+  def operation = "clear"
+}
+
+  /* set changes*/
 case class PutChange(changed:Observable, newVal:Any) 
   extends MembershipChange(changed, "put", newVal, null)  
   
+case class RemoveChange(changed:Observable, oldVal:Any) 
+  extends MembershipChange(changed, "remove", null, oldVal) 
+
+  /* seq changes */
+case class RemoveAtChange(changed:Observable, at:Int, oldVal:Any) 
+  extends MembershipChange(changed, "removeAt", null, oldVal) {
+  override def toString = (super.toString + " at:" + at)
+}
 case class InsertAtChange(changed:Observable, newVal:Any, at:Int) 
   extends MembershipChange(changed, "insertAt", newVal, null) {
   
   override def toString = (super.toString + " at:" + at)
 }
-  
-case class RemoveAtChange(changed:Observable, at:Int, oldVal:Any) 
-  extends MembershipChange(changed, "removeAt", null, oldVal) {
-  override def toString = (super.toString + " at:" + at)
+case class MoveChange(collection:Observable, fromDex:Int, toDex:Int)
+  extends ChangeDescription(collection) {
+  def operation = "move"
 }
-
-case class RemoveChange(changed:Observable, oldVal:Any) 
-  extends MembershipChange(changed, "remove", null, oldVal) 
-
+  
+  /* map changes */
 case class RemoveMapChange(changed:Observable, oldKey:Any, oldValue:Any) 
   extends ChangeDescription(changed)
 
 case class UpdateMapChange(changed:Observable, newKey:Any, newValue:Any) 
   extends ChangeDescription(changed)
 
-/** changes to the set of subscribed objects.  */
+  
+/* changes to the watch set from DeepWatch.  */
 case class WatchChange(val root:Observable, val newValue:Observable, val watcher:AnyRef) extends ChangeDescription(root) {
   override def toString = {super.toString + " newWatch: " + newValue + "  watcher: " + watcher}  
 }
-
 case class UnwatchChange(val root:Observable, val oldValue:Observable) extends ChangeDescription(root)
-  
-/** create a new object */
-case class CreatedChange(created:Observable) extends ChangeDescription(created)
+
+/** initial state of a collection */      
+case class BaseMembership(collection:Observable, members:List[Observable]) 
+  extends ChangeDescription(collection)
+

@@ -32,7 +32,7 @@ object SyncableSerialize extends LogHelper {
         props += (prop -> valueString) 
       } 
     
-    props += "kind" -> syncable.kind
+    props += "kind" -> syncable.kind    
     props += "kindVersion" -> syncable.kindVersion
     
     Map[String,String]() ++ props
