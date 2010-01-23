@@ -14,8 +14,8 @@
  */
 
 /*
- * All syncable javascript objects contain an '$id' property and a 'kind' property.
- * $id+kind is guaranteed to be a unique, and is currently implemented as a string.
+ * All syncable javascript objects contain an '$id' property and a '$kind' property.
+ * $id+$kind is guaranteed to be a unique, and is currently implemented as a string.
  *
  * kind is akin to the class of the object - the client typically uses the kind to
  * attach functions to the data object arriving over the wire.
@@ -82,10 +82,10 @@ $sync.manager = function() {
     }
   };
 
-  /** @return true iff obj has the requisite sync fields (kind and $id) and
+  /** @return true iff obj has the requisite sync fields ($kind and $id) and
    * registered with the sync manager */
   self.isSyncable = function(obj) {
-    if (!obj.$id || !obj.kind) {
+    if (!obj.$id || !obj.$kind) {
       return false;
     }
     return self.get(obj.$partition, obj.$id) === obj;
@@ -170,7 +170,7 @@ $sync.manager = function() {
    * @param kind : ?string - specifies the syncable kind for the syncable object
    *    kind typically refers to a constructor function, which will be called
    *    when objects of this kind are received from the network.  defaults to
-   *    dataModel.kind.
+   *    dataModel.$kind.
    * @param instanceData - optional instance data copied to this instance.
    */
   self.createSyncable = function(kind, instanceData) {
@@ -257,7 +257,7 @@ $sync.manager = function() {
 //    $debug.log("manager.update: " + JSON.stringify(received));
     $debug.assert(obj && obj !== received);
     $debug.assert(obj.$id === received.$id);
-    $debug.assert(!received.kind || obj.kind === received.kind);
+    $debug.assert(!received.$kind || obj.$kind === received.$kind);
 
     // update the target object with the received data
     for (prop in received) {
@@ -290,12 +290,12 @@ $sync.manager = function() {
       $debug.error("target of collection edit not found: " + JSON.stringify(edit));
 	  $sync.manager.printLocal();
 	  $debug.assert(false);
-    } else if (collection.kind === "$sync.set") {
+    } else if (collection.$kind === "$sync.set") {
       editSet(collection, edit);
-    } else if (collection.kind === "$sync.sequence") {
+    } else if (collection.$kind === "$sync.sequence") {
       editSequence(collection, edit);
     } else {
-      $debug.log("unexpected kind of collection for #edit: " + JSON.stringify(edit) + " found: " + JSON.stringify(collection));
+      $debug.log("unexpected $kind of collection for #edit: " + JSON.stringify(edit) + " found: " + JSON.stringify(collection));
     }
   };
 
@@ -336,15 +336,15 @@ $sync.manager = function() {
    * (data from the template isn't added here. it's added fieldwise by
    *  manager.update())
    *
-   * @param template.kind describes the type of the object to be created.
-   *      template.kind e.g "sync.set" creates a new object by calling the function
+   * @param template.$kind describes the type of the object to be created.
+   *      template.$kind e.g "sync.set" creates a new object by calling the function
    *          sync.set() with no parameters.
    *      template.$id id of the object to be created.
    *      template.$partition partitionId of the object to be created
    * @return newly created raw syncable object (no data fields have been set)
    */
   self.createRaw = function(template) {
-    var constructFn, obj, partition = template.$partition, id = template.$id, kind = template.kind;
+    var constructFn, obj, partition = template.$partition, id = template.$id, kind = template.$kind;
 
     $debug.assert(id);
     $debug.assert(!self.contains(partition, id));
@@ -418,7 +418,7 @@ $sync.manager = function() {
    * call fn with the name of each property in a syncable
    */
   self.eachPropertyName = function(syncable, fn) {
-    var kindProto = kindPrototype(syncable.kind);
+    var kindProto = kindPrototype(syncable.$kind);
     for (var propName in kindProto) {
       if (typeof kindProto[propName] == 'function' 
         && propName[propName.length - 1] == '_') {
@@ -460,7 +460,7 @@ $sync.manager = function() {
    */
   var kindBasePrototype = {
     toString: function() {
-      var kindStr = this.kind ? " (" + this.kind + ")" : "";
+      var kindStr = this.$kind ? " (" + this.$kind + ")" : "";
       var idStr = self.instanceKey(this.$partition, this.$id);
       return idStr + kindStr;
     },
@@ -485,7 +485,7 @@ $sync.manager = function() {
    */
   function makeKindPrototype(kind, model) {
     var kindProto = $sync.util.createObject(kindBasePrototype);
-    kindProto.kind = kind;
+    kindProto.$kind = kind;
     populateKindPrototype(kindProto, model);
     kindPrototypes[kind] = kindProto;
     return kindProto;
@@ -510,7 +510,7 @@ $sync.manager = function() {
    * SOON make all properties that begin with '$' reserved, CONSIDER per class reserves
    */
   function reservedProperty(prop) {
-    if (prop === "$id" || prop === "kind" || prop === "$partition") {
+    if (prop === "$id" || prop === "$kind" || prop === "$partition") {
       return true;
     }
     return false;

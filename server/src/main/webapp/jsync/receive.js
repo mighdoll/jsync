@@ -176,7 +176,7 @@ $sync.receive = function(connection) {
      
   /** replace any reference property value with the referenced object.
      * references look like this-  val:{$ref: 17}. which would be replaced
-     * with the syncable object #17, e.g. val:{$id:17, kind:"person", name:"fred"} */
+     * with the syncable object #17, e.g. val:{$id:17, $kind:"person", name:"fred"} */
   function resolveRefs(obj) {
     var prop, arrayDex, arrayVal;
 

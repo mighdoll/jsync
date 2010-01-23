@@ -86,9 +86,9 @@ function testCollectionClass(className, creator) {
     withWatch(set, function(change) {
       ok(change.target === set);
       ok(change.changeType == 'edit');
-	  if (set.kind == "$sync.set") {
+	  if (set.$kind == "$sync.set") {
 	  	ok(change.remove === item1);	
-	  } else if (set.kind == "$sync.sequence") {
+	  } else if (set.$kind == "$sync.sequence") {
 	  	ok(change.removeAt === 0);
 	  } else {
 	    $debug.error("unexpected collection type in test: " + className + ".notification");	  	

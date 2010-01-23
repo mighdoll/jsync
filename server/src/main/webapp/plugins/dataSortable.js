@@ -99,7 +99,7 @@
   // Helper for dataSortable, dataList
   function checkOptions(options) {
     $debug.assert(options.model, 'options.model is required');
-    $debug.assert(options.model.kind === "$sync.sequence",
+    $debug.assert(options.model.$kind === "$sync.sequence",
                   "options.model must be a sync sequence");
     // FIXME copy options before modifying
     options.render = options.render || function(model) {
@@ -243,7 +243,7 @@
     // the sequence element `model`.
     function render(model) {
       var renderfn =
-        typeof(renderers) === 'function'  ? renderers : renderers[model.kind];
+        typeof(renderers) === 'function'  ? renderers : renderers[model.$kind];
       return renderfn
         ? $(renderfn(model))
         : $('<div/>').text(String(model));

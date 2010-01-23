@@ -19,7 +19,7 @@ test("createSyncable", function() {
   var obj = $sync.test.nameObj();
   
   ok(obj.$id);
-  ok(obj.kind === "$sync.test.nameObj");
+  ok(obj.$kind === "$sync.test.nameObj");
   ok(obj.toString !== Object.toString);
   ok(typeof obj.name_ === "function");
   obj.name_("milo");
@@ -97,23 +97,23 @@ test("json-sync.$sync.set", function() {
     }, {
       "$id": 1,
       "$partition": "test",
-      "kind": "$sync.set"
+      "$kind": "$sync.set"
     }, {
       "$id": 2,
       "$partition": "test",
-      "kind": "$sync.test.nameObj",
+      "$kind": "$sync.test.nameObj",
       "name": "fred-1"
     }, {
       "$id": 3,
       "$partition": "test",
-      "kind": "$sync.test.nameObj",
+      "$kind": "$sync.test.nameObj",
       "name": "fred-2"
     }]]);
   };
   
   function verifySet(set) {
     // verify sync.set
-    ok(set.kind === "$sync.set");
+    ok(set.$kind === "$sync.set");
     ok(typeof set.put === "function");
     ok(set.size() === 2);
     set.each(function(item) {
@@ -153,7 +153,7 @@ test("json-sync.$ref", function() {
     }, {
       "$id": 4,
       "$partition": "test",
-      "kind": "$sync.test.refObj",
+      "$kind": "$sync.test.refObj",
       "ref": { // forward ref
         "$ref": {
           $partition: "test",
@@ -163,7 +163,7 @@ test("json-sync.$ref", function() {
     }, {
       "$id": 5,
       "$partition": "test",
-      "kind": "$sync.test.refObj",
+      "$kind": "$sync.test.refObj",
       "ref": { // self ref
         "$ref": {
           $partition: "test",
@@ -173,7 +173,7 @@ test("json-sync.$ref", function() {
     }, {
       "$id": 6,
       "$partition": "test",
-      "kind": "$sync.test.refObj",
+      "$kind": "$sync.test.refObj",
       "ref": [{ // array of refs
         "$ref": {
           $partition: "test",
@@ -188,7 +188,7 @@ test("json-sync.$ref", function() {
     }, {
       "$id": 7,
       "$partition": "test",
-      "kind": "$sync.test.refObj",
+      "$kind": "$sync.test.refObj",
       "ref": { // reference syncable via non-syncable reference chain
         "nest": {
           "deep": {
@@ -249,7 +249,7 @@ test("json-sync.send-obj", function() {
   ok(leonardo);
   ok(leonardo.name === obj.name);
   ok(leonardo.$id === obj.$id);
-  ok(leonardo.kind === obj.kind);
+  ok(leonardo.$kind === obj.$kind);
   
   subscriptions = $sync.util.arrayFind(out, function(elem) {
     if (elem.$id === "subscriptions") 
@@ -272,7 +272,7 @@ test("json-sync.receive-out-of-order", function() {
   }, {
     $id: "test-1",
     $partition: "test",
-    kind: "$sync.test.nameObj",
+    $kind: "$sync.test.nameObj",
     name: "oliver"
   }]]);
   

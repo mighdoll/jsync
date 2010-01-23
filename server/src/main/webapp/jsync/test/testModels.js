@@ -25,7 +25,7 @@ test("defineKind.kind", function() {
   $sync.manager.setDefaultPartition("test");
   expect(1);
   var obj = $sync.test.nameObj();
-  ok(obj.kind == "$sync.test.nameObj");
+  ok(obj.$kind == "$sync.test.nameObj");
 });
 
 test("defineKind.kindPrototype", function() {

@@ -208,7 +208,7 @@ object ProcessMessage extends LogHelper {
   private def localTarget(remote:JsonMap):Option[Syncable] = {
     remote match {
       case JsonSyncableIdentity(ids) =>
-        val kindOpt = matchOptString (remote get "kind")
+        val kindOpt = matchOptString (remote get "$kind")
         kindOpt match { // sending '$kind' is our protocol clue to build a new object
           case Some(kind) =>
             SyncManager.newSyncable(kind, ids)          
@@ -251,7 +251,7 @@ object ProcessMessage extends LogHelper {
   
   /** debug verification that the json kind matches the object */
   private def verifyKindsMatch(local:Syncable, remote:JsonMap) {
-    for {remoteKind <- matchOptString (remote get "kind")} {
+    for {remoteKind <- matchOptString (remote get "$kind")} {
       if (remoteKind != local.kind)
         log.error("local syncable kind (%s) does not match remote kind (%s)", local.kind, remoteKind)
     }

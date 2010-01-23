@@ -158,8 +158,8 @@ $sync.connect = function(feedUrl, params) {
    * @param {Object} syncable
    */
   function outgoingSyncable(syncable) {
-    // add kind as local property, stringify will skip it if it's just in the prototype
-    var toSend = {kind: syncable.kind };
+    // add $kind as local property, stringify will skip it if it's just in the prototype
+    var toSend = {$kind: syncable.$kind };
     var value;
     
     for (var property in syncable) {

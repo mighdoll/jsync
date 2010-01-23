@@ -34,7 +34,7 @@ test("sync.serverSequence.insertClear", function() {
   	ok(seq.size() == 3);
   	matchSequenceNames(seq, [,"val",uniqueName]);
   	seq2 = seq.getAt(0);
-  	ok(seq2.kind === '$sync.sequence');
+  	ok(seq2.$kind === '$sync.sequence');
   	ok(seq2.size() == 3);
   	matchSequenceNames(seq2, ["chris","anya","bryan"]);
   }  

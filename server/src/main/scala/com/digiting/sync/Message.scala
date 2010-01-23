@@ -210,7 +210,7 @@ object Message {
   def toJsonMap(obj:Syncable):JsonMap = {
     val props = new MutableJsonMap
     props + ("$id" -> obj.id)
-    props + ("kind" -> obj.kind)
+    props + ("$kind" -> obj.kind)
     props + ("$partition" -> obj.partition.partitionId)
     for ((name, value) <- SyncableAccessor.properties(obj)) {
       props + (name -> toJsonMapValue(value))

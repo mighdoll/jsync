@@ -40,7 +40,7 @@ class ProtocolTest extends Spec with ShouldMatchers {
          "authorization":""
         },
       },
-      {"kind":"$sync.subscription",
+      {"$kind":"$sync.subscription",
        "$partition":"test",
        "$id":"Browser-0",
        "name":"oneName",
