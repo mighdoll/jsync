@@ -95,7 +95,7 @@ $sync.connect = function(feedUrl, params) {
     if (changeSet.length === 0) return;    
     
     xact = startNextSendXact();     
-    changeSet.eachCheck(function(change) {      
+    $.each(changeSet, function(index, change) {      
       target = change.target;
       changeType = change.changeType;
 //      $debug.log("sendModified, change: " + change);

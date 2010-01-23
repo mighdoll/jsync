@@ -241,11 +241,14 @@ test("json-sync.send-obj", function() {
   out = connection.testOutput();
   ok(out[0]['#transaction'] === 0);
   
-  leonardo = out.eachCheck(function(elem) {
-    if (elem.$id === obj.$id) 
-      return elem;
-    return null;
+  var leonardo;
+  $.each(out, function(index, elem) {
+    if (elem.$id === obj.$id) {
+      leonardo = elem;
+      return false;
+    }
   });
+  
   ok(leonardo);
   ok(leonardo.name === obj.name);
   ok(leonardo.$id === obj.$id);

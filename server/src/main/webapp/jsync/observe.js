@@ -131,8 +131,8 @@ $sync.observation = function() {
             
       if (callBacks) {
         // notify all watchers registered in the appropriate watchDB
-        notifyAll = function() {
-          callBacks.eachCheck(function(entry) {
+        notifyAll = function() {          
+          $.each(callBacks, function(index, entry) {
 //            $log.debug("notify: " + target + "  changes:" + changes);
             entry.func(changes);
           });
@@ -147,14 +147,13 @@ $sync.observation = function() {
       }
       
       if (everyWatchers) {
-        everyWatchers.eachCheck(function(watcher) {
+        $.each(everyWatchers, function(index, watcher) {
           notify = (function() {
             watcher.call(changes);
           });
           if (defer) {
             deferred.push(notify);
-          }
-          else {
+          } else {
             notify();
           }
         });
@@ -212,7 +211,7 @@ $sync.observation = function() {
       collectWatchers(collectionWatchers);
       
       str += "watchEvery: \n";
-      everyWatchers.eachCheck(function(watcher) {
+      $.each(everyWatchers, function(index, watcher) {
         str += "\t" + watcher.owner + ":" + watcher.call + "\n";
       });
       
