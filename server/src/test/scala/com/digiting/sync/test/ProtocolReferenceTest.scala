@@ -20,20 +20,22 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import com.digiting.sync.ResponseManager.AwaitResponse
 import com.digiting.sync.test.ProtocolTester.callService
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ProtocolReferenceTest extends Spec with ShouldMatchers {
-  describe("JsonSync") {    
-    val log = Logger("ProtocolReferenceTest")
-    it("should initialize configuration") {
-      Configuration.initFromVariable("jsyncServerConfig")      
-      TestApplication.registerTestServices(ProtocolReferenceTestServer)
-    }
-    
+class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfterAll {
+  val log = Logger("ProtocolReferenceTest")
+  
+  override def beforeAll() {
+    Configuration.initFromVariable("jsyncServerConfig")      
+    TestApplication.registerTestServices(ProtocolReferenceTestServer)    
+  }
+  
+  describe("JsonSync") {        
     it("should process references to objects within the transaction") {
       withTestEnvironment {
         val resultMap = 

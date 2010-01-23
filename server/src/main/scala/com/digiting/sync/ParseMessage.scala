@@ -30,8 +30,8 @@ object ParseMessage {
   def parse(receivedXact:String):List[Message] = {
     log.ifTrace("ParseMessage.receiveTransaction " + receivedXact)
     
-	// extract the transaction number object and the transaction body objects
-	JSONParser.parse(receivedXact) match {
+  	// extract the transaction number object and the transaction body objects
+  	JSONParser.parse(receivedXact) match {
       case Full(jsonArray:List[_]) => 
         jsonArray head match {
           case jsonObj:Map[_,_] => 
@@ -43,10 +43,10 @@ object ParseMessage {
               parseJsonMessageBody(list.asInstanceOf[List[_]]) toList
             }
         }
-	  case _ => 
-	    log.error("hard to parse transaction received: " + receivedXact)
-	    Nil
-	}
+      case _ => 
+        log.error("hard to parse transaction received: " + receivedXact)
+        Nil
+    }
   }  
 
   object ProtocolTransaction {

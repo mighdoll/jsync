@@ -35,6 +35,8 @@ object SyncRequestApi extends LogHelper {
       () => sync(req)
     case req @ Req("admin" :: "sync" :: Nil, _, PostRequest) =>
       () => sync(req)
+    case req @ Req("test" :: "sync" :: Nil, _, PostRequest) =>
+      () => sync(req)
     case Req("generatedModels" :: Nil, _, GetRequest) =>
       () => jsModels
   }

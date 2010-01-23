@@ -136,10 +136,7 @@ object Applications extends LogHelper {
                 Left(ConnectionError(500, msg))                
             }
           case None =>
-            log.error("appFor: token %s not found, closing the client connection", token)
-            // LATER get rid of delay, it's a temp measure so that pre 0.2 (27.10.2009) clients don't re-request
-            val app = new ClosedApp(ActiveConnections.createConnection(), 2000)
-            Right(app)
+            ConnectionError.leftError(404, "token %s not found, closing the client connection", token)
         }
       case HasStart(start) => 
         log.trace("#start parameters: %s", start)

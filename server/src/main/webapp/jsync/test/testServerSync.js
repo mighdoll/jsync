@@ -196,3 +196,47 @@ test("sync.ajaxTimeout", function() {
     start();
   }  
 });
+
+/** send a raw message to the sync test server */
+function sendRawTest(msgOrObj, connected, failed) {
+  var data;
+  
+  if (typeof(msgOrObj) === 'string') {
+    data = msgOrObj;
+  } else {
+    data = JSON.stringify(msgOrObj)
+  }
+
+  $.ajax({
+    url: "/test/sync",
+    type: "POST",
+    dataType: "json",
+    data:data,
+    contentType: "application/json",
+    success : connected,
+    error : failed
+  });      
+}
+
+test("sync.oldToken", function() {
+  expect(1);
+
+  var message = [
+   {'#transaction':1}, 
+   {'#token':"invalid!"} 
+  ];
+  
+  sendRawTest(message, connected, failed);
+  stop();
+  
+  function connected(xmlHttpRequest, textStatus, errorThrown) {
+    ok(false);
+    start();
+  }
+  
+  function failed(xmlHttpRequest, textStatus, errorThrown) {
+    ok(xmlHttpRequest.status === 404, "expected 404");
+    start();
+  }  
+});
+

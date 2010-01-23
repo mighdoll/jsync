@@ -32,6 +32,19 @@ import JsonMapParser.Reference
 
 object ProtocolTester extends LogHelper {
   val log = Logger("ProtocolTester")
+  
+  /** Send a raw json-sync message to the test application server.  The verifyFn should
+   * return Some() for success or failure, and None to wait for additional messages 
+   * to come from the server.  
+   */
+  def sendTestMessage[T](msg:String, verifyFn: (String)=>Option[T]):Option[T] = {
+    log.trace("sending message: %s", msg)
+    Applications.deliver("test" :: "sync":: Nil, msg).right.toOption orElse {
+      err("no app found") 
+    } flatMap {connection =>      
+      repeatUntil (3, checkResponse(connection, verifyFn))
+    }
+  }
 
   /** Call a service in the test application server.  return the response from the app server.
     * 
@@ -45,7 +58,6 @@ object ProtocolTester extends LogHelper {
     
     sendTestMessage(messageStr, getServiceReply(serviceCall)) 
   }
-
   // manually extract a reply edit to a ServiceCall
   private def getServiceReply(serviceCall:ServiceCall[Syncable])(messageStr:String):Option[JsonMap] = {
     var syncJsonMaps =
@@ -126,19 +138,10 @@ object ProtocolTester extends LogHelper {
     val partitionName = "simulatedClient"
     Partitions.get(partitionName) getOrElse new RamPartition(partitionName)
   }
-
-  def sendTestMessage[T](msg:String, verifyFn: (String)=>Option[T]):Option[T] = {
-    log.trace("sending message: %s", msg)
-    Applications.deliver("test" :: "sync":: Nil, msg).right.toOption orElse {
-      err("no app found") 
-    } flatMap {connection =>      
-      repeatUntil (3, checkResponse(connection, verifyFn))
-    }
-  }
   
   private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T]= {
     for {
-      responseAny <- connection.responses !?(500, AwaitResponse(37)) orElse
+      responseAny <- connection.responses !?(200, AwaitResponse(37)) orElse
         err("unexpected None from AwaitResponse")
       response <- matchString(responseAny)
       a = log.trace("gotResponse: %s", response)      

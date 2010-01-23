@@ -35,6 +35,7 @@ object TestApplication {
     }
   }
   
+  /** register implicit services with the test application */
   def registerTestServices(serviceObject:AnyRef) {
     tests += serviceObject    
   }

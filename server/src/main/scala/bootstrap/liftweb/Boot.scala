@@ -13,6 +13,7 @@ import Helpers._
 import _root_.com.digiting.sync._
 import net.lag.logging.Logger
 import com.digiting.util.Configuration
+import com.digiting.sync.testServer.ClientTestApp
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -63,6 +64,7 @@ class Boot {
     LiftRules.early.append(makeUtf8)
 
     LiftRules.dispatch.prepend(SyncRequestApi.dispatch)
+    ClientTestApp.init()
   }
 
     
