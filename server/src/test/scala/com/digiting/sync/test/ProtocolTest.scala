@@ -35,8 +35,8 @@ class ProtocolTest extends Spec with ShouldMatchers {
     val jsonMsg = """[
       {"#transaction":0},
       {"#start":
-        {"appVersion":"",
-         "protocolVersion": """ + ProtocolVersion.version + """,
+        {"appVersion":""" + "\"" + TestApplication.appVersion + """",
+         "protocolVersion":""" + "\"" + ProtocolVersion.version + """",
          "authorization":""
         },
       },

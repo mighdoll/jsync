@@ -233,7 +233,7 @@ $sync.connect = function(feedUrl, params) {
     var startMessage = {
       '#start': {
         authorization: params.authorization || "",
-        appVersion: params.appVersion || "",
+        appVersion: params.appVersion || $sync.defaultAppVersion || "",
         protocolVersion: $sync.protocolVersion
       }
     };

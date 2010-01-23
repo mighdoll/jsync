@@ -58,6 +58,7 @@ object ProtocolTester extends LogHelper {
     
     sendTestMessage(messageStr, getServiceReply(serviceCall)) 
   }
+  
   // manually extract a reply edit to a ServiceCall
   private def getServiceReply(serviceCall:ServiceCall[Syncable])(messageStr:String):Option[JsonMap] = {
     var syncJsonMaps =
@@ -127,7 +128,7 @@ object ProtocolTester extends LogHelper {
     val startParams = ImmutableJsonMap(
       "authorization" -> "",
       "protocolVersion" -> ProtocolVersion.version,
-      "appVersion" -> "")
+      "appVersion" -> TestApplication.appVersion)
     val controls = ImmutableJsonMap("#start" -> startParams) :: Nil
     val message = new Message(0, controls, edits, syncs.toList)
     

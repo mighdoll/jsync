@@ -19,6 +19,7 @@ import collection.mutable.ListBuffer
 object TestApplication {
   private val tests = new ListBuffer[AnyRef]()
   private var registered = false
+  val appVersion = "0.1"
   
   init()
   
@@ -28,7 +29,7 @@ object TestApplication {
       Applications.register {
         case ("test" :: "sync" :: Nil, message, connection) => 
           val app = new TestContext(connection)
-          tests foreach {app.createImplicitServices(_)}
+          tests foreach { app.createImplicitServices(_) }
           app
       }
       registered = true
@@ -39,10 +40,13 @@ object TestApplication {
   def registerTestServices(serviceObject:AnyRef) {
     tests += serviceObject    
   }
+  
+  
 }
 
 class TestContext(connection:Connection) extends RichAppContext(connection) {
   override val log = Logger("TestContext")
+  override val appVersion = TestApplication.appVersion
 }
   
 

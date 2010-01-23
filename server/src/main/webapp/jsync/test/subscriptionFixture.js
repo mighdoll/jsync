@@ -28,7 +28,7 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   $sync.manager.setDefaultPartition("test");
   function begin() {
     stop();
-    $sync.connect("/sync", {
+    $sync.connect("/test/sync", {
       connected: connected
     });
   }
@@ -70,7 +70,7 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   
   function subscribeAgain() {
     // reconnect to simulate a new client
-    connection2 = $sync.connect("/sync", {
+    connection2 = $sync.connect("/test/sync", {
       connected: connected2
     });
     $sync.manager.commit();

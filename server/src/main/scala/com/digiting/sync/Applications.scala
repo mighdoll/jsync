@@ -82,11 +82,10 @@ object Applications extends LogHelper {
       case Some(creator) =>
         creator(syncPath, message, connection)
       case None =>
-        log.warning("using default context, because no application context is defined for: message" + message.toJson)
+        log.warning("using generic AppContext, because no application context is defined for message: %s, sent to: %s",
+          message.toJson, syncPath mkString("/"))
         new AppContext(connection)
     }
-      // CONSIDER: probably should allow registered apps to return true to isDefinedAt and a None response, meaning
-      // that they might match, but didn't in this case.  
   }
   
   
@@ -147,8 +146,14 @@ object Applications extends LogHelper {
         } else {
           val connection = ActiveConnections.createConnection()
           val app = createAppContext(syncPath, start, message, connection)
-          connection.appContext = Some(app)
-          Right(app)
+          if (app.appVersion != start.appVersion) {
+            connection.close()
+            ConnectionError.leftError(400, "client appVersion(%s) doesn't match server appVersion(%s)", 
+              start.appVersion, app.appVersion)            
+          } else {
+            connection.appContext = Some(app)
+            Right(app)
+          }
         }
       case _ => 
         ConnectionError.leftError(400, "message contains neither #token nor #start %s ", message.toJson)

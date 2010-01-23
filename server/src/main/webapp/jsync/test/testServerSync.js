@@ -6,7 +6,7 @@ $sync.test = $sync.test || {};
 test("sync.connect", function() {
   var connection;
   function begin() {
-    connection = $sync.connect("/sync", {
+    connection = $sync.connect("/test/sync", {
       connected: connected
     });
     stop();
@@ -39,7 +39,7 @@ test("sync.subscribe.oneSet", function() {
   var foundMercer = false;
 
   function begin() {
-    connection = $sync.connect("/sync", {
+    connection = $sync.connect("/test/sync", {
       connected: connected
     });
     stop();
@@ -145,22 +145,29 @@ test("sync.modifyReference", function() {
   
 });
 
+function withProtocolVersion(version, fn) {
+  var origVersion = $sync.protocolVersion;
+  $sync.protocolVersion = version;
+  var result = fn();
+  $sync.protocolVersion = origVersion;  
+  return result;
+}
 
-test("sync.protocolVersion", function() {
+function withAppVersion(version, fn) {
+  var origVersion = $sync.defaultAppVersion;
+  $sync.defaultAppVersion = version;
+  var result = fn();
+  $sync.defaultAppVersion = origVersion;  
+  return result;  
+}
+
+
+function testWrongVersion(withVersionFn) {
   expect(2);
   
-  function withProtocolVersion(version, fn) {
-	  var origVersion = $sync.protocolVersion;
-	  $sync.protocolVersion = version;
-	  var result = fn();
-	  $sync.protocolVersion = origVersion;  
-	  return result;
-  }
-  
-  var connection = 
-    withProtocolVersion("0", function() {
-      return $sync.connect("/sync", {connected:connected, failFn:failed});  
-    });
+  withVersionFn("wrong-version", function() {
+    $sync.connect("/test/sync", {connected:connected, failFn:failed});  
+  });
   
   stop();
   
@@ -169,16 +176,24 @@ test("sync.protocolVersion", function() {
     start();
   }
   
-  function failed(cxtion, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
+  function failed(conn, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
     ok(xmlHttpRequest.status === 400);
     ok(connection.isClosed);
     start();
-  }  
+  }    
+}
+
+test("sync.protocolVersion", function() {
+  testWrongVersion(withProtocolVersion);
+});
+
+test("sync.appVersion", function() {
+  testWrongVersion(withAppVersion);  
 });
 
 test("sync.ajaxTimeout", function() {
   expect(2);
-  $sync.connect("/sync", {
+  $sync.connect("/test/sync", {
     requestTimeout : 1, // we want it to timeout
     connected : connected,
     failFn : failed
