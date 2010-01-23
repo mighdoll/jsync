@@ -40,7 +40,7 @@ Messages are encoded as json arrays.  Here are some sample messages
       [{"#transaction":0},              // sequence number
   
        {"#start":{                      // start a connection
-        "authorization":"fk38zh..",     // authorization token, permissions for this connection
+        "authorization":"fk38zh..",     // authorization token, contains permissions for this connection
         "appVersion":"0.9.1",           // application version
         "protocolVersion":"0.3.1" } ]   // jsync version      
 
@@ -72,14 +72,15 @@ Messages are encoded as json arrays.  Here are some sample messages
          "$id":"server-1", "$partition":"part1",
          "name":"Jules"} ]
   
- * Close a connection  (client -> server)
-      [{"#transaction":2},              // transaction# is optional.  If omitted, close the connection immediately
-       {"#close":"reason"},             // close the connection
-       {"#token":"0-+eB2jh3jcq"} ]      // unique identifier for this connection
-   
  * Add an object to a sequence (message is structured as above for set.put, but instead of "put", we "insertAt" 
      "insertAt":[{at:7, elem:{$id:"s-2", $partition:"part1"}}]  // put object part1,s-2 in the sequence at position 7
    
  * Remove an object from a sequence (just the pithy part) 
      "removeAt":[{at:7}]     // put object part1,server-1 in the set 
+   
+ * Close a connection  (client -> server)  (NYI)
+      [{"#transaction":2},              // transaction# is optional.  If omitted, close the connection immediately
+       {"#close":"reason"},             // close the connection
+       {"#token":"0-+eB2jh3jcq"} ]      // unique identifier for this connection
+   
    

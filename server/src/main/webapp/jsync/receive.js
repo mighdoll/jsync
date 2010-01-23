@@ -132,7 +132,7 @@ $sync.receive = function(connection) {
       }
       else {
         // create and register objects heretofore unknown
-        if (!$sync.manager.contains(obj.$partition, obj.id)) {
+        if (!$sync.manager.contains(obj.$partition, obj.$id)) {
           $sync.manager.createRaw(obj);
         }
         // update local objects with the received data 
@@ -176,7 +176,7 @@ $sync.receive = function(connection) {
      
   /** replace any reference property value with the referenced object.
      * references look like this-  val:{$ref: 17}. which would be replaced
-     * with the syncable object #17, e.g. val:{id:17, kind:"person", name:"fred"} */
+     * with the syncable object #17, e.g. val:{$id:17, kind:"person", name:"fred"} */
   function resolveRefs(obj) {
     var prop, arrayDex, arrayVal;
 
@@ -205,7 +205,7 @@ $sync.receive = function(connection) {
     // return either the object reference or the $ref translated
     // into a real object reference
     if (obj.$ref) {
-      return $sync.manager.get(obj.$ref.$partition, obj.$ref.id);
+      return $sync.manager.get(obj.$ref.$partition, obj.$ref.$id);
     }
     return obj;
   }

@@ -42,17 +42,17 @@ class ProtocolTest extends Spec with ShouldMatchers {
       },
       {"kind":"$sync.subscription",
        "$partition":"test",
-       "id":"Browser-0",
+       "$id":"Browser-0",
        "name":"oneName",
        "inPartition":"test",
        "root":null
       },
       {"#edit":
-         { "id":"subscriptions",
+         { "$id":"subscriptions",
     	   "$partition":".implicit"
          },
        "put":
-         { "id":"Browser-0",
+         { "$id":"Browser-0",
            "$partition":"test"
          }
       }

@@ -148,7 +148,7 @@ object JsonMapParser {
       */
     def unapply(json:JsonMap):Option[SyncableIdentity] = {
       val foundIds:Option[SyncableIdentity] = 
-      matchOptString (json get "id") match { 
+      matchOptString (json get "$id") match { 
         case Some(instanceId) => {
           matchOptString (json get "$partition") match {
             case Some(partitionId) if (partitionId == ".transient") => 

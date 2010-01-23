@@ -71,7 +71,7 @@ object ProtocolTester extends LogHelper {
     var resultIds = 
       for {
         syncObj <- syncJsonMaps
-        id <- syncObj get("id") if id == serviceCall.id
+        id <- syncObj get("$id") if id == serviceCall.id
           a = log.trace("found service call: %s", syncObj)
         result <- syncObj get("results")
           a = log.trace("found results: %s", result)      
@@ -86,7 +86,7 @@ object ProtocolTester extends LogHelper {
         var resultMaps = 
           for {
             syncObjMap <- syncJsonMaps
-            id <- syncObjMap get("id") if id == resultId.instanceId
+            id <- syncObjMap get("$id") if id == resultId.instanceId
           } yield {
             log.trace("found result: %s", syncObjMap)            
             syncObjMap

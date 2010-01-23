@@ -18,7 +18,7 @@ test("createSyncable", function() {
   $sync.manager.setDefaultPartition("test");
   var obj = $sync.test.nameObj();
   
-  ok(obj.id);
+  ok(obj.$id);
   ok(obj.kind === "$sync.test.nameObj");
   ok(obj.toString !== Object.toString);
   ok(typeof obj.name_ === "function");
@@ -34,7 +34,7 @@ test("$sync.manager.update", function() {
   
   $sync.manager.withNewIdentity({
     partition: "test",
-    id: 10
+    $id: 10
   }, function() {
     obj = $sync.test.nameObj({
       name: "bar"
@@ -45,7 +45,7 @@ test("$sync.manager.update", function() {
   
   $sync.observation.withMutator("server", function() {
     $sync.manager.update({
-      id: obj.id,
+      $id: obj.$id,
       $partition: "test",
       name: "foo"
     });
@@ -74,37 +74,37 @@ test("json-sync.$sync.set", function() {
     connection.testReceiveMessages([[{
       "#transaction": 0
     }, {
-      "id": sub.id,
+      "$id": sub.$id,
       "$partition": sub.$partition,
       "root": {
         "$ref": {
-          id: 1,
+          $id: 1,
           $partition: "test"
         }
       }
     }, {
       "#edit": {
-        id: 1,
+        $id: 1,
         $partition: "test"
       },
       "put": [{
-        id: 2,
+        $id: 2,
         $partition: "test"
       }, {
-        id: 3,
+        $id: 3,
         $partition: "test"
       }]
     }, {
-      "id": 1,
+      "$id": 1,
       "$partition": "test",
       "kind": "$sync.set"
     }, {
-      "id": 2,
+      "$id": 2,
       "$partition": "test",
       "kind": "$sync.test.nameObj",
       "name": "fred-1"
     }, {
-      "id": 3,
+      "$id": 3,
       "$partition": "test",
       "kind": "$sync.test.nameObj",
       "name": "fred-2"
@@ -142,51 +142,51 @@ test("json-sync.$ref", function() {
     connection.testReceiveMessages([[{
       "#transaction": 0
     }, {
-      "id": subscription.id,
+      "$id": subscription.$id,
       "$partition": subscription.$partition,
       "root": {
         "$ref": {
           $partition: "test",
-          id: 4
+          $id: 4
         }
       }
     }, {
-      "id": 4,
+      "$id": 4,
       "$partition": "test",
       "kind": "$sync.test.refObj",
       "ref": { // forward ref
         "$ref": {
           $partition: "test",
-          id: 5
+          $id: 5
         }
       }
     }, {
-      "id": 5,
+      "$id": 5,
       "$partition": "test",
       "kind": "$sync.test.refObj",
       "ref": { // self ref
         "$ref": {
           $partition: "test",
-          id: 5
+          $id: 5
         }
       }
     }, {
-      "id": 6,
+      "$id": 6,
       "$partition": "test",
       "kind": "$sync.test.refObj",
       "ref": [{ // array of refs
         "$ref": {
           $partition: "test",
-          id: 5
+          $id: 5
         }
       }, {
         "$ref": {
           $partition: "test",
-          id: 7
+          $id: 7
         }
       }]
     }, {
-      "id": 7,
+      "$id": 7,
       "$partition": "test",
       "kind": "$sync.test.refObj",
       "ref": { // reference syncable via non-syncable reference chain
@@ -195,7 +195,7 @@ test("json-sync.$ref", function() {
             "deeper": {
               "$ref": {
                 $partition: "test",
-                id: 4
+                $id: 4
               }
             }
           }
@@ -242,17 +242,17 @@ test("json-sync.send-obj", function() {
   ok(out[0]['#transaction'] === 0);
   
   leonardo = out.eachCheck(function(elem) {
-    if (elem.id === obj.id) 
+    if (elem.$id === obj.$id) 
       return elem;
     return null;
   });
   ok(leonardo);
   ok(leonardo.name === obj.name);
-  ok(leonardo.id === obj.id);
+  ok(leonardo.$id === obj.$id);
   ok(leonardo.kind === obj.kind);
   
   subscriptions = $sync.util.arrayFind(out, function(elem) {
-    if (elem.id === "subscriptions") 
+    if (elem.$id === "subscriptions") 
       return elem
     return undefined;
   });
@@ -270,7 +270,7 @@ test("json-sync.receive-out-of-order", function() {
   connection.testReceiveMessages([[{
     "#transaction": 1
   }, {
-    id: "test-1",
+    $id: "test-1",
     $partition: "test",
     kind: "$sync.test.nameObj",
     name: "oliver"

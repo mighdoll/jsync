@@ -30,11 +30,11 @@ class ParseTest extends Spec with ShouldMatchers {
     it("should convert maps to messages and back") {
       withTestEnvironment {
         // create message manually
-        val syncs = ImmutableJsonMap("id" -> "test-2", "$partition" -> "test", "name" -> "Sandi" ) :: Nil
-        val puts = ImmutableJsonMap("id" -> "test-2", "$partition" -> "test") :: Nil
-        val edits = ImmutableJsonMap("#edit" -> ImmutableJsonMap("id" -> "test-2", "$partition" -> "test"), 
+        val syncs = ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test", "name" -> "Sandi" ) :: Nil
+        val puts = ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test") :: Nil
+        val edits = ImmutableJsonMap("#edit" -> ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test"), 
                                      "put" -> puts) :: Nil
-        val controls = ImmutableJsonMap("#start" -> true) :: Nil
+        val controls = ImmutableJsonMap("#start" -> true) :: Nil    // TODO this isn't correct for #start
         val message = new Message(0, controls, edits, syncs)
         
         // message to json and back

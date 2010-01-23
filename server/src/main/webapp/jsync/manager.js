@@ -14,8 +14,8 @@
  */
 
 /*
- * All syncable javascript objects contain an 'id' property and a 'kind' property.
- * id+kind is guaranteed to be a unique, and is currently implemented as a string.
+ * All syncable javascript objects contain an '$id' property and a 'kind' property.
+ * $id+kind is guaranteed to be a unique, and is currently implemented as a string.
  *
  * kind is akin to the class of the object - the client typically uses the kind to
  * attach functions to the data object arriving over the wire.
@@ -48,7 +48,7 @@ $sync.manager = function() {
   var kindPrototypes = {};  // map of prototype objects for each kind, indexed by kind string
   var constructors = {};// map of instance constructors, indexed by kind.
   var defaultPartition; // create object in this partition by default
-  var nextIdentity;		// set the next instance ids to the contained {partition:, id:} pair
+  var nextIdentity;		// set the next instance ids to the contained {partition:, $id:} pair
   var autoCommit;		// automatically commit changes to the server if this is set
   var dirty;			// set to true when local objects have been changed and need to be sent to the server
 
@@ -82,17 +82,17 @@ $sync.manager = function() {
     }
   };
 
-  /** @return true iff obj has the requisite sync fields (kind and id) and
+  /** @return true iff obj has the requisite sync fields (kind and $id) and
    * registered with the sync manager */
   self.isSyncable = function(obj) {
-    if (!obj.id || !obj.kind) {
+    if (!obj.$id || !obj.kind) {
       return false;
     }
-    return self.get(obj.$partition, obj.id) === obj;
+    return self.get(obj.$partition, obj.$id) === obj;
   };
 
   /**
-   * Set the identity (partition, id) for the next created object
+   * Set the identity (partition, $id) for the next created object
    *
    * used when instantiating remote objects
    *
@@ -188,10 +188,10 @@ $sync.manager = function() {
     // setup identity for this object
     if (nextIdentity) {
       obj.$partition = nextIdentity.partition;
-      obj.id = nextIdentity.id;
+      obj.$id = nextIdentity.$id;
     } else {
       obj.$partition = defaultPartition;
-      obj.id = clientId + nextId++;
+      obj.$id = clientId + nextId++;
     }
 
     $debug.assert(obj.$partition !== "partition-unset");
@@ -252,11 +252,11 @@ $sync.manager = function() {
    * assumes that there is syncable object with the same id as received.
    */
   self.update = function(received) {
-    var prop, obj = self.get(received.$partition, received.id);
+    var prop, obj = self.get(received.$partition, received.$id);
 
 //    $debug.log("manager.update: " + JSON.stringify(received));
     $debug.assert(obj && obj !== received);
-    $debug.assert(obj.id === received.id);
+    $debug.assert(obj.$id === received.$id);
     $debug.assert(!received.kind || obj.kind === received.kind);
 
     // update the target object with the received data
@@ -277,15 +277,15 @@ $sync.manager = function() {
   /** process a "#edit" object in the sync feed.
    * #edit objects contain:
    * here's an example edit object:
-   *   { "#edit" : {id:1, $partition:"test"},         // target object id
+   *   { "#edit" : {$id:1, $partition:"test"},         // target object id
    *   						// put objects 2,3 into object 1
-   *     "put": [{id:2, $partition:"test"}, {id:3, $partition:"test"}]
+   *     "put": [{$id:2, $partition:"test"}, {$id:3, $partition:"test"}]
    *
    * CONSIDER--move this protocol related stuff to connection.js ?
    */
   self.collectionEdit = function(edit) {
   	var editRef = edit["#edit"];
-    var collection = self.get(editRef.$partition, editRef.id);
+    var collection = self.get(editRef.$partition, editRef.$id);
     if (typeof(collection) === 'undefined') {
       $debug.error("target of collection edit not found: " + JSON.stringify(edit));
 	  $sync.manager.printLocal();
@@ -299,13 +299,13 @@ $sync.manager = function() {
     }
   };
 
-  /** add obj to the map unless the map already has an object at that (id,$partition)
+  /** add obj to the map unless the map already has an object at that ($id,$partition)
    *
    * @param obj object to add
    */
   self.put = function(obj) {
 //  	logSidebar("$sync.manager.put: " + JSON.stringify(obj, null, 2));
-  	var key = self.instanceKey(obj.$partition, obj.id);
+  	var key = self.instanceKey(obj.$partition, obj.$id);
     if (!ids[key]) {
 	  ids[key] = obj;
 	} else {
@@ -339,12 +339,12 @@ $sync.manager = function() {
    * @param template.kind describes the type of the object to be created.
    *      template.kind e.g "sync.set" creates a new object by calling the function
    *          sync.set() with no parameters.
-   *      template.id id of the object to be created.
+   *      template.$id id of the object to be created.
    *      template.$partition partitionId of the object to be created
    * @return newly created raw syncable object (no data fields have been set)
    */
   self.createRaw = function(template) {
-    var constructFn, obj, partition = template.$partition, id = template.id, kind = template.kind;
+    var constructFn, obj, partition = template.$partition, id = template.$id, kind = template.kind;
 
     $debug.assert(id);
     $debug.assert(!self.contains(partition, id));
@@ -357,7 +357,7 @@ $sync.manager = function() {
 	  	$debug.fail("constructor not defined for kind: " + kind);
 	  }
       // construct a new object for this kind using the id from the template.id
-	  self.withNewIdentity({partition: partition, id:id}, function() {
+	  self.withNewIdentity({partition: partition, $id:id}, function() {
 	  	obj = constructFn();
 	  });
 //	  $debug.log("createRaw() created: " + obj + " contains?=" +
@@ -461,7 +461,7 @@ $sync.manager = function() {
   var kindBasePrototype = {
     toString: function() {
       var kindStr = this.kind ? " (" + this.kind + ")" : "";
-      var idStr = self.instanceKey(this.$partition, this.id);
+      var idStr = self.instanceKey(this.$partition, this.$id);
       return idStr + kindStr;
     },
 
@@ -510,7 +510,7 @@ $sync.manager = function() {
    * SOON make all properties that begin with '$' reserved, CONSIDER per class reserves
    */
   function reservedProperty(prop) {
-    if (prop === "id" || prop === "kind" || prop === "$partition") {
+    if (prop === "$id" || prop === "kind" || prop === "$partition") {
       return true;
     }
     return false;
@@ -564,11 +564,11 @@ $sync.manager = function() {
 
     for (change in changes) {
       if (change === "put") {
-        // process something like  "put": [{id:2, $partition:"part1"},{id:3, $partition:"part1"}]
+        // process something like  "put": [{$id:2, $partition:"part1"},{$id:3, $partition:"part1"}]
         puts = changes.put;
         for (putDex = 0; putDex < puts.length; putDex++) {
 	      onePut = puts[putDex];
-          obj = self.get(onePut.$partition, onePut.id);
+          obj = self.get(onePut.$partition, onePut.$id);
           $debug.assert(obj);
           // these changes came from the server, no sense sending them back)
           $debug.assert($sync.observation.currentMutator() === "server");
@@ -587,7 +587,7 @@ $sync.manager = function() {
       $debug.assert($sync.util.isArray(insertAt));
       for (insertDex = 0; insertDex < insertAt.length; insertDex++) {
         insert = insertAt[insertDex];
-        elem = self.get(insert.elem.$partition, insert.elem.id);
+        elem = self.get(insert.elem.$partition, insert.elem.$id);
         seq.insertAt(elem, insert.at);
       }
     }

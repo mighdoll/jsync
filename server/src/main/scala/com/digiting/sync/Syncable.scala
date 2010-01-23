@@ -113,7 +113,7 @@ object SyncableId {
 }
 
 class SyncableId(var partitionId:String, var instanceId:String) {  
-  def toJsonMap = immutable.Map("id" -> instanceId, "$partition" -> partitionId)
+  def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId)
   def toJson = JsonUtil.toJson(toJsonMap)
 }
 

@@ -29,7 +29,7 @@ $sync.observation = function() {
   var log = $log.getLogger("$sync.observation");
   var deferred;
   var watchers; // map of watching functions, indexed by the
-                // id field of syncable objects, where each item
+                // $id field of syncable objects, where each item
                 // is an array of watch entries:
                 // {func:callBack, owner:"callerSpecifiedToken"}
   var everyWatchers; // array of watch entries
@@ -126,7 +126,7 @@ $sync.observation = function() {
 //      log.debug("notify(): ", target, changeType, changeParams);
       if (!enabled) return;
       var notify, notifyAll;
-      var callBacks = watchers[target.id];
+      var callBacks = watchers[target.$id];
       var changes = $sync.changeDescription(changeType, target, changeParams);
             
       if (callBacks) {
@@ -223,9 +223,9 @@ $sync.observation = function() {
   function watchOne(obj, fn, owner) {
 //    log.debug("watchOne: " + obj + " watcher: " + owner);
     
-    var watcherArray = watchers[obj.id];
+    var watcherArray = watchers[obj.$id];
     if (!watcherArray) {
-      watcherArray = watchers[obj.id] = [];
+      watcherArray = watchers[obj.$id] = [];
     }
     watcherArray.push({
       func: fn,
@@ -234,9 +234,9 @@ $sync.observation = function() {
   }
   
   function ignoreOne(obj, fnOrOwner) {
-    var watcherArray = watchers[obj.id];
+    var watcherArray = watchers[obj.$id];
     if (watcherArray) {
-      watchers[obj.id] = watcherArray.filter(function(entry) {
+      watchers[obj.$id] = watcherArray.filter(function(entry) {
         if (entry.func === fnOrOwner ||
         entry.owner === fnOrOwner) {
           return false; // matched, so remove from array

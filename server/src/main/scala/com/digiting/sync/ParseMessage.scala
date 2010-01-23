@@ -78,7 +78,7 @@ object ParseMessage {
   
   object ProtocolSync {
     def unapply(json:Map[String,Any]):Option[Map[String,Any]] = {
-      json get "id" map {_ => json}
+      json get "$id" map {_ => json}
     } 
   }
   

@@ -107,7 +107,7 @@ $sync.connect = function(feedUrl, params) {
         }
       } else if (changeType === "property") {
         delta = {};
-        delta.id = target.id;
+        delta.$id = target.$id;
         delta.$partition = target.$partition;
         delta[change.property] = outgoingValue(target[change.property]);
         xact.push(delta);
@@ -115,16 +115,16 @@ $sync.connect = function(feedUrl, params) {
       } else if (changeType === "edit") {
         edit = {};
         $debug.assert(target.$partition !== undefined);
-        edit['#edit'] = {id:target.id, "$partition":target.$partition};
+        edit['#edit'] = {$id:target.$id, "$partition":target.$partition};
         if (typeof(change.put) !== 'undefined') {
-          edit.put = {id:change.put.id, "$partition":change.put.$partition};
+          edit.put = {$id:change.put.$id, "$partition":change.put.$partition};
         } else if (typeof(change.clear) !== 'undefined') {
           edit.clear = true;
         } else if (typeof(change.insertAt) !== 'undefined') {
           edit.insertAt = [{
             at:change.insertAt.index, 
             elem:{
-              id:change.insertAt.elem.id,
+              $id:change.insertAt.elem.$id,
               $partition:change.insertAt.elem.$partition
             }
           }];
@@ -183,7 +183,7 @@ $sync.connect = function(feedUrl, params) {
 //    $debug.log("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
 //  }
     if ($sync.manager.isSyncable(value)) {
-      return {$ref: {$partition: value.$partition, id:value.id}};
+      return {$ref: {$partition: value.$partition, $id:value.$id}};
     } 
     
     return value;
@@ -252,7 +252,7 @@ $sync.connect = function(feedUrl, params) {
     
     $sync.manager.withNewIdentity({
       partition: ".implicit",   
-      id: "subscriptions"
+      $id: "subscriptions"
     }, function() {
       subscriptions = $sync.set();
     });

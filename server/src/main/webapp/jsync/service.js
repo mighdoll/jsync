@@ -19,7 +19,7 @@ $sync.service = function(serviceName, messageCreateFn) {
   
   $sync.manager.withNewIdentity({
     partition: ".implicit",
-    id: serviceName
+    $id: serviceName
   }, function() {
     queue = $sync.sequence();
   });
@@ -76,7 +76,7 @@ $sync.serviceForm = function(responseFn) {
       if (serviceName && serviceName != "") {
         messageQueue = $sync.manager.withNewIdentity({
           partition: ".implicit",
-          id: serviceName
+          $id: serviceName
         }, $sync.sequence);
         
         message = formToServiceCall(form)

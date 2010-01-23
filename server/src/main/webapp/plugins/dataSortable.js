@@ -182,7 +182,7 @@
     var seq = options.model;
     checkForDuplicates(seq);
     var renderers = options.render;
-    // map is a hash {id => {view => Element, pos => integer}}
+    // map is a hash {$id => {view => Element, pos => integer}}
     var map = createChildMap();
     // walk each item in the model, inspecting whether its view
     // is present in $container at the right index
@@ -190,9 +190,9 @@
     seq.each(function(model, i) {
         // this works around a bug in the current system, where an
         // item is present twice once added
-        if (seen[model.id]) return;
-        seen[model.id] = true;
-        var entry = map[model.id];
+        if (seen[model.$id]) return;
+        seen[model.$id] = true;
+        var entry = map[model.$id];
         // if there's already a view in the correct position, do nothing
         if (entry && entry.pos == i) return;
         // create a new view, or move the existing one
@@ -220,7 +220,7 @@
         map = createChildMap();
       });
     // delete views whose models are no longer present
-    seq.each(function(model) { map[model.id].seen = true; });
+    seq.each(function(model) { map[model.$id].seen = true; });
     $.each(map, function(_, entry) {
         if (entry.seen) return;
         $(entry.view).remove();
@@ -234,7 +234,7 @@
     function createChildMap() {
       var map = {};
       $.each($container.children(CHILD_SELECTOR_CLASS), function(i, view) {
-          map[$(view).dataModel().id] = {view: view, pos: i};
+          map[$(view).dataModel().$id] = {view: view, pos: i};
         });
       return map;
     }
@@ -293,7 +293,7 @@
     var duplicates = [];
     var seen = {};
     container.each(function(item) {
-      var id = item.id;
+      var id = item.$id;
       if (id in seen) duplicates.push(item);
       seen[id] = true;
     });
