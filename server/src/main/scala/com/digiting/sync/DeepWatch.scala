@@ -143,7 +143,7 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
     Observers.unwatch(obj, this)
  
     // generate a membership change to the connected set, and tell overyone
-    val change = new UnwatchChange(root, obj)
+    val change = new UnwatchChange(root.asInstanceOf[Syncable].fullId, obj.asInstanceOf[Syncable].fullId)
     fn(change)
  
     // update reference counts 

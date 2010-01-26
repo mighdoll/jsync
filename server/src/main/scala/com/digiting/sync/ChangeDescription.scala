@@ -13,76 +13,75 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import com.digiting.sync.aspects.Observable
 
 
 /** 
  * Subclases describe details of a change to an observable object or collection.
  */
-abstract class ChangeDescription(val target:Observable) {
+abstract class ChangeDescription {
   val source = Observers.currentMutator.value;
+  val target:SyncableId
   
   override def toString = {this.getClass.getSimpleName + " target: " + target + " mutator: " + source}
 }
 
 /** change to a property */
-case class PropertyChange(changed:Observable, property:String, val newValue:Any, val oldValue:Any) 
-      extends ChangeDescription(changed){
+case class PropertyChange(val target:SyncableId, property:String, val newValue:Any, val oldValue:Any) 
+      extends ChangeDescription{
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }
   
 /** create a new object */
-case class CreatedChange(created:Observable) extends ChangeDescription(created)
+case class CreatedChange(val target:SyncableId) extends ChangeDescription
 
 /** changes to a collection's membership. */
-abstract class MembershipChange(target:Observable, val operation:String, 
-  val newValue:Any, val oldValue:Any) extends ChangeDescription(target) {
+abstract class MembershipChange(val operation:String, 
+  val newValue:Any, val oldValue:Any) extends ChangeDescription {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
 }
 
 /** remove all contents from a collection */
-case class ClearChange(collection:Observable, members:List[Observable])
-  extends ChangeDescription(collection) {
+case class ClearChange(val target:SyncableId) extends ChangeDescription {
   def operation = "clear"
 }
 
   /* set changes*/
-case class PutChange(changed:Observable, newVal:Any) 
-  extends MembershipChange(changed, "put", newVal, null)  
+case class PutChange(val target:SyncableId, newVal:Any) 
+  extends MembershipChange("put", newVal, null)  
   
-case class RemoveChange(changed:Observable, oldVal:Any) 
-  extends MembershipChange(changed, "remove", null, oldVal) 
+case class RemoveChange(val target:SyncableId, oldVal:Any) 
+  extends MembershipChange("remove", null, oldVal) 
 
   /* seq changes */
-case class RemoveAtChange(changed:Observable, at:Int, oldVal:Any) 
-  extends MembershipChange(changed, "removeAt", null, oldVal) {
+case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:Any) 
+  extends MembershipChange("removeAt", null, oldVal) {
   override def toString = (super.toString + " at:" + at)
 }
-case class InsertAtChange(changed:Observable, newVal:Any, at:Int) 
-  extends MembershipChange(changed, "insertAt", newVal, null) {
+case class InsertAtChange(val target:SyncableId, newVal:Any, at:Int) 
+  extends MembershipChange("insertAt", newVal, null) {
   
   override def toString = (super.toString + " at:" + at)
-}
-case class MoveChange(collection:Observable, fromDex:Int, toDex:Int)
-  extends ChangeDescription(collection) {
+}  
+case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int)
+  extends ChangeDescription {
   def operation = "move"
 }
   
   /* map changes */
-case class RemoveMapChange(changed:Observable, oldKey:Any, oldValue:Any) 
-  extends ChangeDescription(changed)
+case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any) 
+  extends ChangeDescription
 
-case class UpdateMapChange(changed:Observable, newKey:Any, newValue:Any) 
-  extends ChangeDescription(changed)
+case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any) 
+  extends ChangeDescription
 
   
 /* changes to the watch set from DeepWatch.  */
-case class WatchChange(val root:Observable, val newValue:Observable, val watcher:AnyRef) extends ChangeDescription(root) {
+case class WatchChange(val target:SyncableId, val newValue:SyncableId, val watcher:AnyRef) extends ChangeDescription {
   override def toString = {super.toString + " newWatch: " + newValue + "  watcher: " + watcher}  
 }
-case class UnwatchChange(val root:Observable, val oldValue:Observable) extends ChangeDescription(root)
+case class UnwatchChange(val target:SyncableId, val oldValue:SyncableId) extends ChangeDescription
 
 /** initial state of a collection */      
-case class BaseMembership(collection:Observable, members:List[Observable]) 
-  extends ChangeDescription(collection)
+case class BaseMembership(val target:SyncableId, members:List[SyncableId]) 
+  extends ChangeDescription
 
