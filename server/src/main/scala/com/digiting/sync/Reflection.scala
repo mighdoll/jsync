@@ -154,10 +154,10 @@ object Accessor {
    * 
    * @param base  object instance to scan for references
    */
-  def observableReferences(obj:AnyRef):Seq[Observable] = {
-    val refs = new mutable.ListBuffer[Observable]()
+  def observableReferences(obj:AnyRef):Seq[Syncable] = {
+    val refs = new mutable.ListBuffer[Syncable]()
     references(obj) foreach {_ match {
-      case ref:Observable => refs + ref
+      case ref:Syncable => refs + ref
       case _ =>      
     } }
     obj match {
@@ -171,6 +171,7 @@ object Accessor {
 
     refs.toSeq
   }      
+
 
 }
 

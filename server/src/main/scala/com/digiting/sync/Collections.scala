@@ -41,6 +41,10 @@ trait SyncableCollection extends Syncable {
   override def hashCode() = {
     id.hashCode + partition.partitionId.hashCode
   }
+  
+  private[sync] def syncableElementIds:Seq[SyncableId] = {
+    syncableElements map {_.fullId} toSeq
+  }
 }
 
 class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
@@ -50,12 +54,12 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   
   def -=(elem:T) = {
     set -= elem
-    Observers.notify(new RemoveChange(this, elem));
+    Observers.notify(new RemoveChange(this.fullId, elem));
   }
   
   def +=(elem:T) = {
     set += elem
-    val putChange = PutChange(this,elem)
+    val putChange = PutChange(this.fullId, elem)
     log.trace("put: %s", putChange)
     Observers.notify(putChange);
   }
@@ -67,9 +71,9 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   def elements = set elements
     
   override def clear() = {
-    val cleared = syncableElements.toList
+    val cleared = syncableElementIds
     set.clear();
-    Observers.notify(new ClearChange(this, cleared));
+    Observers.notify(new ClearChange(this.fullId, cleared));
   }
 
   def syncableElements:Seq[Syncable] = {
@@ -98,13 +102,13 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   
   def insert(index:Int, elem:T) = {
     list.insert(index, elem)
-    Observers.notify(new InsertAtChange(this, elem, index))
+    Observers.notify(new InsertAtChange(this.fullId, elem, index))
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    Observers.notify(new RemoveAtChange(this, index, origValue))    
+    Observers.notify(new RemoveAtChange(this.fullId, index, origValue))    
   }
   
   def toStream = list.toStream
@@ -115,10 +119,11 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def last = list.last
   def firstOption = list.firstOption
   def lastOption = list.lastOption  
+  
   def clear() = {
-    val cleared = syncableElements.toList
+    val cleared = syncableElementIds
     list.clear();
-    Observers.notify(new ClearChange(this, cleared));
+    Observers.notify(new ClearChange(this.fullId, cleared));
   }
   
   def map[C](fn: (T)=> C):Seq[C] = list.map(fn)
@@ -140,7 +145,7 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
     val elem = list(fromDex)
     list.remove(fromDex)
     list.insert(toDex, elem)            
-    Observers.notify(new MoveChange(this, fromDex, toDex))
+    Observers.notify(new MoveChange(this.fullId, fromDex, toDex))
   }
   
   def toList = list.toList
@@ -154,12 +159,12 @@ class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
 
   def -=(key:A) = {
     map -= key
-    Observers.notify(new RemoveMapChange(this, key, get(key)))
+    Observers.notify(new RemoveMapChange(this.fullId, key, get(key)))
   }
   
   def update(key:A, value:B) = {
     map.update(key, value)
-    Observers.notify(new UpdateMapChange(this, key, value))
+    Observers.notify(new UpdateMapChange(this.fullId, key, value))
   }
   
   def get(key:A):Option[B] = map get key

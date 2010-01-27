@@ -37,8 +37,8 @@ object DeepWatchDebug {
  * connected set.  Changes are reported to client watchers and used internally to update 
  * reference counts.  
  */
-class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
-  private val connectedSet = mutable.Map[AnyRef, Int]()  // tracked observables and their reference counts
+class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
+  private val connectedSet = mutable.Map[Syncable, Int]()  // tracked syncables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()
   var disabled = false
  
@@ -96,48 +96,50 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
   private def handlePropChange(propChange:PropertyChange) {
 	// update ref counts for old value
     propChange.oldValue match {
-      case old:Observable => removedRef(old)
+      case old:SyncableId => removedRef(old)
       case _ =>
     }
 
 	// update ref count for new value
     propChange.newValue match {
-      case newBranch:Observable => addedRef(newBranch)
+      case newBranch:SyncableId => 
+        addedRef(newBranch)
       case _ =>
     }
   }
   
   /** update references in response to change to collection membership */
   private def handleMemberChange(memberChange:MembershipChange) {
-    if (memberChange.newValue != null)
-      addedRef(memberChange.newValue.asInstanceOf[Syncable])
-    if (memberChange.oldValue != null)
-      removedRef(memberChange.oldValue.asInstanceOf[Syncable])
+    if (memberChange.newValue != null) {
+      memberChange.newValue.asInstanceOf[SyncableId].target foreach {addedRef(_)}
+    }
+    if (memberChange.oldValue != null) {
+      memberChange.oldValue.asInstanceOf[SyncableId].target foreach removedRef
+    }
   }
   
   /** update references in response to clearing collection membership */
   private def handleClearChange(clearChange:ClearChange) {
-    for (ref <- clearChange.members) {
-      ref match {
-        case syncableRef:Syncable => removedRef(syncableRef)
-        case _ =>
-      }
-    }
+    clearChange.members foreach removedRef
   }
    
   /** decrement reference counter for this object and every Observable it 
    * references.  If any object's reference counter drops to zero,
    * remove the object from the connectedSet of objects we observe */
-  private def removedRef(ref:Observable) {
-    connectedSet get ref match {
-      case Some(count) if count > 1 => connectedSet + (ref -> (count -1))
-      case Some(count) if count == 1 => removeObj(ref)
-      case Some(count) => Log.error("BUG? count of ref: " + ref+ " is: " + count)
-      case None => Log.error("BUG? removeDeep" + ref + "not found in connectedSet")
-    }
+  private def removedRef(ref:SyncableId) {
+    SyncManager.get(ref) foreach removedRef
   }
   
-  private def removeObj(obj:Observable) {              
+  private def removedRef(target:Syncable) {
+    connectedSet get target match {
+      case Some(count) if count > 1 => connectedSet + (target -> (count -1))
+      case Some(count) if count == 1 => removeObj(target)
+      case Some(count) => Log.error("BUG? count of ref: " + target+ " is: " + count)
+      case None => Log.error("BUG? removeDeep" + target + "not found in connectedSet")
+    }    
+  }
+  
+  private def removeObj(obj:Syncable) {              
     // stop watching this object
     connectedSet - obj
     Observers.unwatch(obj, this)
@@ -148,30 +150,34 @@ class DeepWatch(val root:Observable, val fn:ChangeFn, val watchClass:Any) {
  
     // update reference counts 
     for (ref <- observableReferences(obj)) 
-    removedRef(ref)
+      removedRef(ref.fullId)
   }
       
   /* increment reference counter for this object and every Observable it
    * references.  Make sure this object and every observable it references are
    * in the connectedSet of objects we observe. */
-  private def addedRef(ref:Observable) {        
-    connectedSet get ref match {
-      case Some(count) => connectedSet + (ref -> (count + 1))
-      case None => addObj(ref)
+  private def addedRef(target:Syncable) {        
+    connectedSet get target match {
+      case Some(count) => connectedSet + (target -> (count + 1))
+      case None => addObj(target)
     }
   }
+  
+  private def addedRef(ref:SyncableId) {
+    SyncManager.get(ref) foreach addedRef
+  }
     
-  private def addObj(obj:Observable) {
+  private def addObj(obj:Syncable) {
     // start watching this object
     connectedSet + (obj -> 1); 			 
     Observers.watch(obj, handleChanged, this)   
     
     // generate a membership change to the connected set, and tell overyone
-    val change = new WatchChange(root, obj, this)
+    val change = new WatchChange(root.fullId, obj.fullId, this)
     fn(change)
     
     for (ref <- observableReferences(obj)) 
-    addedRef(ref)
+      addedRef(ref)
   }
    
   

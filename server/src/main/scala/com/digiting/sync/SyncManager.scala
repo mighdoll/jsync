@@ -21,13 +21,14 @@ import com.digiting.sync.syncable._
 import com.digiting.util.Takeable
 import scala.util.DynamicVariable
 import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 
 /**
  * Some handy interfaces for creating and fetching syncable objects
  * 
  * SOON some more cleanup here, it's kind of a grab bag of functionality
  */
-object SyncManager {
+object SyncManager extends LogHelper {
   type Kind = String	// buys a little documentation benefit.. CONSIDER conversion to case class?
   
   case class VersionedKind (val kind:Kind, val version:String)
@@ -153,6 +154,21 @@ object SyncManager {
       }
     }
   }
+  
+  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
+    * instance cache.  */
+  def get(ids:SyncableId):Option[Syncable] = {
+    instanceCache get(ids.partitionId, ids.instanceId) orElse {
+      Partitions.get(ids.partitionId) orElse {
+        err("no partition found for: %s", ids.toString)} flatMap {partition =>
+        partition get ids.instanceId map {found =>
+          instanceCache put found
+          found
+        }
+      }
+    }
+  }
+  
 
   /** build a syncable with a specified Id */
   private def constructSyncable(clazz:Class[Syncable], ids:SyncableIdentity):Option[Syncable] = {

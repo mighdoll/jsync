@@ -41,7 +41,7 @@ abstract class MembershipChange(val operation:String,
 }
 
 /** remove all contents from a collection */
-case class ClearChange(val target:SyncableId) extends ChangeDescription {
+case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId]) extends ChangeDescription {
   def operation = "clear"
 }
 
@@ -82,6 +82,6 @@ case class WatchChange(val target:SyncableId, val newValue:SyncableId, val watch
 case class UnwatchChange(val target:SyncableId, val oldValue:SyncableId) extends ChangeDescription
 
 /** initial state of a collection */      
-case class BaseMembership(val target:SyncableId, members:List[SyncableId]) 
+case class BaseMembership(val target:SyncableId, members:Seq[SyncableId]) 
   extends ChangeDescription
 

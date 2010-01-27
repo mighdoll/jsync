@@ -150,7 +150,7 @@ object TestData {
     log.debug("moveSequnceChanged: %s", change.toString)
     change match {
       case move:MoveChange if (change.source != "server-application") =>
-        moveSeq(move.target)
+        move.target.target foreach {moveSeq(_)}
       case _ => // ignore
     } 
   }

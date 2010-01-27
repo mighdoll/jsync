@@ -273,7 +273,7 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
         err("loadFromSnapshots found no values for attribute 'elem'")
         throw new InconsistentCollection
       }
-      elemRef <- ReferenceString.unapply(elemRefString) orElse {
+      elemRef <- ReferenceString.unapply(elemRefString) orElse {    // We use ReferenceString rather than compositeId to someday support lazy loading
         err("loadFromSnapshots can't parse reference: %s", elemRefString)        
         throw new InconsistentCollection
       }
@@ -355,15 +355,17 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
   }
   
   private def removeChange(change:RemoveChange) {
-    val query = String.format("itemName() from %s where memberOf = '%s' and elem = '%s'", 
-      domain.name, ReferenceString(change.target), ReferenceString(change.oldVal.asInstanceOf[Syncable]))
-    log.trace("removeChange query: %s", query)
-	for {
-      snapshot <- admin.account.select(query)
-    } {
-      log.trace("removeChange removing: %s", snapshot.name)
-      val item = domain item(snapshot.name)	
-      item clear
+    change.target.target foreach {target =>
+      val query = String.format("itemName() from %s where memberOf = '%s' and elem = '%s'", 
+        domain.name, ReferenceString(target), ReferenceString(change.oldVal.asInstanceOf[Syncable]))
+      log.trace("removeChange query: %s", query)
+      for {
+        snapshot <- admin.account.select(query)
+      } {
+        log.trace("removeChange removing: %s", snapshot.name)
+        val item = domain item(snapshot.name)	
+        item clear
+      }
     }
   }
    

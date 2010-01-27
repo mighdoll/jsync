@@ -44,7 +44,7 @@ class InstancePool(name:String) {
   def created(syncable:Syncable) = {
     log.ifTrace("created" + syncable)
     assert (localObjects contains key(syncable))
-    changes add CreatedChange(syncable)
+    changes add CreatedChange(syncable.fullId)
   }
 
   /** put an object into the pool */

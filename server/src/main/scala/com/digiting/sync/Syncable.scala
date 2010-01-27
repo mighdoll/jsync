@@ -59,7 +59,7 @@ trait Syncable extends Observable {
   }
   
   def shortCompositeId:String = partition.partitionId.take(4) + "/" + id.take(5)
-  def compositeId:String = partition.partitionId + "/" + id
+  def compositeId:String = fullId.toCompositeIdString
   
   /** return a shallow serialization of this instance */
   def frozenCopy:JsonObject.JsonMap = {
@@ -115,6 +115,9 @@ object SyncableId {
 class SyncableId(var partitionId:String, var instanceId:String) {  
   def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId)
   def toJson = JsonUtil.toJson(toJsonMap)
+  def toCompositeIdString = partitionId + "/" + instanceId
+  override def toString = toCompositeIdString
+  def target = SyncManager.get(this)
 }
 
 /**

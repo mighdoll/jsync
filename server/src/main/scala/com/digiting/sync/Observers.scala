@@ -37,8 +37,8 @@ import scala.util.matching.Regex
  * alternately CONSIDER decentralizing observation to go onto the objects instead
  * SCALA -- consider api observation.  e.g. should watch() send an actor message or provide a callback?
  */
-object Observers { 
-  var log = Logger("Observers")
+object Observers extends LogHelper { 
+  val log = Logger("Observers")
   /** called when a change happens */
   type ChangeFn = (ChangeDescription)=>Unit		// Consider a listener object...
   
@@ -49,15 +49,15 @@ object Observers {
   case class Notification(watcher:Watcher, change:ChangeDescription)
   
   var currentMutator = new DynamicVariable("server") 						// 'source' of current changes, tagged onto all observations
-  private var watchers = new MultiMap[Observable, Watcher]  				// watch one observable
-  private val deepWatches = new MultiMap[Observable, DeepWatch]()		// watch a connected set of observables
+  private var watchers = new MultiMap[Syncable, Watcher]  				// watch one observable  CONSIDER can we use std library MultiMap?
+  private val deepWatches = new MultiMap[Syncable, DeepWatch]()		// watch a connected set of observables
   private var holdNotify = new DynamicVariable[Option[mutable.ListBuffer[Notification]]](None)
   
   // listen for model object modifications found from the AspectJ enhanced Observable objects 
   private object AspectListener extends ObserveListener {
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
       if (!SyncableInfo.isReserved(property)) {
-        Observers.notify(PropertyChange(target.asInstanceOf[Observable], property, newValue, oldValue))
+        Observers.notify(PropertyChange(target.asInstanceOf[Syncable].fullId, property, newValue, oldValue))
       }
     }
   }
@@ -70,18 +70,22 @@ object Observers {
   }
     
   /** notify observers of the change */
-  def notify(change:ChangeDescription):Unit = {            
-    holdNotify.value match {
-      case Some(paused) => 
-        watchers.foreachValue(change.target) {watch =>  
-          val notify = Notification(watch, change)
-          log.trace("queing notification: %s", notify)
-          paused += notify
-        }
-      case _ =>
-  	    watchers.foreachValue(change.target) {watch =>  
-  	      watch.changed(change)
-	    }        
+  def notify(change:ChangeDescription):Unit = {
+    SyncManager.get(change.target) orElse {
+      err("can't find target of change: %s", change.toString) 
+    } foreach { target =>      
+      holdNotify.value match {
+        case Some(paused) => 
+          watchers.foreachValue(target) {watch =>  
+            val notify = Notification(watch, change)
+            log.trace("queing notification: %s", notify)
+            paused += notify
+          }
+        case _ =>
+    	    watchers.foreachValue(target) {watch =>  
+    	      watch.changed(change)
+          }        
+      }
     }
   }
   
@@ -97,7 +101,7 @@ object Observers {
 
     
   /* Register a function to be called when an object is changed.  */
-  def watch(obj:Observable, fn:ChangeFn, watchClass:Any) {
+  def watch(obj:Syncable, fn:ChangeFn, watchClass:Any) {
     log.trace("watch: %s by %s", obj, watchClass)
     watchers + (obj, Watcher(fn, watchClass))
   }
@@ -108,15 +112,15 @@ object Observers {
    * @param fn          function called on each change
    * @param watchClass  names this watch, which enables removing the watch by name
    */
-  def watchDeep(root:Observable, fn:ChangeFn, watchClass:Any):DeepWatch = {
+  def watchDeep(root:Syncable, fn:ChangeFn, watchClass:Any):DeepWatch = {
     val deepWatch = new DeepWatch(root, fn, watchClass)
     deepWatches + (root, deepWatch)
     deepWatch
   }
   
   /** unregister all watch functions registered with a given watchClass
-   * on a given object */
-  def unwatch(obj:Observable, watchClass:Any) {
+   * on a given object */  
+  def unwatch(obj:Syncable, watchClass:Any) {
     watchers.removeValues(obj) { watch => 
       watch.watchClass == watchClass
     }
@@ -127,12 +131,12 @@ object Observers {
   
   /** unregister all watch functions registered with a given watchClass */
   def unwatchAll(watchClass:Any) {
-    for (obj <- watchers.keys) {        
-      unwatch(obj, watchClass)
+    for (id <- watchers.keys) {        
+      unwatch(id, watchClass)
     }
     
-    for (obj <- deepWatches.keys) {        
-      unwatch(obj, watchClass)
+    for (id <- deepWatches.keys) {        
+      unwatch(id, watchClass)
     }
   }
   
