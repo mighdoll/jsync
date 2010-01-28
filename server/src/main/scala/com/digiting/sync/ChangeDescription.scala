@@ -54,7 +54,7 @@ case class CreatedChange(val target:SyncableId) extends DataChange
 //       -----------------  collection Data changes --------------------  
 
 /** remove all contents from a collection */
-case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId]) extends ChangeDescription {
+case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId]) extends DataChange {
   def operation = "clear"
 }
 
@@ -78,16 +78,16 @@ case class InsertAtChange(val target:SyncableId, newVal:SyncableId, at:Int)
 }  
 /** rearrange a seq */
 case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int)
-  extends ChangeDescription {
+  extends DataChange {
   def operation = "move"
 }
   
 /** remove from a map */
 case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any) 
-  extends ChangeDescription
+  extends DataChange
 /** add/update to a map */
 case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any) 
-  extends ChangeDescription
+  extends DataChange
 
 //       -----------------  watch set changes --------------------  
 

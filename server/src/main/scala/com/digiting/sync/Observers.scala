@@ -40,13 +40,14 @@ import scala.util.matching.Regex
 object Observers extends LogHelper { 
   val log = Logger("Observers")
   /** called when a change happens */
-  type ChangeFn = (ChangeDescription)=>Unit		// Consider a listener object...
+  type DataChangeFn = (DataChange)=>Unit   // Consider a listener object...
+  type WatchChangeFn = (WatchChange)=>Unit   // Consider a listener object...
   
   /** an observer watching for changes.  
    * @param watchClass  is a caller specified indentifer so that the caller can delete single or multiple watches by identifer
    */
-  case class Watcher(changed:ChangeFn, watchClass:Any)    
-  case class Notification(watcher:Watcher, change:ChangeDescription)
+  case class Watcher(changed:DataChangeFn, watchClass:Any)    
+  case class Notification(watcher:Watcher, change:DataChange)
   
   var currentMutator = new DynamicVariable("server") 						// 'source' of current changes, tagged onto all observations
   private var watchers = new MultiMap[Syncable, Watcher]  				// watch one observable  CONSIDER can we use std library MultiMap?
@@ -74,7 +75,7 @@ object Observers extends LogHelper {
   }
     
   /** notify observers of the change */
-  def notify(change:ChangeDescription):Unit = {
+  def notify(change:DataChange):Unit = {
     SyncManager.get(change.target) orElse {
       err("can't find target of change: %s", change.toString) 
     } foreach { target =>      
@@ -105,7 +106,7 @@ object Observers extends LogHelper {
 
     
   /* Register a function to be called when an object is changed.  */
-  def watch(obj:Syncable, fn:ChangeFn, watchClass:Any) {
+  def watch(obj:Syncable, fn:DataChangeFn, watchClass:Any) {
     log.trace("watch: %s by %s", obj, watchClass)
     watchers + (obj, Watcher(fn, watchClass))
   }
@@ -117,7 +118,7 @@ object Observers extends LogHelper {
    * @param fn          function called on changes to the watched set
    * @param watchClass  names this watch, which enables removing the watch by name
    */
-  def watchDeep(root:Syncable, fn:ChangeFn, watchFn:ChangeFn, watchClass:Any):DeepWatch = {
+  def watchDeep(root:Syncable, fn:DataChangeFn, watchFn:WatchChangeFn, watchClass:Any):DeepWatch = {
     val deepWatch = new DeepWatch(root, fn, watchFn, watchClass)
     deepWatches + (root, deepWatch)
     deepWatch

@@ -52,7 +52,7 @@ object ProcessMessage extends LogHelper {
             patchReferences(references)
             processEdits(message.edits)
             
-	  	    // release notifications to DeepWatch early so that WatchChanges have the client connection as the mutator
+      	    // release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
             Observers.releasePaused(_.isInstanceOf[DeepWatch])
           }          
         }          
