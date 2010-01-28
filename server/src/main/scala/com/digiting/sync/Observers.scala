@@ -54,18 +54,12 @@ object Observers extends LogHelper {
   private var holdNotify = new DynamicVariable[Option[mutable.ListBuffer[Notification]]](None)
   
   // listen for model object modifications found from the AspectJ enhanced Observable objects 
-  private object AspectListener extends ObserveListener {
-    private def changeValue(value:Any):Any = {
-      value match {
-        case s:Syncable => s.fullId
-        case other => other
-      }
-    }
-    
+  private object AspectListener extends ObserveListener {    
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
       if (!SyncableInfo.isReserved(property)) {
         val targetId = target.asInstanceOf[Syncable].fullId
-        val change = PropertyChange(targetId, property, changeValue(newValue), changeValue(oldValue))
+        val change = PropertyChange(targetId, property, SyncableValue.convert(newValue), 
+          SyncableValue.convert(oldValue))
         Observers.notify(change)
       }
     }

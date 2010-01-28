@@ -126,7 +126,7 @@ object Message extends LogHelper {
   }
   
   private def propertyChange(propChange:PropertyChange):JsonMap = {              
-    val value = toJsonMapValue(propChange.newValue)
+    val value = toJsonMapValue(propChange.newValue.value)
     immutable.Map(propChange.property -> value) ++ propChange.target.toJsonMap
   }
   
@@ -224,7 +224,7 @@ object Message extends LogHelper {
    * (JsonUtil.toJson will later convert them to json text) */
   private def toJsonMapValue(value:Any):Any = {
     value match {
-      case syncable:Syncable => new JsonRef(syncable.fullId)
+      case syncable:Syncable => new JsonRef(syncable.fullId)  // TODO get rid of this?
       case id:SyncableId => new JsonRef(id)
       case map:Map[_,_] => map
       case seq:Seq[_] => seq.toList

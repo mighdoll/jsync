@@ -162,7 +162,7 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
   private def propertyChange(change:PropertyChange) {
     val syncable = change.target.asInstanceOf[Syncable]
     log.trace("propertyChange(): %s %s", compositeId(syncable), change)
-    domain item (compositeId(syncable)) set (change.property -> encodeProperty(change.newValue))
+    domain item (compositeId(syncable)) set (change.property -> encodeProperty(change.newValue.value))
   }
   
   private def refreshContents(change:ChangeDescription) {

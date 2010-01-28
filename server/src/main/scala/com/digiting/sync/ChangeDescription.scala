@@ -26,7 +26,8 @@ abstract class ChangeDescription {
 }
 
 /** change to a property */
-case class PropertyChange(val target:SyncableId, property:String, val newValue:Any, val oldValue:Any) 
+case class PropertyChange(val target:SyncableId, property:String, val newValue:SyncableValue, 
+                          val oldValue:SyncableValue) 
       extends ChangeDescription{
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }

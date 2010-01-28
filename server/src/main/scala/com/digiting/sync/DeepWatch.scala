@@ -98,20 +98,16 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends 
   
   private def handlePropChange(propChange:PropertyChange) {
 	// update ref counts for old value
-    propChange.oldValue match {
+    propChange.oldValue.value match {
       case old:SyncableId => 
         withGetId(old) {removedRef}
-      case syncable:Syncable =>
-        err("handlePropChange, oldValue is Syncable, expected SyncableId")
       case _ =>
     }
 
 	// update ref count for new value
-    propChange.newValue match {
+    propChange.newValue.value match {
       case newBranch:SyncableId => 
         withGetId(newBranch) {addedRef}
-      case syncable:Syncable =>
-        err("handlePropChange, newValue is Syncable, expected SyncableId")
       case _ =>
     }
   }
