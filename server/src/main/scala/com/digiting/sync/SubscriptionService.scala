@@ -15,6 +15,7 @@
 package com.digiting.sync
 import net.lag.logging.Logger
 import com.digiting.sync.syncable.Subscription
+import com.digiting.util.LogHelper
 
 /**  A custom service for managing client subscriptions.  The API is a shared set 
  * of Subscription objects.  The client adds and remove Subscriptions to the shared set.
@@ -27,7 +28,7 @@ import com.digiting.sync.syncable.Subscription
  * SubscriptionService class provides the shared set API, the actual work of watching 
  * subscription objects is managed by ActiveSubscriptions.
  */
-trait SubscriptionService extends HasTransientPartition {
+trait SubscriptionService extends HasTransientPartition with LogHelper {
   val serviceName = "SubscriptionService"
   lazy val log = Logger(serviceName)
   val app:AppContext
@@ -48,11 +49,14 @@ trait SubscriptionService extends HasTransientPartition {
   
   private def subscriptionsChanged(change:ChangeDescription) {
     change match {
-      case PutChange(_, newSub) => newSub match {
-        case sub:Subscription => 
+      case PutChange(_, newSubId) => 
+        for {
+          newSub <- SyncManager.get(newSubId)
+          sub <- matchSubscription(newSub) orElse
+            err("unexpected object put into subscriptions set: %s", newSub)          
+        } {
           log.trace("#%s subscription found: %s", app.connection.debugId, sub)
           active.subscribe(sub)
-        case _ => log.error("unexpected object put into subscriptions set: %s", newSub)
         }  
       case RemoveChange(_, oldSub) =>
         log.warning("removing subscriptions is NYI")
@@ -60,4 +64,10 @@ trait SubscriptionService extends HasTransientPartition {
         log.warning("unexpected change to subscription: %s", change)
     }
   }
+  
+  private def matchSubscription(any:Any):Option[Subscription] = any match {
+    case sub:Subscription => Some(sub)
+    case _ => None
+  }
+  
 }

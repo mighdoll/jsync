@@ -123,7 +123,8 @@ object JsonUtil {
   def toJsonValue(value:Any):String = {    
     value match {
       case ref:JsonRef => ref.toJson 
-      case array:List[_] => {
+      case idRef:SyncableId => idRef.toJson 
+      case array:Seq[_] => {
         val buf = new StringBuffer
         buf append "["
         val iter = array.elements

@@ -118,11 +118,12 @@ object ProtocolTester extends LogHelper {
     deepParameters ++= parameterRefs
     val paramJsonMaps = deepParameters map toJsonMap toList ;
     syncs ++= paramJsonMaps
+    val parameterIds = parameters map {_.fullId}
 
     var serviceQueueId = SyncableId(".implicit", serviceName)
     val edits = 
-      insertAts(paramSeq, parameters.toList) :::
-      insertAtToJsonMap(serviceQueueId, serviceCall, 0) :: Nil   
+      insertAts(paramSeq.fullId, parameterIds) :::
+      insertAtToJsonMap(serviceQueueId, serviceCall.fullId, 0) :: Nil   
 
     // controls, edits, syncs => message
     val startParams = ImmutableJsonMap(

@@ -54,12 +54,12 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   
   def -=(elem:T) = {
     set -= elem
-    Observers.notify(new RemoveChange(this.fullId, elem));
+    Observers.notify(new RemoveChange(this.fullId, elem.fullId));
   }
   
   def +=(elem:T) = {
     set += elem
-    val putChange = PutChange(this.fullId, elem)
+    val putChange = PutChange(this.fullId, elem.fullId)
     log.trace("put: %s", putChange)
     Observers.notify(putChange);
   }
@@ -102,13 +102,13 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   
   def insert(index:Int, elem:T) = {
     list.insert(index, elem)
-    Observers.notify(new InsertAtChange(this.fullId, elem, index))
+    Observers.notify(new InsertAtChange(this.fullId, elem.fullId, index))
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    Observers.notify(new RemoveAtChange(this.fullId, index, origValue))    
+    Observers.notify(new RemoveAtChange(this.fullId, index, origValue.fullId))    
   }
   
   def toStream = list.toStream

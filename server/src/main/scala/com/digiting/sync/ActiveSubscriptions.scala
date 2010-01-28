@@ -19,6 +19,7 @@ import collection._
 import com.digiting.sync.syncable.Subscription
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
+import SyncManager.withGetId
 
 /**
  * Maintains a set of observations on the syncable object trees referenced by a given
@@ -129,16 +130,18 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   private def queueCollectionEdits(change:ChangeDescription) {    
     change match {
       case watchChange:WatchChange =>
-        watchChange.newValue match {
-          case set:SyncableSet[_] =>
-            log.trace("queueCollectionEdits:  %d edits on %s", set.size, set)
-            this ! BaseMembership(set, set.syncableElementIds)
-          case seq:SyncableSeq[_] =>
-            log.trace("queueCollectionEdits:  %d edits on %s", seq.length, seq)
-            this ! BaseMembership(seq, seq.syncableElementIds)
-          case map:SyncableMap[_,_] =>
-            throw new NotYetImplemented
-          case _ =>
+        withGetId(watchChange.newValue) {newWatch =>
+          newWatch match {
+            case set:SyncableSet[_] =>
+              log.trace("queueCollectionEdits:  %d edits on %s", set.size, set)
+              this ! BaseMembership(set.fullId, set.syncableElementIds)
+            case seq:SyncableSeq[_] =>
+              log.trace("queueCollectionEdits:  %d edits on %s", seq.length, seq)
+              this ! BaseMembership(seq.fullId, seq.syncableElementIds)
+            case map:SyncableMap[_,_] =>
+              throw new NotYetImplemented
+            case _ =>                                           
+          }
         }
       case _ =>          
     }    

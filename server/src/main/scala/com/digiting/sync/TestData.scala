@@ -17,6 +17,7 @@ import com.digiting.sync.syncable._
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
 import Observers.watch
+import SyncManager.withGetId
 
 /** Embedded test server for client tests.  
  * SOON: refactor this into an application 
@@ -28,33 +29,33 @@ object TestData {
 	testPartition = new RamPartition("test")
     val nameObj = 
       SyncManager.setNextId.withValue(SyncableIdentity("#testName1", testPartition)) {
-    	new TestNameObj
+	      new TestNameObj
       }
 
     // setup up some static and dynamically genreated test objects
     withTestPartition {
-	  nameObj.name = "emmett"
-	  testPartition.published.create("oneName", nameObj)
-		
-	  val set = new SyncableSet[Syncable]
-	  set += TestNameObj("mercer")
-	  testPartition.published.create("oneSet", set)
-		
-	  val twoSet = new SyncableSet[Syncable]
-	  testPartition.published.create("twoSet", twoSet)		
-	  Observers.watch(twoSet, twoSetChanged, "testTwoSet")
-		
-	  testPartition.published.create("modifyOneName", new TestNameObj)   
-	  testPartition.published.create("testParagraph", new TestParagraph("here's some initial text"))  
-   
-	  val sequence = new SyncableSeq[Syncable]
-	  testPartition.published.create("sequence", sequence)  
-      Observers.watch(sequence, sequenceChanged, "testSequence");
-      
-	  testPartition.published.createGenerated("moveSequence", createMoveSequence)  
-	  testPartition.published.createGenerated("removeSequence", createRemoveSequence)  
-	  testPartition.published.createGenerated("modifyReference", createModifyReference)  
-	  testPartition.published.createGenerated("serverSequenceAdd", createSequenceAdd)  
+  	  nameObj.name = "emmett"
+  	  testPartition.published.create("oneName", nameObj)
+  		
+  	  val set = new SyncableSet[Syncable]
+  	  set += TestNameObj("mercer")
+  	  testPartition.published.create("oneSet", set)
+  		
+  	  val twoSet = new SyncableSet[Syncable]
+  	  testPartition.published.create("twoSet", twoSet)		
+  	  Observers.watch(twoSet, twoSetChanged, "testTwoSet")
+  		
+  	  testPartition.published.create("modifyOneName", new TestNameObj)   
+  	  testPartition.published.create("testParagraph", new TestParagraph("here's some initial text"))  
+     
+  	  val sequence = new SyncableSeq[Syncable]
+  	  testPartition.published.create("sequence", sequence)  
+        Observers.watch(sequence, sequenceChanged, "testSequence");
+        
+  	  testPartition.published.createGenerated("moveSequence", createMoveSequence)  
+  	  testPartition.published.createGenerated("removeSequence", createRemoveSequence)  
+  	  testPartition.published.createGenerated("modifyReference", createModifyReference)  
+  	  testPartition.published.createGenerated("serverSequenceAdd", createSequenceAdd)  
     }
   }
   
@@ -91,23 +92,22 @@ object TestData {
   def refChange(change:ChangeDescription) = {
     change match {
       case modify:PropertyChange if change.source != "server-application" =>
-        change.target match {
-          case root:TestRefObj =>
-            root.ref match {
-              case clientRef:TestRefObj if (clientRef.ref == root) =>      // only insert one time
-                Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
-                  // root -> clientNewRef -> root   
-                  val serverRef = withTestPartition {new TestRefObj(clientRef)}
-                  root.ref = serverRef               
-                  // root -> serverNewRef -> clientNewRef -> root
-                }
-                SyncManager.instanceCache.commit()	// TODO - not necessary?
-              case clientRef:TestRefObj =>
-              case _ =>
-                 log.error("Test.refChange() unexpected change made by client: not a ref: " + root.ref);
-             }
+        change.target.target match {
+          case Some(root:TestRefObj) => root.ref match {
+            case clientRef:TestRefObj if (clientRef.ref == root) =>      // only insert one time
+              Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
+                // root -> clientNewRef -> root   
+                val serverRef = withTestPartition {new TestRefObj(clientRef)}
+                root.ref = serverRef               
+                // root -> serverNewRef -> clientNewRef -> root
+              }
+              SyncManager.instanceCache.commit()	// TODO - not necessary?
+            case clientRef:TestRefObj =>
+            case _ =>
+               log.error("Test.refChange() unexpected change made by client: not a ref: " + root.ref);
+            }
           case _ =>
-              log.error("Test.refChange() root changed, not a TestRefObj!");
+            log.error("Test.refChange() root changed, not a TestRefObj!");
         }
       case _ =>
     }
@@ -123,8 +123,12 @@ object TestData {
     change match {
       case remove:RemoveAtChange if change.source != "server-application" =>
       	Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
-          val seq = remove.target.asInstanceOf[SyncableSeq[TestNameObj]]
-          seq.remove(1)
+          withGetId(remove.target) {_ match {
+            case seq:SyncableSeq[_] => 
+              seq.remove(1)
+            case _ =>
+              throw new ImplementationError("removeAt not on a Seq?")
+          } }
         }
       case _ =>
     }
@@ -179,17 +183,17 @@ object TestData {
   
   def modifySeq(insert:InsertAtChange) {
     withTestPartition {
-	  Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
-	    insert.target match {
-		  case erasedSeq:SyncableSeq[_] => 
-		    val seq = erasedSeq.asInstanceOf[SyncableSeq[Syncable]]
-		    seq.insert(0, TestNameObj("val"))
-		    val seq2 = createNameSequence("chris", "anya", "bryan") 
-	     
-		    seq.insert(0, seq2)
-		  case _ => log.error("modifySeq() - not a SyncableSeq")
-		}
-	  }
+        Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
+          insert.target.target match {
+            case Some(erasedSeq:SyncableSeq[_]) => 
+              val seq = erasedSeq.asInstanceOf[SyncableSeq[Syncable]]
+              seq.insert(0, TestNameObj("val"))
+              val seq2 = createNameSequence("chris", "anya", "bryan") 
+             
+              seq.insert(0, seq2)
+            case _ => log.error("modifySeq() - not a SyncableSeq")
+          }
+      }
     }      
   }  
   
@@ -204,9 +208,14 @@ object TestData {
       withTestPartition {
 		Observers.currentMutator.withValue("server-application") {	// SOON this should be done by the framework
 		  val name = new TestNameObj
-		  name.name = "server-" + change.newValue.asInstanceOf[TestNameObj].name
-		  change.target match {
-		    case twoSet:SyncableSet[_] =>
+      withGetId(change.newValue) { _ match {
+        case clientName:TestNameObj => 
+          name.name = "server-" + clientName.name
+        case _ => throw new ImplementationError
+      } }
+                                   
+		  change.target.target match {
+		    case Some(twoSet:SyncableSet[_]) =>
 		      twoSet.asInstanceOf[SyncableSet[Syncable]] += name       
 		    case _ => 
 		      log.error("twoSetChanged() unexpected target of change: " + change.target)

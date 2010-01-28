@@ -20,12 +20,12 @@ trait LogHelper {
   val log:Logger
   
   /* handy error logging in for comprehensions */ 
-  def err[T](message:String, params:String*):Option[T] = {
+  def err[T](message:String, params:AnyRef*):Option[T] = {
     log.error(message, params:_*)
     None
   }
   
-  def errLeft[T](message:String, params:String*):Left[String, T] = {
+  def errLeft[T](message:String, params:AnyRef*):Left[String, T] = {
     val errorMessage = String.format(message, params:_*)
     log.error(errorMessage)
     Left(errorMessage)

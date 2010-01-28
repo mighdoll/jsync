@@ -55,12 +55,22 @@ object Observers extends LogHelper {
   
   // listen for model object modifications found from the AspectJ enhanced Observable objects 
   private object AspectListener extends ObserveListener {
+    private def changeValue(value:Any):Any = {
+      value match {
+        case s:Syncable => s.fullId
+        case other => other
+      }
+    }
+    
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
       if (!SyncableInfo.isReserved(property)) {
-        Observers.notify(PropertyChange(target.asInstanceOf[Syncable].fullId, property, newValue, oldValue))
+        val targetId = target.asInstanceOf[Syncable].fullId
+        val change = PropertyChange(targetId, property, changeValue(newValue), changeValue(oldValue))
+        Observers.notify(change)
       }
     }
   }
+  
   AspectObservation.registerListener(AspectListener)
     
   /** reset all watches -- useful for testing from a clean slate */
@@ -131,12 +141,12 @@ object Observers extends LogHelper {
   
   /** unregister all watch functions registered with a given watchClass */
   def unwatchAll(watchClass:Any) {
-    for (id <- watchers.keys) {        
-      unwatch(id, watchClass)
+    for (obj <- watchers.keys) {        
+      unwatch(obj, watchClass)
     }
     
-    for (id <- deepWatches.keys) {        
-      unwatch(id, watchClass)
+    for (obj <- deepWatches.keys) {        
+      unwatch(obj, watchClass)
     }
   }
   

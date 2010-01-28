@@ -172,7 +172,7 @@ object Configuration extends LogHelper {
       level <- Logger.levelNames get levelName.toUpperCase orElse 
         err("log level %s for %s not recognized", levelName, packageName)
      } {
-      log.info("log %s to %s", packageName, level)
+      log.debug("log %s to %s", packageName, level)
       Logger(packageName).setLevel(level)
      }
   }
@@ -181,7 +181,7 @@ object Configuration extends LogHelper {
   /** set the level for one log4j logger */
   private def setLog4JLevel(packageName:String, levelNameOpt:Option[String]) {
     val level = levelNameOpt getOrElse null
-    log.info("log4j %s to %s", packageName, level)
+    log.debug("log4j %s to %s", packageName, level)
     
     var log4Logger = org.apache.log4j.Logger.getLogger(packageName)
     log4Logger.setLevel(org.apache.log4j.Level.toLevel(level))    

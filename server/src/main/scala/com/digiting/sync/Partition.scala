@@ -20,6 +20,7 @@ import scala.actors.Actor._
 import JsonObject._
 import collection.mutable
 import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 
 
 /** A storage segment of syncable objects 
@@ -63,7 +64,7 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
 }
 
 
-class RamPartition(partId:String) extends Partition(partId) {
+class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   val log = Logger("RamPartition")
   val store = new mutable.HashMap[String,Syncable]
   
@@ -71,7 +72,9 @@ class RamPartition(partId:String) extends Partition(partId) {
   def put(syncable:Syncable) = store put (syncable.id, syncable)
   def delete(instanceId:String) = store -= instanceId
   def update(change:ChangeDescription) = change match {
-    case c:CreatedChange => put(c.target.asInstanceOf[Syncable])
+    case c:CreatedChange => 
+      // TODO change CreatedChange to serialize the object
+      c.target.target orElse err("updated target not found" + c) foreach put
     case _ => // other changes should already be applied to objects in RAM
   }
   

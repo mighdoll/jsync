@@ -14,11 +14,12 @@
  */
 package com.digiting.sync
 import collection._
-import net.liftweb.util.Log
-
+import net.lag.logging.Logger
+import com.digiting.util.LogHelper
 import com.digiting.sync.aspects.Observable
 import Observers._
 import Accessor.observableReferences
+import SyncManager.withGetId
 
 object DeepWatchDebug {
   var nextId = -1
@@ -30,14 +31,16 @@ object DeepWatchDebug {
  * removed from the connected set (e.g. an object is removed from the connected set when the
  * last reference to it from the connected set is removed).  
  * 
- * LATER Refernce cycles in the connected set are detected intermittently (currently not at all).
+ * LATER Reference cycles in the connected set should be detected occasionally (currently not at all
+ *   so cycles of self referencing objects will continue to be watched).
  *
  * Internally, DeepWatch maintains a reference count for every object in the connected set of objects
  * referenced from the root, and the Observers facility to watch for changes to objects in the
  * connected set.  Changes are reported to client watchers and used internally to update 
  * reference counts.  
  */
-class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
+class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends LogHelper {
+  val log = Logger("DeepWatch")
   private val connectedSet = mutable.Map[Syncable, Int]()  // tracked syncables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()
   var disabled = false
@@ -96,14 +99,19 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
   private def handlePropChange(propChange:PropertyChange) {
 	// update ref counts for old value
     propChange.oldValue match {
-      case old:SyncableId => removedRef(old)
+      case old:SyncableId => 
+        withGetId(old) {removedRef}
+      case syncable:Syncable =>
+        err("handlePropChange, oldValue is Syncable, expected SyncableId")
       case _ =>
     }
 
 	// update ref count for new value
     propChange.newValue match {
       case newBranch:SyncableId => 
-        addedRef(newBranch)
+        withGetId(newBranch) {addedRef}
+      case syncable:Syncable =>
+        err("handlePropChange, newValue is Syncable, expected SyncableId")
       case _ =>
     }
   }
@@ -111,31 +119,27 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
   /** update references in response to change to collection membership */
   private def handleMemberChange(memberChange:MembershipChange) {
     if (memberChange.newValue != null) {
-      memberChange.newValue.asInstanceOf[SyncableId].target foreach {addedRef(_)}
+      memberChange.newValue.target foreach addedRef // CONSIDER what if target isn't found?
     }
     if (memberChange.oldValue != null) {
-      memberChange.oldValue.asInstanceOf[SyncableId].target foreach removedRef
+      memberChange.oldValue.target foreach removedRef
     }
   }
   
   /** update references in response to clearing collection membership */
   private def handleClearChange(clearChange:ClearChange) {
-    clearChange.members foreach removedRef
-  }
-   
-  /** decrement reference counter for this object and every Observable it 
-   * references.  If any object's reference counter drops to zero,
-   * remove the object from the connectedSet of objects we observe */
-  private def removedRef(ref:SyncableId) {
-    SyncManager.get(ref) foreach removedRef
+    clearChange.members foreach {withGetId(_){removedRef}}
   }
   
+  /** decrement reference counter for this object and every Observable it 
+   * references.  If any object's reference counter drops to zero,
+   * remove the object from the connectedSet of objects we observe */    
   private def removedRef(target:Syncable) {
     connectedSet get target match {
       case Some(count) if count > 1 => connectedSet + (target -> (count -1))
       case Some(count) if count == 1 => removeObj(target)
-      case Some(count) => Log.error("BUG? count of ref: " + target+ " is: " + count)
-      case None => Log.error("BUG? removeDeep" + target + "not found in connectedSet")
+      case Some(count) => err("BUG? count of ref: " + target+ " is: " + count)
+      case None => err("BUG? removeDeep" + target + "not found in connectedSet")
     }    
   }
   
@@ -145,29 +149,28 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
     Observers.unwatch(obj, this)
  
     // generate a membership change to the connected set, and tell overyone
-    val change = new UnwatchChange(root.asInstanceOf[Syncable].fullId, obj.asInstanceOf[Syncable].fullId)
+    val change = new UnwatchChange(root.fullId, obj.fullId)
     fn(change)
  
     // update reference counts 
     for (ref <- observableReferences(obj)) 
-      removedRef(ref.fullId)
+      removedRef(ref)
   }
       
   /* increment reference counter for this object and every Observable it
    * references.  Make sure this object and every observable it references are
    * in the connectedSet of objects we observe. */
   private def addedRef(target:Syncable) {        
+    log.trace("%d addedRef: %s", debugId, target)
     connectedSet get target match {
       case Some(count) => connectedSet + (target -> (count + 1))
       case None => addObj(target)
     }
   }
+
   
-  private def addedRef(ref:SyncableId) {
-    SyncManager.get(ref) foreach addedRef
-  }
-    
   private def addObj(obj:Syncable) {
+    log.trace("%d addObj: %s", debugId, obj)
     // start watching this object
     connectedSet + (obj -> 1); 			 
     Observers.watch(obj, handleChanged, this)   
@@ -181,7 +184,7 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) {
   }
    
   
-  override def finalize {  // LATER: consider some kind of loan wrapper approach
+  override def finalize {  // ick!! LATER: consider some kind of loan wrapper approach
     disable()
   }
   

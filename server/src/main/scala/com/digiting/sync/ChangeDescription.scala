@@ -31,12 +31,12 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:A
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }
   
-/** create a new object */
+/** create a new object.  TODO change this to include a serialized syncable. */
 case class CreatedChange(val target:SyncableId) extends ChangeDescription
 
 /** changes to a collection's membership. */
 abstract class MembershipChange(val operation:String, 
-  val newValue:Any, val oldValue:Any) extends ChangeDescription {
+  val newValue:SyncableId, val oldValue:SyncableId) extends ChangeDescription {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
 }
 
@@ -46,18 +46,18 @@ case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId]) 
 }
 
   /* set changes*/
-case class PutChange(val target:SyncableId, newVal:Any) 
+case class PutChange(val target:SyncableId, newVal:SyncableId) 
   extends MembershipChange("put", newVal, null)  
   
-case class RemoveChange(val target:SyncableId, oldVal:Any) 
+case class RemoveChange(val target:SyncableId, oldVal:SyncableId) 
   extends MembershipChange("remove", null, oldVal) 
 
   /* seq changes */
-case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:Any) 
+case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId) 
   extends MembershipChange("removeAt", null, oldVal) {
   override def toString = (super.toString + " at:" + at)
 }
-case class InsertAtChange(val target:SyncableId, newVal:Any, at:Int) 
+case class InsertAtChange(val target:SyncableId, newVal:SyncableId, at:Int) 
   extends MembershipChange("insertAt", newVal, null) {
   
   override def toString = (super.toString + " at:" + at)

@@ -22,7 +22,7 @@ import com.digiting.util.TryCast.tryCast
  */
 class AppService3[T <: Syncable](val serviceName:String, debugId:String, messageClass:Class[T],
                                  val queue:SyncableSeq[T], handler:(T)=>Unit) extends LogHelper {
-  val log = Logger("AppService." + serviceName)
+  val log = Logger("AppService")
   
   log.trace("init()")
   Observers.watch(queue, queueChanged, serviceName)
@@ -32,10 +32,12 @@ class AppService3[T <: Syncable](val serviceName:String, debugId:String, message
     for {
       insertAt <- matchInsertAtChange(change) orElse 
         err("unexpected change %s in queue", change.toString)
-      (queue, messageObj, at) <- InsertAtChange.unapply(insertAt) orElse
+      (queueId, messageId, at) <- InsertAtChange.unapply(insertAt) orElse
         err("can't unapply InsertAtChange !?", insertAt.toString)
+      messageObj <- SyncManager.get(messageId) orElse 
+        err("can't find message target: %s", messageId)
       message <- tryCast(messageObj, messageClass) orElse 
-        err("unexpected type of message received: ", messageObj.toString)        
+        err("unexpected type of message received: %s", messageObj.toString)        
     } { 
       handler(message)
     }

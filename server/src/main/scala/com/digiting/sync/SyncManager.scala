@@ -65,8 +65,12 @@ object SyncManager extends LogHelper {
 
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
-    for (change <- changes) {
-      change.target.asInstanceOf[Syncable].partition.update(change)
+    for {
+      change <- changes
+      partition <- Partitions.get(change.target.partitionId) orElse 
+        err("partition not found for change: %s", change.toString)
+    } {
+      partition.update(change)
     }
   }
   
@@ -246,7 +250,12 @@ object SyncManager extends LogHelper {
     id
   }
   
-  
+  private[sync] def withGetId(id:SyncableId)(fn:(Syncable)=>Unit) {
+    SyncManager.get(id) orElse 
+      err("withGetId can't find: " + id) foreach fn
+  }
+   
+
   /** called when a new instance is created */
   def created(syncable:Syncable) {
     log.trace("created(): %s", syncable)

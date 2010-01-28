@@ -19,9 +19,12 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import net.lag.logging.Logger
 
 @RunWith(classOf[JUnitRunner])
 class ObservationTest extends Spec with ShouldMatchers {
+  val log = Logger("ObservationTest")
+  
   describe("Observation.watch") {
     it("should notice property change on an object") {
       withTestEnvironment {
@@ -53,13 +56,15 @@ class ObservationTest extends Spec with ShouldMatchers {
         val root = new TestRefObj
         val one = new TestNameObj
         root.ref = one
-        Observers.watchDeep(root, changed, this)	// genreeates two watch change events
-        root.ref = null	// generates on prop change, and one unwatch change
+        Observers.watchDeep(root, changed, this)	// generates two watch change events
+        root.ref = null	// generates one prop change, and one unwatch change
+        log.trace("changes: \n%s", changes mkString("\n"))
         changes.size should be (4)	
         one.name = "one"	// should be outside the watched tree
         changes.size should be (4)
       }
     }
+    
     it ("should see changes in a reference chain") {
       withTestEnvironment {
         val obj = new TestRefObj()
