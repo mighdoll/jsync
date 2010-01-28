@@ -172,8 +172,14 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends 
     Observers.watch(obj, handleChanged, this)   
     
     // generate a membership change to the connected set, and tell overyone
-    val change = new WatchChange(root.fullId, obj.fullId, this)
-    fn(change)
+    fn(WatchChange(root.fullId, obj.fullId, this))
+    obj match {
+      case collection:SyncableCollection =>
+        val elements = collection.syncableElementIds
+        if (!elements.isEmpty)
+          fn(BaseMembership(collection.fullId, elements))
+      case _ =>                                           
+    }
     
     for (ref <- observableReferences(obj)) 
       addedRef(ref)

@@ -129,9 +129,10 @@ class ObservationTest extends Spec with ShouldMatchers {
         val set = new SyncableSet[Syncable]
         val name = new TestNameObj 
         set + name
-        Observers.watchDeep(set, changed, "test")	// two watch changes
+        Observers.watchDeep(set, changed, "test")	// two watch changes, one BaseMembership
         name.name = "Ben"	// one property change
-        changes.size should be (3)
+        Console println changes.mkString("\n")        
+        changes.size should be (4)
       }
     }
     

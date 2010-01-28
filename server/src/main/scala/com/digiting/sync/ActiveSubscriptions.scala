@@ -120,32 +120,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   private def queueChange(change:ChangeDescription) {
     log.trace("ActiveSubscriptions #%s change queued: %s", connection.debugId, change)
     this ! change
-    queueCollectionEdits(change)
-  }
-  
-  // if a collection is was added to the active set of the subscription,
-  // synthesize queue edits to the collection to add the elements 
-  // (the elements themselves will get own Watch changes sent from DeepWatch)  
-  // TODO this should be handled by DeepWatch instead.
-  private def queueCollectionEdits(change:ChangeDescription) {    
-    change match {
-      case watchChange:WatchChange =>
-        withGetId(watchChange.newValue) {newWatch =>
-          newWatch match {
-            case set:SyncableSet[_] =>
-              log.trace("queueCollectionEdits:  %d edits on %s", set.size, set)
-              this ! BaseMembership(set.fullId, set.syncableElementIds)
-            case seq:SyncableSeq[_] =>
-              log.trace("queueCollectionEdits:  %d edits on %s", seq.length, seq)
-              this ! BaseMembership(seq.fullId, seq.syncableElementIds)
-            case map:SyncableMap[_,_] =>
-              throw new NotYetImplemented
-            case _ =>                                           
-          }
-        }
-      case _ =>          
-    }    
-  }
+  }  
   
   /** for debugging */
   def print {
