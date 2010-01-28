@@ -35,7 +35,7 @@ object SyncManager extends LogHelper {
   val log = Logger("SyncManager")
   
   // global instance cache.  SOON this should be per-connection
-  val instanceCache = new InstancePool("SyncManager")
+  val instanceCache = new WatchedPool("SyncManager")
   
   // prebuilt reflection tools, one for each $kind of Syncable
   val metaAccessors = mutable.Map.empty[Kind, ClassAccessor]

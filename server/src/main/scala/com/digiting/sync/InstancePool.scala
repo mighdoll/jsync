@@ -21,18 +21,18 @@ import net.lag.logging.Logger
 /** a pool of syncable objects.  
  * 
  * All objects in the pool are tracked for changes.  Interested parties can register to hear 
- * about changes via watchCommit().  Owners of the InstancePool call commit() to release
+ * about changes via watchCommit().  Owners of the WatchedPool call commit() to release
  * changes.
  */
-class InstancePool(name:String) {
-  val log = Logger("InstancePool")
+class WatchedPool(name:String) {
+  val log = Logger("WatchedPool")
   type CommitWatchFn = (Seq[ChangeDescription]) => Unit
   
   // holds all syncable objects we're caching in RAM, indexed by partition/id
   private val localObjects = new mutable.HashMap[String, Syncable]   // LATER this should be a WeakMap
 
   // changes made to any object in the pool
-  private val changes = new ConcurrentLinkedQueue[ChangeDescription]	// SOON make this a concurrent linked queue
+  private val changes = new ConcurrentLinkedQueue[ChangeDescription]	
 
   // notifications to call on commit()
   private val commitWatchers = mutable.Set[CommitWatchFn]()
