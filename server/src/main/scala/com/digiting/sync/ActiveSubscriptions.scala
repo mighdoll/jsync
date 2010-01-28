@@ -78,7 +78,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   def subscribeRoot(root:Syncable) {
     deepWatches += 
       Observers.currentMutator.withValue(serverOnlyMutator) {
-        val deep = Observers.watchDeep(root, queueChanges, "ActiveSubscriptions")
+        val deep = Observers.watchDeep(root, queueChanges, queueChanges, "ActiveSubscriptions")
         log.trace("subscribe deepwatch: %s", deep)
         deep
       }

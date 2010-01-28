@@ -39,7 +39,7 @@ object DeepWatchDebug {
  * connected set.  Changes are reported to client watchers and used internally to update 
  * reference counts.  
  */
-class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends LogHelper {
+class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchFn:ChangeFn, val watchClass:Any) extends LogHelper {
   val log = Logger("DeepWatch")
   private val connectedSet = mutable.Map[Syncable, Int]()  // tracked syncables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()
@@ -144,9 +144,7 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends 
     connectedSet - obj
     Observers.unwatch(obj, this)
  
-    // generate a membership change to the connected set, and tell overyone
-    val change = new UnwatchChange(root.fullId, obj.fullId)
-    fn(change)
+    watchFn(UnwatchChange(root.fullId, obj.fullId))
  
     // update reference counts 
     for (ref <- observableReferences(obj)) 
@@ -171,13 +169,12 @@ class DeepWatch(val root:Syncable, val fn:ChangeFn, val watchClass:Any) extends 
     connectedSet + (obj -> 1); 			 
     Observers.watch(obj, handleChanged, this)   
     
-    // generate a membership change to the connected set, and tell overyone
-    fn(WatchChange(root.fullId, obj.fullId, this))
+    watchFn(WatchChange(root.fullId, obj.fullId, this))
     obj match {
       case collection:SyncableCollection =>
         val elements = collection.syncableElementIds
         if (!elements.isEmpty)
-          fn(BaseMembership(collection.fullId, elements))
+          watchFn(BaseMembership(collection.fullId, elements))
       case _ =>                                           
     }
     

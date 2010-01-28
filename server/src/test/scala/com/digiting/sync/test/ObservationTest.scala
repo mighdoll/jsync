@@ -56,7 +56,7 @@ class ObservationTest extends Spec with ShouldMatchers {
         val root = new TestRefObj
         val one = new TestNameObj
         root.ref = one
-        Observers.watchDeep(root, changed, this)	// generates two watch change events
+        Observers.watchDeep(root, changed, changed, this)	// generates two watch change events
         root.ref = null	// generates one prop change, and one unwatch change
         log.trace("changes: \n%s", changes mkString("\n"))
         changes.size should be (4)	
@@ -72,7 +72,7 @@ class ObservationTest extends Spec with ShouldMatchers {
         val obj3 = new TestRefObj()
         obj.ref = obj2			// two watch changes
 
-        Observers.watchDeep(obj, changed, this)
+        Observers.watchDeep(obj, changed, changed, this)
         obj.ref = null			// unwatch + property change
         changes.size should be (4)  
         obj.ref = obj2			// watch + property change
@@ -85,7 +85,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     it("should see changes in a tree") {
       withTestEnvironment {
         val root = new TestRefObj
-        Observers.watchDeep(root, changed, this)	// watch
+        Observers.watchDeep(root, changed, changed, this)	// watch
         val branch = new TestTwoRefsObj			
         val one,two = new TestNameObj
         root.ref = branch					// watch + prop change
@@ -129,7 +129,7 @@ class ObservationTest extends Spec with ShouldMatchers {
         val set = new SyncableSet[Syncable]
         val name = new TestNameObj 
         set + name
-        Observers.watchDeep(set, changed, "test")	// two watch changes, one BaseMembership
+        Observers.watchDeep(set, changed, changed, "test")	// two watch changes, one BaseMembership
         name.name = "Ben"	// one property change
         Console println changes.mkString("\n")        
         changes.size should be (4)

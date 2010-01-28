@@ -113,11 +113,12 @@ object Observers extends LogHelper {
   /* Register a function to be called when the object or any referenced object is changed 
    * 
    * @param root        root of the branch of Observable objects to be watched
-   * @param fn          function called on each change
+   * @param fn          function called on each data change
+   * @param fn          function called on changes to the watched set
    * @param watchClass  names this watch, which enables removing the watch by name
    */
-  def watchDeep(root:Syncable, fn:ChangeFn, watchClass:Any):DeepWatch = {
-    val deepWatch = new DeepWatch(root, fn, watchClass)
+  def watchDeep(root:Syncable, fn:ChangeFn, watchFn:ChangeFn, watchClass:Any):DeepWatch = {
+    val deepWatch = new DeepWatch(root, fn, watchFn, watchClass)
     deepWatches + (root, deepWatch)
     deepWatch
   }
