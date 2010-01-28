@@ -90,7 +90,7 @@ object Message extends LogHelper {
       change match {
         case propChange:PropertyChange => 
           syncs + propertyChange(propChange)
-        case watch:WatchChange => 
+        case watch:BeginWatch=> 
           withGetId(watch.newValue) { target =>
             syncs + toJsonMap(target)
           }
@@ -111,7 +111,7 @@ object Message extends LogHelper {
           edits + removeAtChange(removeAt)
         case insertAt:InsertAtChange =>
           edits + insertAtChange(insertAt)
-        case unwatch:UnwatchChange => // do nothing (client garbage collects on its own)
+        case unwatch:EndWatch=> // do nothing (client garbage collects on its own)
         case clear:ClearChange =>
           edits + clearChange(clear) 
         case move:MoveChange =>

@@ -152,8 +152,8 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
       case c:RemoveMapChange => throw new NotYetImplemented
       case c:UpdateMapChange => throw new NotYetImplemented
       
-      case c:WatchChange => // ignored
-      case c:UnwatchChange => // ignored
+      case c:BeginWatch => // ignored
+      case c:EndWatch => // ignored
         
       case c:CreatedChange => put(c.target.asInstanceOf[Syncable])
     }

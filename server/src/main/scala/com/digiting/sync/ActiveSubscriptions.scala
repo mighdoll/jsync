@@ -104,9 +104,9 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
       case _ if change.source == connection.connectionId =>
         log.trace("ActiveSubscriptions #%s not queueing change: originated from client: %s", 
     	  connection.debugId, change)
-      case WatchChange(_,_,watcher:DeepWatch) if deepWatches.contains(watcher) =>
+      case BeginWatch(_,_,watcher:DeepWatch) if deepWatches.contains(watcher) =>
         queueChange(change)
-      case WatchChange(_,_,watcher:DeepWatch) =>
+      case BeginWatch(_,_,watcher:DeepWatch) =>
         log.trace("ActiveSubscriptions #%s not queueing watch change from another deepwatch: %s", 
                   watcher.debugId, change)
       case _ if change.source == serverOnlyMutator =>

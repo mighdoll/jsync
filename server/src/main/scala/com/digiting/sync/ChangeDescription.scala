@@ -77,10 +77,10 @@ case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any)
 
   
 /* changes to the watch set from DeepWatch.  */
-case class WatchChange(val target:SyncableId, val newValue:SyncableId, val watcher:AnyRef) extends ChangeDescription {
+case class BeginWatch(val target:SyncableId, val newValue:SyncableId, val watcher:AnyRef) extends ChangeDescription {
   override def toString = {super.toString + " newWatch: " + newValue + "  watcher: " + watcher}  
 }
-case class UnwatchChange(val target:SyncableId, val oldValue:SyncableId) extends ChangeDescription
+case class EndWatch(val target:SyncableId, val oldValue:SyncableId) extends ChangeDescription
 
 /** initial state of a collection */      
 case class BaseMembership(val target:SyncableId, members:Seq[SyncableId]) 
