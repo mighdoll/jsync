@@ -120,6 +120,9 @@ class SyncableId(var partitionId:String, var instanceId:String) {
   def target = SyncManager.get(this)
 }
 
+class SyncableReference(partitionId:String, instanceId:String, kind:SyncManager.Kind) 
+  extends SyncableId(partitionId, instanceId)
+
 /**
  * LATER make this a generic mechansim that any syncable can implement
  */
