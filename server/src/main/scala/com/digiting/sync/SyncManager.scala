@@ -250,9 +250,13 @@ object SyncManager extends LogHelper {
     id
   }
   
-  private[sync] def withGetId(id:SyncableId)(fn:(Syncable)=>Unit) {
-    SyncManager.get(id) orElse 
-      err("withGetId can't find: " + id) foreach fn
+  private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
+    SyncManager.get(id) map fn match {
+      case Some(result) => result
+      case None =>
+        err("withGetId can't find: " + id) 
+        throw new ImplementationError
+    }      
   }
    
 

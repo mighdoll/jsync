@@ -12,7 +12,7 @@ class SyncableValue {
   def value() = validated
   
   def this(value:Null) = { this(); validated = value}
-  def this(value:SyncableId) = { this(); validated = value}
+  def this(value:SyncableReference) = { this(); validated = value}
   def this(value:String) = { this(); validated = value}
   def this(value:Boolean) = { this(); validated = value}
   def this(value:Char) = { this(); validated = value}
@@ -31,7 +31,7 @@ class SyncableValue {
 
 object SyncableValue {
   val log = Logger("SyncableValue")
-  def apply(value:SyncableId) = new SyncableValue(value)
+  def apply(value:SyncableReference) = new SyncableValue(value)
   def apply(value:String) = new SyncableValue(value)
   def apply(value:Boolean) = new SyncableValue(value)
   def apply(value:Char) = new SyncableValue(value)
@@ -43,8 +43,7 @@ object SyncableValue {
   
   def convert(value:Any) = {
     value match {
-      case s:Syncable => new SyncableValue(s.fullId)
-      case v:SyncableId => new SyncableValue(v)
+      case s:Syncable => new SyncableValue(SyncableReference(s))
       case v:String => new SyncableValue(v)
       case v:Boolean => new SyncableValue(v)
       case v:Char => new SyncableValue(v)
@@ -54,7 +53,7 @@ object SyncableValue {
       case v:Double => new SyncableValue(v)
       case null => new SyncableValue(null)
       case r:AnyRef => 
-        log.error("unexpected type: %s of type: %s", r, r.getClass)
+        log.error("unexpected argument: %s of type: %s", r, r.getClass)
         throw new IllegalArgumentException        
       case x => 
         log.error("unexpected argument: %s ", x)

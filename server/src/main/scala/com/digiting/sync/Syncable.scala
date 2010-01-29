@@ -17,6 +17,7 @@ package com.digiting.sync
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
 import net.lag.logging.Level._
+import SyncManager.withGetId
 
 /**
  * All objects participating in the syncable system must extend Syncable.  Syncable
@@ -112,7 +113,7 @@ object SyncableId {
     new SyncableId(partitionId, instanceId)
 }
 
-class SyncableId(var partitionId:String, var instanceId:String) {  
+class SyncableId(val partitionId:String, val instanceId:String) {  
   def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId)
   def toJson = JsonUtil.toJson(toJsonMap)
   def toCompositeIdString = partitionId + "/" + instanceId
@@ -120,6 +121,18 @@ class SyncableId(var partitionId:String, var instanceId:String) {
   def target = SyncManager.get(this)
 }
 
+object SyncableReference {
+  def apply(pId:String, id:String, kind:SyncManager.Kind) =
+    new SyncableReference(pId, id, kind)
+  
+  def apply(id:SyncableId) = {
+    withGetId(id) {obj => new SyncableReference(id.partitionId, id.instanceId, obj.kind)}
+  }
+  
+  def apply(syncable:Syncable) = {
+    new SyncableReference(syncable.partition.partitionId, syncable.id, syncable.kind)
+  }
+}
 class SyncableReference(partitionId:String, instanceId:String, kind:SyncManager.Kind) 
   extends SyncableId(partitionId, instanceId)
 
