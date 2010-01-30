@@ -133,8 +133,13 @@ object SyncableReference {
     new SyncableReference(syncable.partition.partitionId, syncable.id, syncable.kind)
   }
 }
-class SyncableReference(partitionId:String, instanceId:String, kind:SyncManager.Kind) 
-  extends SyncableId(partitionId, instanceId)
+
+class SyncableReference(partitionId:String, instanceId:String, val kind:SyncManager.Kind) 
+  extends SyncableId(partitionId, instanceId) {
+    
+  def id = SyncableId(partitionId, instanceId) 
+  override def toString = toCompositeIdString + "[" + kind + "]"
+}
 
 /**
  * LATER make this a generic mechansim that any syncable can implement

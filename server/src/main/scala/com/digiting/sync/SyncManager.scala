@@ -118,6 +118,13 @@ object SyncManager extends LogHelper {
       }
     }
   }
+  
+  def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
+    val ident = SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId))
+    quietCreate.withValue(true) {
+      (newSyncable(kind, ident) get).asInstanceOf[T]
+    }
+  }
 
   /** reflection access to this kind of syncable */
   def propertyAccessor(syncable:Syncable):ClassAccessor = {
@@ -145,7 +152,7 @@ object SyncManager extends LogHelper {
       }
       foundOpt map (instanceCache put _)	
       foundOpt
-	}   
+    }   
   }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
@@ -242,6 +249,7 @@ object SyncManager extends LogHelper {
       classAccessor.set(target, propName, value)
     }
   }
+  
      
   /** create the identity for a new object */
   def creating(syncable:Syncable):SyncableIdentity = {    

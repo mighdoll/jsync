@@ -27,6 +27,7 @@ class AllSyncTests extends SuperSuite (
   	   new MigrationTest,
   	   new ProtocolTest,
        new ConfigurationTest,
+       new PickleTest,
        new ProtocolReferenceTest)
   ) 
 
