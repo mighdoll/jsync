@@ -44,7 +44,7 @@ class WatchedPool(name:String) {
   def created(syncable:Syncable) = {
     log.ifTrace("created" + syncable)
     assert (localObjects contains key(syncable))
-    changes add CreatedChange(syncable.fullId)
+    changes add CreatedChange(SyncableReference(syncable), Pickled(syncable))
   }
 
   /** put an object into the pool */

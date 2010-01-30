@@ -21,6 +21,7 @@ import JsonObject._
 import collection.mutable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
+import SyncManager.withGetId
 
 
 /** A storage segment of syncable objects 
@@ -72,9 +73,9 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   def put(syncable:Syncable) = store put (syncable.id, syncable)
   def delete(instanceId:String) = store -= instanceId
   def update(change:ChangeDescription) = change match {
-    case c:CreatedChange => 
-      // TODO change CreatedChange to serialize the object
-      c.target.target orElse err("updated target not found" + c) foreach put
+    case created:CreatedChange[_] => 
+      // TODO change CreatedChange to deserialize the object
+      withGetId(created.target) {put}
     case _ => // other changes should already be applied to objects in RAM
   }
   

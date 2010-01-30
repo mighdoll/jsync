@@ -48,7 +48,7 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }  
 /** create a new object.  TODO change this to include a serialized syncable. */
-case class CreatedChange(val target:SyncableId) extends DataChange
+case class CreatedChange[T <: Syncable](val target:SyncableReference, fields:Pickled[T]) extends DataChange
 
  
 //       -----------------  collection Data changes --------------------  

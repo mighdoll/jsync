@@ -155,7 +155,7 @@ class SimpleDbPartition(admin:SimpleDbAdmin, val partitionRef:PartitionRef, doma
       case c:BeginWatch => // ignored
       case c:EndWatch => // ignored
         
-      case c:CreatedChange => put(c.target.asInstanceOf[Syncable])
+      case c:CreatedChange[_] => put(c.target.asInstanceOf[Syncable])  // TODO unpickle here
     }
   } 
   
