@@ -18,7 +18,7 @@ package com.digiting.sync
 import collection._
 import com.digiting.sync.aspects.Observable
 import com.digiting.sync.syncable._
-import com.digiting.util.Takeable
+import com.digiting.util.DynamicOnce
 import scala.util.DynamicVariable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
@@ -46,7 +46,7 @@ object SyncManager extends LogHelper {
   val migrations = mutable.Map.empty[VersionedKind, ClassAccessor]
 
   // to force the id of the next created object (to instantiate remotely created objects)
-  val setNextId = new Takeable[SyncableIdentity]
+  val setNextId = new DynamicOnce[SyncableIdentity]
   
   // default partition for new objects
   val currentPartition = new DynamicVariable[Partition](null)	
@@ -58,8 +58,8 @@ object SyncManager extends LogHelper {
   // TODO make into Takeable/DynamicOnce
   private val creatingFake = new DynamicVariable[Boolean](false);  
   
-  // set the 
-  val setNextVersion = new Takeable[NextVersion]
+  // force the version for (untested)
+  val setNextVersion = new DynamicOnce[NextVersion]
   
   // dummy partition for fake objects
   private val fakePartition = new FakePartition("fake")

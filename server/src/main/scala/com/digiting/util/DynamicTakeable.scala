@@ -20,7 +20,7 @@ import net.lag.logging.Logger
 /** 
  * A dynamic variable that can be read only once.  Subsequent reads return None
  */
-class Takeable[T] {
+class DynamicOnce[T] {
   var current = new DynamicVariable[Option[T]](None)
   val log = Logger("Takeable")
   
