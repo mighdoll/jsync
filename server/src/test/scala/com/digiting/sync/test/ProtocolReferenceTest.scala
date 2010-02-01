@@ -19,7 +19,7 @@ import com.digiting.util.Configuration
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import com.digiting.sync.ResponseManager.AwaitResponse
-import com.digiting.sync.test.ProtocolTester.callService
+import com.digiting.sync.test.ProtocolFixture.callService
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers

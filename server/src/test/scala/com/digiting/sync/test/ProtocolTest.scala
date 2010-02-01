@@ -65,7 +65,7 @@ class ProtocolTest extends Spec with ShouldMatchers {
         None
     }
       
-    val result = ProtocolTester.sendTestMessage(jsonMsg, checkResponse)
+    val result = ProtocolFixture.sendTestMessage(jsonMsg, checkResponse)
       
     result should be (Some(true))
     }

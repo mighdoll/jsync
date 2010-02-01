@@ -30,8 +30,8 @@ import com.digiting.sync.syncable._
 import JsonMapParser.Reference
 
 
-object ProtocolTester extends LogHelper {
-  val log = Logger("ProtocolTester")
+object ProtocolFixture extends LogHelper {
+  val log = Logger("ProtocolFixture")
   
   /** Send a raw json-sync message to the test application server.  The verifyFn should
    * return Some() for success or failure, and None to wait for additional messages 
