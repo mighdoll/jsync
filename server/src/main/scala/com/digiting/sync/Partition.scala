@@ -22,7 +22,22 @@ import collection.mutable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import SyncManager.withGetId
+import scala.collection.mutable.ListBuffer
 
+
+object Partition {
+  class Transaction {
+    val id = RandomIds.randomUriString(8)
+    private[this] val changes = new ListBuffer[DataChange]
+    def +=(change:DataChange) {
+      changes += change
+    }
+    def updates:Iterable[DataChange] = changes.toList
+  }
+  class InvalidTransaction(message:String) extends Exception(message) {
+    def this() = this("")
+  }
+}
 
 /** A storage segment of syncable objects 
  * 
@@ -32,8 +47,38 @@ import SyncManager.withGetId
  * The current implementation does not guarantee durability.  If the server crashes right after
  * put() is called, the data is lost.
  */
-abstract class Partition(val partitionId:String) {
-  def get(instanceId:String):Option[Syncable] 
+import Partition._
+abstract class Partition(val partitionId:String) {  
+  private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
+  
+  /** all CRUD operations should be called within a transaction */
+  def withTransaction[T](fn: =>T):T = {
+    val tx = new Transaction
+    currentTransaction.withValue(Some(tx)) {
+      val result = fn
+      commit(tx)
+      result
+    }
+  }
+
+  def commit(transaction:Transaction)
+  
+  def get(instanceId:String):Option[Syncable] = {
+    inTransaction {tx => get(instanceId, tx)}
+  }
+  
+  def get(instanceId:String, tx:Transaction):Option[Syncable]
+  
+  private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
+    currentTransaction value match {
+      case Some(tx:Transaction) => 
+        fn(tx)
+      case None => 
+        throw new InvalidTransaction("no current transaction")
+    }
+  }
+  
+  
   def put(syncable:Syncable):Unit
   def delete(instanceId:String):Unit
   def update(change:ChangeDescription):Unit  
@@ -45,7 +90,8 @@ abstract class Partition(val partitionId:String) {
   }
   def deleteContents():Unit
 
-  Partitions.add(this)
+  
+  Partitions.add(this)  // tell the manager about us
   
   // LATER make this is a transactional interface, see Partition2 for an early sketch
 }
