@@ -104,7 +104,7 @@ class ObservationTest extends Spec with ShouldMatchers {
         var unwatchCount = 0
         for (change <- changes) {
           change match {
-            case PropertyChange(_,_,_,_) =>
+            case PropertyChange(_,_,_,_,_) =>
               propCount += 1
             case BeginWatch(_,_,_) =>
               watchCount += 1

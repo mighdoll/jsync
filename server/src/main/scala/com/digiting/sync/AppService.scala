@@ -32,7 +32,7 @@ class AppService3[T <: Syncable](val serviceName:String, debugId:String, message
     for {
       insertAt <- matchInsertAtChange(change) orElse 
         err("unexpected change %s in queue", change.toString)
-      (queueId, messageId, at) <- InsertAtChange.unapply(insertAt) orElse
+      (queueId, messageId, at, versions) <- InsertAtChange.unapply(insertAt) orElse
         err("can't unapply InsertAtChange !?", insertAt.toString)
       messageObj <- SyncManager.get(messageId) orElse 
         err("can't find message target: %s", messageId)

@@ -58,9 +58,11 @@ object Observers extends LogHelper {
   private object AspectListener extends ObserveListener {    
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
       if (!SyncableInfo.isReserved(property)) {
-        val targetId = target.asInstanceOf[Syncable].fullId
+        val syncable = target.asInstanceOf[Syncable]
+        val targetId = syncable.fullId
+        val versionChange = syncable.newVersion()
         val change = PropertyChange(targetId, property, SyncableValue.convert(newValue), 
-          SyncableValue.convert(oldValue))
+          SyncableValue.convert(oldValue), versionChange)
         Observers.notify(change)
       }
     }

@@ -32,6 +32,8 @@ object SyncManager extends LogHelper {
   type Kind = String	// buys a little documentation benefit.. CONSIDER conversion to case class?
   
   case class VersionedKind (val kind:Kind, val version:String)
+  case class NextVersion(syncable:Syncable, version:String)
+  
   val log = Logger("SyncManager")
   
   // global instance cache.  SOON this should be per-connection
@@ -52,8 +54,12 @@ object SyncManager extends LogHelper {
   // don't register a creation change while this is true (so partitions can instantiate objects)
   val quietCreate = new DynamicVariable[Boolean](false)
   
-  // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed
-  private var creatingFake = new DynamicVariable[Boolean](false);  
+  // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed 
+  // TODO make into Takeable/DynamicOnce
+  private val creatingFake = new DynamicVariable[Boolean](false);  
+  
+  // set the 
+  val setNextVersion = new Takeable[NextVersion]
   
   // dummy partition for fake objects
   private val fakePartition = new FakePartition("fake")

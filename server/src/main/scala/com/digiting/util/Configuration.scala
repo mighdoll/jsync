@@ -92,7 +92,7 @@ object Configuration extends LogHelper {
   
   def initFromVariable(variableName:String) {
     getPropertyOrEnv(variableName) orElse {
-      error("Configuration: variable not found in java property or OS environment variable: " + variableName) 
+      err("Configuration: variable not found in java property or OS environment variable: " + variableName) 
     } map initFromFile
   }
   

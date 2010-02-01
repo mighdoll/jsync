@@ -49,7 +49,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
   
   private def subscriptionsChanged(change:ChangeDescription) {
     change match {
-      case PutChange(_, newSubId) => 
+      case PutChange(_, newSubId, versions) => 
         for {
           newSub <- SyncManager.get(newSubId)
           sub <- matchSubscription(newSub) orElse
@@ -58,7 +58,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
           log.trace("#%s subscription found: %s", app.connection.debugId, sub)
           active.subscribe(sub)
         }  
-      case RemoveChange(_, oldSub) =>
+      case RemoveChange(_, oldSub, versions) =>
         log.warning("removing subscriptions is NYI")
       case _ =>
         log.warning("unexpected change to subscription: %s", change)

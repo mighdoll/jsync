@@ -18,6 +18,7 @@ import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
 import net.lag.logging.Level._
 import SyncManager.withGetId
+import SyncManager.NextVersion
 
 /**
  * All objects participating in the syncable system must extend Syncable.  Syncable
@@ -41,6 +42,7 @@ trait Syncable extends Observable {
   private val newIds = SyncManager.creating(this)	// ask the sync manager for an identity for this new object
   val id:String = newIds.instanceId	// unique id of this object within its partition
   val partition = newIds.partition	// partition this object call's home
+  var version = "initial"           // instance version of this object
   private val _log = Logger("Syncable")
 
   SyncManager.created(this)
@@ -82,6 +84,19 @@ trait Syncable extends Observable {
   }
   
   private def shortKind = dotTail(kind) 
+  
+  private[sync] def newVersion():VersionChange = {
+    val oldVersion = version
+    version = 
+      SyncManager.setNextVersion.take match {
+        case Some(NextVersion(syncable, version)) =>
+          assert(syncable == this)
+          version
+        case None => 
+          RandomIds.randomUriString(10)
+      }
+    VersionChange(oldVersion, version)
+  }
   
   /* CONSIDER override def hashCode = id.hashCode  */    
 }
@@ -155,6 +170,7 @@ object SyncableInfo {
         case "id" => true
         case "partition" => true
         case "newIds" => true
+        case "version" => true
         case _ if fieldName contains "$" => true
         case _ if fieldName startsWith "_" => true
         case _ => false

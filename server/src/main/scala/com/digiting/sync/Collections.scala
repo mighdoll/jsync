@@ -54,12 +54,12 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   
   def -=(elem:T) = {
     set -= elem
-    Observers.notify(new RemoveChange(this.fullId, elem.fullId));
+    Observers.notify(new RemoveChange(fullId, elem.fullId, newVersion()));
   }
   
   def +=(elem:T) = {
     set += elem
-    val putChange = PutChange(this.fullId, elem.fullId)
+    val putChange = PutChange(fullId, elem.fullId, newVersion())
     log.trace("put: %s", putChange)
     Observers.notify(putChange);
   }
@@ -73,7 +73,7 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   override def clear() = {
     val cleared = syncableElementIds
     set.clear();
-    Observers.notify(new ClearChange(this.fullId, cleared));
+    Observers.notify(new ClearChange(fullId, cleared, this.newVersion()));
   }
 
   def syncableElements:Seq[Syncable] = {
@@ -102,13 +102,13 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   
   def insert(index:Int, elem:T) = {
     list.insert(index, elem)
-    Observers.notify(new InsertAtChange(this.fullId, elem.fullId, index))
+    Observers.notify(new InsertAtChange(this.fullId, elem.fullId, index, newVersion()))
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    Observers.notify(new RemoveAtChange(this.fullId, index, origValue.fullId))    
+    Observers.notify(new RemoveAtChange(this.fullId, index, origValue.fullId, newVersion()))    
   }
   
   def toStream = list.toStream
@@ -123,7 +123,7 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def clear() = {
     val cleared = syncableElementIds
     list.clear();
-    Observers.notify(new ClearChange(this.fullId, cleared));
+    Observers.notify(new ClearChange(this.fullId, cleared, newVersion()));
   }
   
   def map[C](fn: (T)=> C):Seq[C] = list.map(fn)
@@ -145,13 +145,15 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
     val elem = list(fromDex)
     list.remove(fromDex)
     list.insert(toDex, elem)            
-    Observers.notify(new MoveChange(this.fullId, fromDex, toDex))
+    Observers.notify(new MoveChange(this.fullId, fromDex, toDex, newVersion()))
   }
   
   def toList = list.toList
 }
 
-/** A collection of syncable objects */
+/** A collection of syncable objects 
+ * Not fully implemented or tested
+ */
 class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
   def kind = "$sync.map"
   val map = new mutable.HashMap[A,B]
@@ -159,12 +161,12 @@ class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
 
   def -=(key:A) = {
     map -= key
-    Observers.notify(new RemoveMapChange(this.fullId, key, get(key)))
+    Observers.notify(new RemoveMapChange(this.fullId, key, get(key), newVersion()))
   }
   
   def update(key:A, value:B) = {
     map.update(key, value)
-    Observers.notify(new UpdateMapChange(this.fullId, key, value))
+    Observers.notify(new UpdateMapChange(this.fullId, key, value, newVersion() ))
   }
   
   def get(key:A):Option[B] = map get key

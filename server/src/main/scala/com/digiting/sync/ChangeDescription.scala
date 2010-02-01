@@ -25,16 +25,17 @@ abstract class ChangeDescription {
   override def toString = {this.getClass.getSimpleName + " target: " + target + " mutator: " + source}
 }
 
-abstract class DataChange extends ChangeDescription {  
-//  val oldVersion:String
-//  val newVersion:String
+abstract class DataChange(val versionChange:VersionChange) extends ChangeDescription {  
 }
+
+case class VersionChange(val old:String, val current:String)
 
 abstract class WatchChange extends ChangeDescription
 
 /** changes to a collection's membership. */
 abstract class MembershipChange(val operation:String, 
-  val newValue:SyncableId, val oldValue:SyncableId) extends DataChange {
+  val newValue:SyncableId, val oldValue:SyncableId, versionChange:VersionChange) 
+  extends DataChange(versionChange) {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
 }
 
@@ -43,51 +44,55 @@ abstract class MembershipChange(val operation:String,
  
 /** change to a property */
 case class PropertyChange(val target:SyncableId, property:String, val newValue:SyncableValue, 
-                          val oldValue:SyncableValue) 
-      extends DataChange {
+                          val oldValue:SyncableValue, versions:VersionChange) 
+      extends DataChange(versions) {
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }  
 /** create a new object.  TODO change this to include a serialized syncable. */
-case class CreatedChange[T <: Syncable](val target:SyncableReference, fields:Pickled[T]) extends DataChange
+case class CreatedChange[T <: Syncable](val target:SyncableReference, 
+    fields:Pickled[T], versions:VersionChange) extends DataChange(versions)
 
  
 //       -----------------  collection Data changes --------------------  
 
 /** remove all contents from a collection */
-case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId]) extends DataChange {
+case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
+  versions:VersionChange) extends DataChange(versions) {
   def operation = "clear"
 }
 
 /** add to a set*/
-case class PutChange(val target:SyncableId, newVal:SyncableId) 
-  extends MembershipChange("put", newVal, null)  
+case class PutChange(val target:SyncableId, newVal:SyncableId, versions:VersionChange) 
+  extends MembershipChange("put", newVal, null, versions)  
 /** remove from a set*/  
-case class RemoveChange(val target:SyncableId, oldVal:SyncableId) 
-  extends MembershipChange("remove", null, oldVal) 
+case class RemoveChange(val target:SyncableId, oldVal:SyncableId, versions:VersionChange) 
+  extends MembershipChange("remove", null, oldVal, versions) 
 
 /* remove from a seq*/
-case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId) 
-  extends MembershipChange("removeAt", null, oldVal) {
+case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId,
+    versions:VersionChange) 
+  extends MembershipChange("removeAt", null, oldVal, versions) {
   override def toString = (super.toString + " at:" + at)
 }
 /** add to a seq */
-case class InsertAtChange(val target:SyncableId, newVal:SyncableId, at:Int) 
-  extends MembershipChange("insertAt", newVal, null) {
+case class InsertAtChange(val target:SyncableId, newVal:SyncableId, at:Int,
+    versions:VersionChange) 
+  extends MembershipChange("insertAt", newVal, null, versions) {
   
   override def toString = (super.toString + " at:" + at)
 }  
 /** rearrange a seq */
-case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int)
-  extends DataChange {
+case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int, 
+    versions:VersionChange) extends DataChange(versions) {
   def operation = "move"
 }
   
 /** remove from a map */
-case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any) 
-  extends DataChange
+case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any, 
+    versions:VersionChange) extends DataChange(versions)
 /** add/update to a map */
-case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any) 
-  extends DataChange
+case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any,
+    versions:VersionChange) extends DataChange(versions)
 
 //       -----------------  watch set changes --------------------  
 
