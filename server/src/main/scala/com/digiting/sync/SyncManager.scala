@@ -55,8 +55,7 @@ object SyncManager extends LogHelper {
   val quietCreate = new DynamicVariable[Boolean](false)
   
   // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed 
-  // TODO make into Takeable/DynamicOnce
-  private val creatingFake = new DynamicVariable[Boolean](false);  
+  private val creatingFake = new DynamicOnce[Boolean];  
   
   // force the version for (untested)
   val setNextVersion = new DynamicOnce[NextVersion]
@@ -231,13 +230,10 @@ object SyncManager extends LogHelper {
   
   /** handy routine for making a temporary object, that will not be saved in a persistent partition */
   def withFakeObject[T](fn: => T):T = {
-    try {
-      creatingFake.value = true
+    creatingFake.withValue(true) {
       setNextId.withValue(SyncableIdentity("fake", fakePartition)) {
         fn
       }
-    } finally {
-      creatingFake.value = false;
     }
   }
   
@@ -278,10 +274,11 @@ object SyncManager extends LogHelper {
   def created(syncable:Syncable) {
     log.trace("created(): %s", syncable)
     assert(syncable.partition != null)
-    if (!creatingFake.value) {
+    creatingFake.take orElse {
       instanceCache put syncable
       if (!quietCreate.value)
         instanceCache created syncable
+      None
     }
   }
   
