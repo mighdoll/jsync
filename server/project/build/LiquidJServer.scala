@@ -12,10 +12,12 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
   val scalaToolsSnapshotsRespo = ScalaToolsSnapshots
   val configgyRepo = "lag.net" at "http://www.lag.net/repo"
   val jbossRespo = "repository.jboss.org" at "http://repository.jboss.org/maven2"
+  val jbossSnapshos = "snapshots.jboss.org" at "http://snapshots.jboss.org/maven2"
 
   // liquid J libraries
   val configgy = "net.lag" % "configgy" % "1.3.2"
   val liftJson = "net.liftweb" % "lift-json" % "1.1-M8"
+  val inifinispan = "org.infinispan" % "infinispan-core" % "4.0.0.CR3"
 
   // test libraries
   val junit = "junit" % "junit" % "4.8.1" % "test"
