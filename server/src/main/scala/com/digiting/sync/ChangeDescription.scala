@@ -48,9 +48,14 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
       extends DataChange(versions) {
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }  
-/** create a new object.  TODO change this to include a serialized syncable. */
-case class CreatedChange[T <: Syncable](val target:SyncableReference, 
-    fields:Pickled[T], versions:VersionChange) extends DataChange(versions)
+      
+/** create a new object.  */  // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
+case class CreatedChange[T <: Syncable](val target:SyncableReference,  
+    pickled:Pickled[T], versions:VersionChange) extends DataChange(versions)
+
+/** delete an object. */
+case class DeletedChange(val target:SyncableReference, 
+    versions:VersionChange) extends DataChange(versions)
 
  
 //       -----------------  collection Data changes --------------------  

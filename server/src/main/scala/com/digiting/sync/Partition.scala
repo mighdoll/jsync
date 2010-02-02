@@ -61,14 +61,34 @@ abstract class Partition(val partitionId:String) {
     }
   }
 
+  /** commit pending updates */
   def commit(transaction:Transaction)
   
-  def get(instanceId:String):Option[Syncable] = {
-    inTransaction {tx => get(instanceId, tx)}
+  /** toss pending changes */
+  def rollback(transaction:Transaction)
+  
+  /** fetch an object or a collection */
+  def get[T <: Syncable](instanceId:String):Option[T] = {
+    inTransaction {tx => 
+      for {
+        pickled:Pickled[_] <- get(instanceId, tx)
+        syncable = pickled.unpickle
+      } yield syncable.asInstanceOf[T]
+    }
   }
   
-  def get(instanceId:String, tx:Transaction):Option[Syncable]
+  /** create, update or delete an object or a collection*/
+  def update(change:DataChange):Unit  = {
+    inTransaction {tx => update(change, tx)}    
+  }
   
+  /** subclass should implement */
+  private[sync] def update(change:DataChange, tx:Transaction):Unit  
+  
+  /** subclass should implement */
+  private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
+  
+  /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
     currentTransaction value match {
       case Some(tx:Transaction) => 
@@ -79,15 +99,24 @@ abstract class Partition(val partitionId:String) {
   }
   
   
-  def put(syncable:Syncable):Unit
-  def delete(instanceId:String):Unit
-  def update(change:ChangeDescription):Unit  
+  /** name to object mapping of for well known objects in the partition.  The published
+   * roots are persistent, so clients of the partition can use well known names to get
+   * started with the partition data, w/o having to resort to querying, etc.
+   *
+   * (someday we may garbage collect objects that are not collected to these roots..)
+   */
   val published = new PublishedRoots(this)
+  
+  /** debug utility, prints contents to log */
   def debugPrint() {}
+  
+  /** destory this partition and its contents */
   def deletePartition() {
     Partitions.remove(partitionId)
     deleteContents()
   }
+  
+  /** erase all of the data in the partition, including the PublishedRoots */
   def deleteContents():Unit
 
   
@@ -104,34 +133,37 @@ object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def deleteContents() {}
-  def get(instanceId:String):Option[Syncable] = None
-  def put(syncable:Syncable):Unit = {}
-  def delete(instanceId:String):Unit = {}
-  def update(change:ChangeDescription):Unit  = {}
+  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
+  def update(change:DataChange, tx:Transaction):Unit  = {}
+  def commit(tx:Transaction) {}
+  def rollback(tx:Transaction) {}
 }
 
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   val log = Logger("RamPartition")
-  val store = new mutable.HashMap[String,Syncable]
+  val store = new mutable.HashMap[String, Pickled[_]]
+  def commit(tx:Transaction) {}
+  def rollback(tx:Transaction) {}
   
-  def get(instanceId:String):Option[Syncable] = store get instanceId 
-  def put(syncable:Syncable) = store put (syncable.id, syncable)
-  def delete(instanceId:String) = store -= instanceId
-  def update(change:ChangeDescription) = change match {
+  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = {
+    store get instanceId map {_.asInstanceOf[Pickled[T]]}    
+  }
+  
+  def update(change:DataChange, tx:Transaction) = change match {
     case created:CreatedChange[_] => 
-      // TODO change CreatedChange to deserialize the object
-      withGetId(created.target) {put}
+      store += (created.target.instanceId -> created.pickled)
+    case prop:PropertyChange =>
+      throw new NotYetImplemented
+    case deleted:DeletedChange =>
+      throw new NotYetImplemented
     case _ => // other changes should already be applied to objects in RAM
   }
   
   def deleteContents() {
-    for {(_, syncable) <- store} {
-      if (syncable.partition == this) {
-        log.trace("deleting: %s", syncable)
-        delete(syncable.id)
-        SyncManager.instanceCache.remove(syncable)
-      }      
+    for {(id, pickled) <- store} {
+      log.trace("deleting: %s", pickled)
+      store -= (id)
     }
   }
 

@@ -5,12 +5,11 @@ import SyncManager.newBlankSyncable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 
-class Pickler {
-}
 
 object Pickled {
-  def apply[T <: Syncable](reference:SyncableReference, properties:Map[String, SyncableValue]) =
-    new Pickled[T](reference, properties)
+  def apply[T <: Syncable](reference:SyncableReference, version:String,
+      properties:Map[String, SyncableValue]) =
+    new Pickled[T](reference, version, properties)
   
   def apply[T <: Syncable](syncable:T):Pickled[T] = {
     val ref = SyncableReference(syncable)
@@ -22,21 +21,24 @@ object Pickled {
       props + (prop -> syncValue)
     }
     
-    Pickled(ref, Map.empty ++ props)
+    Pickled(ref, syncable.version, Map.empty ++ props)
   } 
-  
+    
 }
 
-
-class Pickled[T <: Syncable](val reference:SyncableReference, val properties:Map[String,SyncableValue]) 
+// CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
+class Pickled[T <: Syncable](val reference:SyncableReference, val version:String,
+    val properties:Map[String,SyncableValue]) 
   extends LogHelper {
   val log = Logger("Pickled")
   
   def unpickle:T = {
     val syncable:T = newBlankSyncable(reference.kind, reference.id) 
     val classAccessor = SyncableAccessor.get(syncable.getClass)
-    for ((propName, value) <- properties) {
-      classAccessor.set(syncable, propName, unpickleValue(value.value))
+    Observers.withNoNotice {
+      for ((propName, value) <- properties) {
+        classAccessor.set(syncable, propName, unpickleValue(value.value))
+      }
     }
     
     syncable

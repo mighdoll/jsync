@@ -47,13 +47,15 @@ class PublishedRoots(partition:Partition) {
     val ids = SyncableIdentity(nameToId(name), partition)
     val published = 
       SyncManager.setNextId.withValue(ids) {
-	    SyncManager.currentPartition.withValue(partition) {
-	      new PublishedRoot(normalize(name), root)
-	    }
+      SyncManager.currentPartition.withValue(partition) {
+        new PublishedRoot(normalize(name), root)
       }
+    }
     
-    log 
-    partition.put(published)
+    // TODO fix this when we make the SyncManager pools per connection (and per partition?)
+    val change = new CreatedChange(SyncableReference(published),
+      Pickled(published), VersionChange(published.version, published.version))
+    partition.withTransaction {partition.update(change)} 
   }
     
   /** create a dynamic subscription, that calls a function to produce */
@@ -80,9 +82,10 @@ class PublishedRoots(partition:Partition) {
     val normalName = normalize(name)
     partition get nameToId(name) match { 
       case Some(root:PublishedRoot) => 
-        assert (normalize(name) == root.name)
-        log.trace("findPersistent() found: %s", name)
-        Some(root.root)
+        throw new NotYetImplemented // weird compile error
+//        assert (normalize(name) == root.name)
+//        log.trace("findPersistent() found: %s", name)
+//        Some(root.root)
       case Some(x) => 
         log.error("PublishedRoots.find() found unexpected object type: " + x)
         throw new ImplementationError

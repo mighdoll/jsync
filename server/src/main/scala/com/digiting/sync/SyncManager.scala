@@ -75,7 +75,11 @@ object SyncManager extends LogHelper {
       partition <- Partitions.get(change.target.partitionId) orElse 
         err("partition not found for change: %s", change.toString)
     } {
-      partition.update(change)
+      change match {
+        case dataChange:DataChange =>
+          partition.update(dataChange)
+        case _ =>
+      }
     }
   }
   
