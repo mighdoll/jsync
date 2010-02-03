@@ -23,7 +23,7 @@ object Pickled {
     
     Pickled(ref, syncable.version, Map.empty ++ props)
   } 
-    
+
 }
 
 // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
@@ -40,8 +40,19 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
         classAccessor.set(syncable, propName, unpickleValue(value.value))
       }
     }
+    syncable match {
+      case collection:SyncableCollection =>
+        loadMembers(collection)
+      case _ =>
+    }
+    SyncManager.instanceCache put syncable
     
     syncable
+  }
+  
+  private def loadMembers(collection:SyncableCollection) {
+    // fetch a list of member references from the partition, and load each member object
+    throw new NotYetImplemented
   }
   
   private def boxValue(value:Any):AnyRef = {
@@ -64,4 +75,15 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
       case other => boxValue(other)
     }
   }
+  
+  /** return a new Pickled with the change applied */
+  def update(propChange:PropertyChange):Pickled[T] = {
+    if (propChange.versions.old != version) {
+      log.warning("update() versions don't match.  changed.old=%s current=%s", 
+        propChange.versions.old, version)
+    }
+    val updatedProperties = properties + (propChange.property -> propChange.newValue)
+    new Pickled(reference, propChange.versions.current, updatedProperties)
+  }
+  
 }

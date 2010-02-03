@@ -15,7 +15,7 @@
 
 package com.digiting.sync
 
-import collection._
+import scala.collection._
 import com.digiting.sync.aspects.Observable
 import com.digiting.sync.syncable._
 import com.digiting.util.DynamicOnce
@@ -70,16 +70,37 @@ object SyncManager extends LogHelper {
 
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
-    for {
-      change <- changes
-      partition <- Partitions.get(change.target.partitionId) orElse 
-        err("partition not found for change: %s", change.toString)
-    } {
-      change match {
-        case dataChange:DataChange =>
-          partition.update(dataChange)
-        case _ =>
+    val dataChanges = 
+      for {
+        change <- changes
+        dataChange <- matchDataChange(change)
+        partition <- Partitions.get(change.target.partitionId) orElse 
+          err("partition not found for change: %s", change.toString)
+      } yield {
+        (dataChange, partition)
       }
+    
+    // sort changes by partition
+    val partitions = new mutable.HashMap[Partition, mutable.Set[DataChange]] 
+      with mutable.MultiMap[Partition, DataChange]
+    dataChanges foreach { case (dataChange, partition) => 
+      partitions add(partition, dataChange) 
+    }
+
+    // transaction boundary within each partition
+    partitions foreach { case (partition, dataChanges) =>
+      partition.withTransaction {
+        dataChanges foreach {change =>
+          partition.update(change)
+        }
+      }
+    }
+  }
+  
+  private def matchDataChange(change:ChangeDescription):Option[DataChange] = {
+    change match {
+      case dataChange:DataChange => Some(dataChange)
+      case _ => None
     }
   }
   
@@ -180,7 +201,8 @@ object SyncManager extends LogHelper {
   def get(ids:SyncableId):Option[Syncable] = {
     instanceCache get(ids.partitionId, ids.instanceId) orElse {
       Partitions.get(ids.partitionId) orElse {
-        err("no partition found for: %s", ids.toString)} flatMap {partition =>
+        err("no partition found for: %s", ids.toString)
+      } flatMap {partition =>
         partition get ids.instanceId map {found =>
           instanceCache put found
           found
@@ -188,7 +210,6 @@ object SyncManager extends LogHelper {
       }
     }
   }
-  
 
   /** build a syncable with a specified Id */
   private def constructSyncable(clazz:Class[Syncable], ids:SyncableIdentity):Option[Syncable] = {

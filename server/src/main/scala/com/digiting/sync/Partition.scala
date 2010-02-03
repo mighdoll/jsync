@@ -28,11 +28,6 @@ import scala.collection.mutable.ListBuffer
 object Partition {
   class Transaction {
     val id = RandomIds.randomUriString(8)
-    private[this] val changes = new ListBuffer[DataChange]
-    def +=(change:DataChange) {
-      changes += change
-    }
-    def updates:Iterable[DataChange] = changes.toList
   }
   class InvalidTransaction(message:String) extends Exception(message) {
     def this() = this("")
@@ -49,6 +44,7 @@ object Partition {
  */
 import Partition._
 abstract class Partition(val partitionId:String) {  
+  val log1 = Logger("Partition")
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   
   /** all CRUD operations should be called within a transaction */
@@ -69,17 +65,42 @@ abstract class Partition(val partitionId:String) {
   
   /** fetch an object or a collection */
   def get[T <: Syncable](instanceId:String):Option[T] = {
-    inTransaction {tx => 
-      for {
-        pickled:Pickled[_] <- get(instanceId, tx)
-        syncable = pickled.unpickle
-      } yield syncable.asInstanceOf[T]
+    withForcedTransaction {
+      val syncable = 
+        inTransaction {tx => 
+          for {
+            pickled:Pickled[_] <- get(instanceId, tx)
+            syncable = pickled.unpickle
+          } yield syncable.asInstanceOf[T]
+        }
+      syncable match {
+        case collection:SyncableCollection =>
+          throw new NotYetImplemented // need to load all the members
+        case _ => 
+      }
+      log1.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
+      syncable
+    }
+  }
+
+  /** create a single operation transaction if necessary */
+  private def withForcedTransaction[T](fn: =>T):T = {
+    currentTransaction value match {
+      case Some(_) => 
+        fn
+      case None =>
+        currentTransaction.withValue(Some(new Transaction)) {
+          fn
+        }        
     }
   }
   
   /** create, update or delete an object or a collection*/
   def update(change:DataChange):Unit  = {
-    inTransaction {tx => update(change, tx)}    
+    inTransaction {tx => 
+      log1.trace("#%s update(%s)", partitionId, change)
+      update(change, tx)
+    }    
   }
   
   /** subclass should implement */
@@ -97,13 +118,13 @@ abstract class Partition(val partitionId:String) {
         throw new InvalidTransaction("no current transaction")
     }
   }
-  
-  
+    
   /** name to object mapping of for well known objects in the partition.  The published
    * roots are persistent, so clients of the partition can use well known names to get
    * started with the partition data, w/o having to resort to querying, etc.
-   *
-   * (someday we may garbage collect objects that are not collected to these roots..)
+   * 
+   * objects in the partition that are not referenced directly or indirectly by one
+   * of these roots may be garbage collected by the partition.
    */
   val published = new PublishedRoots(this)
   
@@ -142,23 +163,32 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   val log = Logger("RamPartition")
-  val store = new mutable.HashMap[String, Pickled[_]]
+  val store = new mutable.HashMap[String, Pickled[Syncable]]
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
-  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = {
+  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = {    
     store get instanceId map {_.asInstanceOf[Pickled[T]]}    
   }
   
   def update(change:DataChange, tx:Transaction) = change match {
     case created:CreatedChange[_] => 
-      store += (created.target.instanceId -> created.pickled)
+      put(created.pickled)
     case prop:PropertyChange =>
-      throw new NotYetImplemented
+      get(prop.target.instanceId, tx) orElse {  
+        err("target of property change not found: %s", prop) 
+      } foreach {pickled =>
+        pickled.update(prop)
+        put(pickled)
+      }
     case deleted:DeletedChange =>
       throw new NotYetImplemented
     case _ => // other changes should already be applied to objects in RAM
   }
+  
+  private[this] def put[T <: Syncable](pickled:Pickled[T]) {
+    store += (pickled.reference.instanceId -> pickled.asInstanceOf[Pickled[Syncable]])
+  }  
   
   def deleteContents() {
     for {(id, pickled) <- store} {

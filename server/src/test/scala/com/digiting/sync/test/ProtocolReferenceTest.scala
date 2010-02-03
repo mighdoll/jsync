@@ -38,10 +38,11 @@ class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfter
   describe("JsonSync") {        
     it("should process references to objects within the transaction") {
       withTestEnvironment {
-        val resultMap = 
-          callService("ProtocolReferenceTestServer.serveTest", serveTestParameters) 
-        resultMap map {_.get("name") should be (Some("success"))} orElse
+        callService("ProtocolReferenceTestServer.serveTest", serveTestParameters) map {
+          _.get("name") should be (Some("success"))
+        } orElse {
           fail
+        }
       }
     }
   }

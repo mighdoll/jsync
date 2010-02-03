@@ -30,9 +30,13 @@ class ImplementationError(message:String) extends Exception(message) {
 object RandomIds {
   val random = new SecureRandom
   
-  /** random string using characters legal in a URI, and not using 
+  /** Random string using only characters legal in a URI, but not using 
    *  _, !, or ' which we reserve even though they are legal URI characters
    * Approximately 6 bits of randomness per character
+   *  
+   * from the uri spec: http://www.ietf.org/rfc/rfc2396.txt
+   *    unreserved  = alphanum | mark
+   *    mark        = "-" | "_" | "." | "!" | "~" | "*" | "'" | "(" | ")"
    */
   def randomUriString(length:Int):String = {    
     val legalChars = 
