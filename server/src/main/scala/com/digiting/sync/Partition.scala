@@ -207,7 +207,6 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
       seqMembers.insert(insertAt.target.instanceId, insertAt.newVal, insertAt.at)
     case removeAt:RemoveAtChange =>
       seqMembers.remove(removeAt.target.instanceId, removeAt.at)
-      throw new NotYetImplemented
     case putMap:PutMapChange =>
       throw new NotYetImplemented
     case removeMap:RemoveMapChange =>
