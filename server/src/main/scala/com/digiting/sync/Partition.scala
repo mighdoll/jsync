@@ -23,7 +23,11 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import SyncManager.withGetId
 import scala.collection.mutable.ListBuffer
-
+import scala.collection.mutable.Buffer
+import com.digiting.util.MultiBuffer
+import collection.mutable
+import collection.mutable.HashSet
+import scala.collection.mutable.MultiMap
 
 object Partition {
   class Transaction {
@@ -73,13 +77,14 @@ abstract class Partition(val partitionId:String) {
             syncable = pickled.unpickle
           } yield syncable.asInstanceOf[T]
         }
-      syncable match {
-        case collection:SyncableCollection =>
-          throw new NotYetImplemented // need to load all the members
-        case _ => 
-      }
       log1.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
       syncable
+    }
+  }
+  
+  def getSeqMembers(instanceId:String):Option[Seq[SyncableReference]] = {
+    withForcedTransaction {
+      inTransaction {tx => getSeqMembers(instanceId, tx)}
     }
   }
 
@@ -103,12 +108,11 @@ abstract class Partition(val partitionId:String) {
     }    
   }
   
-  /** subclass should implement */
+  /* subclass should implement these */
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
-  
-  /** subclass should implement */
   private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
-  
+  private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
+
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
     currentTransaction value match {
@@ -155,6 +159,7 @@ object TransientPartition extends FakePartition(".transient")
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def deleteContents() {}
   def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
+  def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
   def update(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
@@ -164,6 +169,10 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   val log = Logger("RamPartition")
   val store = new mutable.HashMap[String, Pickled[Syncable]]
+  val seqMembers = new mutable.HashMap[String, Buffer[SyncableReference]] 
+    with MultiBuffer[String, SyncableReference]
+  val setMembers = new mutable.HashMap[String, mutable.Set[SyncableReference]] 
+    with MultiMap[String, SyncableReference]
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
@@ -183,13 +192,36 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
       }
     case deleted:DeletedChange =>
       throw new NotYetImplemented
-    case _ => // other changes should already be applied to objects in RAM
+    case clear:ClearChange =>      
+      // we don't know the type of the target, so clear 'em all.  CONSIDER: should dataChange.target a SyncableReference?
+      seqMembers -= clear.target.instanceId
+      setMembers -= clear.target.instanceId
+    case put:PutChange =>
+      setMembers.add(put.target.instanceId, put.newVal)
+    case remove:RemoveChange =>
+      setMembers.remove(remove.target.instanceId, remove.oldVal)
+    case move:MoveChange =>
+      val moving = seqMembers.remove(move.target.instanceId, move.fromDex)
+      seqMembers.insert(move.target.instanceId, moving, move.toDex)
+    case insertAt:InsertAtChange =>
+      seqMembers.insert(insertAt.target.instanceId, insertAt.newVal, insertAt.at)
+    case removeAt:RemoveAtChange =>
+      seqMembers.remove(removeAt.target.instanceId, removeAt.at)
+      throw new NotYetImplemented
+    case putMap:PutMapChange =>
+      throw new NotYetImplemented
+    case removeMap:RemoveMapChange =>
+      throw new NotYetImplemented
   }
   
   private[this] def put[T <: Syncable](pickled:Pickled[T]) {
     store += (pickled.reference.instanceId -> pickled.asInstanceOf[Pickled[Syncable]])
-  }  
+  }
   
+  def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = {    
+    seqMembers get instanceId
+  }
+
   def deleteContents() {
     for {(id, pickled) <- store} {
       log.trace("deleting: %s", pickled)

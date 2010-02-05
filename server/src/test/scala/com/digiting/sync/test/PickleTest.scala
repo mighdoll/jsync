@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import com.digiting.sync.syncable.TestPrimitiveProperties
 import com.digiting.sync.syncable.TestTwoRefsObj
+import com.digiting.sync.syncable.TestNameObj
 import com.digiting.sync.test.ObserveUtil.withTestEnvironment
 
 @RunWith(classOf[JUnitRunner])

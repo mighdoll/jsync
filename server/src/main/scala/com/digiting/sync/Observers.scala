@@ -90,6 +90,7 @@ object Observers extends LogHelper {
           }
         case _ =>
     	    watchers.foreachValue(target) {watch =>  
+            log.trace("notify %s to %s", change, target)
     	      watch.changed(change)
           }        
       }

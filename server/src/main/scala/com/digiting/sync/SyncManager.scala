@@ -22,6 +22,8 @@ import com.digiting.util.DynamicOnce
 import scala.util.DynamicVariable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
+import scala.collection.mutable.Buffer
+import com.digiting.util.MultiBuffer
 
 /**
  * Some handy interfaces for creating and fetching syncable objects
@@ -77,20 +79,22 @@ object SyncManager extends LogHelper {
         partition <- Partitions.get(change.target.partitionId) orElse 
           err("partition not found for change: %s", change.toString)
       } yield {
+        log.info("commitTo found: %s", dataChange)
         (dataChange, partition)
       }
     
     // sort changes by partition
-    val partitions = new mutable.HashMap[Partition, mutable.Set[DataChange]] 
-      with mutable.MultiMap[Partition, DataChange]
+    val partitions = new mutable.HashMap[Partition, mutable.Buffer[DataChange]] 
+      with MultiBuffer[Partition, DataChange]
     dataChanges foreach { case (dataChange, partition) => 
-      partitions add(partition, dataChange) 
+      partitions append(partition, dataChange) 
     }
 
     // transaction boundary within each partition
     partitions foreach { case (partition, dataChanges) =>
       partition.withTransaction {
         dataChanges foreach {change =>
+          log.info("commitTo updating: %s", change)
           partition.update(change)
         }
       }

@@ -67,10 +67,10 @@ case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
 }
 
 /** add to a set*/
-case class PutChange(val target:SyncableId, newVal:SyncableId, versions:VersionChange) 
+case class PutChange(val target:SyncableId, newVal:SyncableReference, versions:VersionChange) 
   extends MembershipChange("put", newVal, null, versions)  
 /** remove from a set*/  
-case class RemoveChange(val target:SyncableId, oldVal:SyncableId, versions:VersionChange) 
+case class RemoveChange(val target:SyncableId, oldVal:SyncableReference, versions:VersionChange) 
   extends MembershipChange("remove", null, oldVal, versions) 
 
 /* remove from a seq*/
@@ -80,7 +80,7 @@ case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId,
   override def toString = (super.toString + " at:" + at)
 }
 /** add to a seq */
-case class InsertAtChange(val target:SyncableId, newVal:SyncableId, at:Int,
+case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:Int,
     versions:VersionChange) 
   extends MembershipChange("insertAt", newVal, null, versions) {
   
@@ -96,7 +96,7 @@ case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int,
 case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any, 
     versions:VersionChange) extends DataChange(versions)
 /** add/update to a map */
-case class UpdateMapChange(val target:SyncableId, newKey:Any, newValue:Any,
+case class PutMapChange(val target:SyncableId, newKey:Any, newValue:Any,
     versions:VersionChange) extends DataChange(versions)
 
 //       -----------------  watch set changes --------------------  

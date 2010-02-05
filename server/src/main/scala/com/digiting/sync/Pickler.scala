@@ -50,9 +50,33 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
     syncable
   }
   
+  /** load the membership list of this collection.  
+   * 
+   * We can assume the membership list
+   * is not loaded (although the member objects themselves may be loaded) because
+   * the collection object has just been unpickled.
+   */
   private def loadMembers(collection:SyncableCollection) {
+    collection match {
+      case seq:SyncableSeq[_] =>
+        val memberRefsOpt = 
+          Partitions.getMust(seq.fullId.partitionId).getSeqMembers(seq.fullId.instanceId)
+        Observers.withNoNotice {
+          for {
+            memberRefs <- memberRefsOpt
+            ref <- memberRefs 
+            member <- SyncManager.get(ref.id) orElse
+              err("loadMembers can't find target: %s", ref)
+            castSeq = seq.asInstanceOf[SyncableSeq[Syncable]]
+          } {            
+            castSeq += member
+          }
+        }
+      case set:SyncableSet[_] =>
+      case _ =>  
+        throw new NotYetImplemented
+    }
     // fetch a list of member references from the partition, and load each member object
-    throw new NotYetImplemented
   }
   
   private def boxValue(value:Any):AnyRef = {

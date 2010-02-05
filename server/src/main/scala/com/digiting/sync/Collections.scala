@@ -54,12 +54,12 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   
   def -=(elem:T) = {
     set -= elem
-    Observers.notify(new RemoveChange(fullId, elem.fullId, newVersion()));
+    Observers.notify(new RemoveChange(fullId, SyncableReference(elem), newVersion()));
   }
   
   def +=(elem:T) = {
     set += elem
-    val putChange = PutChange(fullId, elem.fullId, newVersion())
+    val putChange = PutChange(fullId, SyncableReference(elem), newVersion())
     log.trace("put: %s", putChange)
     Observers.notify(putChange);
   }
@@ -102,13 +102,13 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   
   def insert(index:Int, elem:T) = {
     list.insert(index, elem)
-    Observers.notify(new InsertAtChange(this.fullId, elem.fullId, index, newVersion()))
+    Observers.notify(InsertAtChange(this.fullId, SyncableReference(elem), index, newVersion()))
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    Observers.notify(new RemoveAtChange(this.fullId, index, origValue.fullId, newVersion()))    
+    Observers.notify(RemoveAtChange(this.fullId, index, origValue.fullId, newVersion()))    
   }
   
   def toStream = list.toStream
@@ -161,12 +161,12 @@ class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
 
   def -=(key:A) = {
     map -= key
-    Observers.notify(new RemoveMapChange(this.fullId, key, get(key), newVersion()))
+    Observers.notify(RemoveMapChange(this.fullId, key, get(key), newVersion()))
   }
   
   def update(key:A, value:B) = {
     map.update(key, value)
-    Observers.notify(new UpdateMapChange(this.fullId, key, value, newVersion() ))
+    Observers.notify(PutMapChange(this.fullId, key, value, newVersion() ))
   }
   
   def get(key:A):Option[B] = map get key
