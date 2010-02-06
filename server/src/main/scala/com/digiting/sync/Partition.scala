@@ -87,6 +87,11 @@ abstract class Partition(val partitionId:String) {
       inTransaction {tx => getSeqMembers(instanceId, tx)}
     }
   }
+  def getSetMembers(instanceId:String):Option[mutable.Set[SyncableReference]] = {
+    withForcedTransaction {
+      inTransaction {tx => getSetMembers(instanceId, tx)}
+    }
+  }
 
   /** create a single operation transaction if necessary */
   private def withForcedTransaction[T](fn: =>T):T = {
@@ -112,6 +117,7 @@ abstract class Partition(val partitionId:String) {
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
   private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
   private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
+  private[sync] def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]]
 
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
@@ -160,6 +166,7 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def deleteContents() {}
   def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
+  def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]] = None
   def update(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
@@ -219,6 +226,9 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = {    
     seqMembers get instanceId
+  }
+  def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]] = {    
+    setMembers get instanceId
   }
 
   def deleteContents() {

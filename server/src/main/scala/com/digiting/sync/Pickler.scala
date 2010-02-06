@@ -72,12 +72,27 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
             castSeq += member
           }
         }
-      case set:SyncableSet[_] =>
+      case set:SyncableSet[_] =>  // DRY with seq 
+        val memberRefsOpt = 
+          Partitions.getMust(set.fullId.partitionId).getSetMembers(set.fullId.instanceId)
+        Observers.withNoNotice {
+          for {
+            memberRefs <- memberRefsOpt
+            ref <- memberRefs 
+            member <- SyncManager.get(ref.id) orElse
+              err("loadMembers can't find target: %s", ref)
+            castSet = set.asInstanceOf[SyncableSet[Syncable]]
+          } {            
+            castSet += member
+          }
+        }
+        
       case _ =>  
         throw new NotYetImplemented
     }
     // fetch a list of member references from the partition, and load each member object
   }
+  
   
   private def boxValue(value:Any):AnyRef = {
     value match {                 // this triggers boxing converion

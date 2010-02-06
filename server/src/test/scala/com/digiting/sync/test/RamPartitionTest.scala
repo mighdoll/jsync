@@ -24,7 +24,31 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
           fail
         }
       }
-    }    
+    }
+    it("should store and retrieve a set") {
+      withTestFixture {
+        val s = new SyncableSet[TestNameObj]
+        s += new TestNameObj("Elle")
+        s += new TestNameObj("Janet")
+        SyncManager.instanceCache.commit()
+        cleanup() // reset the local instance pool
+        testPartition.get(s.fullId.instanceId) map {found:SyncableSet[TestNameObj] =>
+          var foundJanet, foundElle = false
+          found.size should be (2)
+          for {name <- found} {
+            if (name.name == "Elle") 
+              foundElle = true
+            else if (name.name == "Janet")
+              foundJanet = true;            
+          }
+          foundJanet should be (true)
+          foundElle should be (true)
+        } orElse {
+          fail
+        }
+      }
+    }
+    
   }
 }
 
