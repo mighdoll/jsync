@@ -12,8 +12,6 @@ import JE._
 import Helpers._
 import _root_.com.digiting.sync._
 import net.lag.logging.Logger
-import com.digiting.util.Configuration
-import com.digiting.sync.testServer.ClientTestApp
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -21,7 +19,6 @@ import com.digiting.sync.testServer.ClientTestApp
  */
 class Boot {
   def boot {
-    Configuration.initFromVariable("jsyncServerConfig")
     val log = Logger("Boot")
   
     log.info("starting Boot!")
@@ -64,7 +61,6 @@ class Boot {
     LiftRules.early.append(makeUtf8)
 
     LiftRules.dispatch.prepend(SyncRequestApi.dispatch)
-    ClientTestApp.init()
   }
 
     

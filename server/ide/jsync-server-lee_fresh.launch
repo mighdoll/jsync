@@ -10,7 +10,7 @@
 <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
 <listEntry value="org.eclipse.debug.ui.launchGroup.debug"/>
 </listAttribute>
-<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="RunWebApp"/>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="RunTestWebApp"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="jsync-server"/>
 <stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-javaagent:${resource_loc:/jsync-server}/lib/aspectjweaver-1.6.2.jar  -DjsyncServer_runMode=&quot;lee_fresh&quot; -DjsyncServerConfig=&quot;lee.conf&quot;"/>
 </launchConfiguration>

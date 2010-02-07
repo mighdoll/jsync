@@ -79,7 +79,6 @@ object SyncManager extends LogHelper {
         partition <- Partitions.get(change.target.partitionId) orElse 
           err("partition not found for change: %s", change.toString)
       } yield {
-        log.info("commitTo found: %s", dataChange)
         (dataChange, partition)
       }
     
@@ -94,7 +93,7 @@ object SyncManager extends LogHelper {
     partitions foreach { case (partition, dataChanges) =>
       partition.withTransaction {
         dataChanges foreach {change =>
-          log.info("commitTo updating: %s", change)
+          log.trace("commitTo updating: %s", change)
           partition.update(change)
         }
       }

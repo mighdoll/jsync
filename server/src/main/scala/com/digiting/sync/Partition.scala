@@ -165,7 +165,6 @@ abstract class Partition(val partitionId:String) {
 object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
-  def deleteContents() {}
   def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
   def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]] = None
@@ -173,6 +172,7 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def update(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
+  def deleteContents() {}
 }
 
 import collection.mutable.HashMap
