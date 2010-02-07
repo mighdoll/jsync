@@ -19,16 +19,19 @@ import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class AllSyncTests extends SuperSuite (
-  List(new ObservationTest, 
-       new SyncableTest,
-       new SyncableAccessorTest, 
-  	   new MultiMapTest,
-  	   new ParseTest,
-  	   new MigrationTest,
-  	   new ProtocolTest,
-       new ConfigurationTest,
-       new PickleTest,
-       new InstanceVersionTest,
-       new ProtocolReferenceTest)
+  List(
+    new ObservationTest, 
+    new ConfigurationTest,
+    new SyncableTest,
+    new SyncableAccessorTest, 
+    new MultiMapTest,
+    new ParseTest,
+    new MigrationTest,
+    new ProtocolTest,
+    new ProtocolReferenceTest,       
+    new PickleTest,
+    new InstanceVersionTest,
+    new RamPartitionTest
+    )
   ) 
 

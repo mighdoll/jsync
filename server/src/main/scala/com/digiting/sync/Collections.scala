@@ -17,6 +17,7 @@ package com.digiting.sync
 import collection._
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
+import java.io.Serializable
 
 /**
  * SyncableCollections are wrappers over collections with extensions to
@@ -151,45 +152,44 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def toList = list.toList
 }
 
-/** A collection of syncable objects 
- * Not fully implemented or tested
+/** A collection of syncable objects.  Keys are typically strings, values are Syncable.
  */
-class SyncableMap[A,B] extends mutable.Map[A,B] with SyncableCollection {
-  def kind = "$sync.map"
-  val map = new mutable.HashMap[A,B]
-  
+class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V] with SyncableCollection {
+  def kind = "$sync.stringMap"
+  val log = Logger("SyncableMap")
 
-  def -=(key:A) = {
-    map -= key
-    Observers.notify(RemoveMapChange(this.fullId, key, get(key), newVersion()))
+  override def update(key:K, value:V) {
+    key match {
+      case k:Syncable => throw new IllegalArgumentException
+      case _ =>
+    }
+    Observers.notify(PutMapChange(this.fullId, key, SyncableReference(value), newVersion() ))
+    super.update(key,value)
   }
   
-  def update(key:A, value:B) = {
-    map.update(key, value)
-    Observers.notify(PutMapChange(this.fullId, key, value, newVersion() ))
+  override def clear {
+    val members = syncableElements map {_.fullId}
+    Observers.notify(ClearChange(this.fullId, members, newVersion() ))
+    super.clear()
   }
   
-  def get(key:A):Option[B] = map get key
-  
-  def size = map size
+  override def removeEntry(key:K):Option[Entry] = {
+    val oldValue =  get(key) match {
+      case Some(v:Syncable) =>
+        SyncableReference(v)
+      case x =>
+        log.error("removeEntry() unexpected value type: " + x)
+        throw new InternalError
+    }
     
-  def elements = map elements
+    val result = super.removeEntry(key)
+    Observers.notify(RemoveMapChange(this.fullId, key, oldValue, newVersion()))
+    result
+  }
   
   def syncableElements:Seq[Syncable] = {
-    val set = new mutable.HashSet[Syncable]
-    for ((key,value) <- this) {
-      ifSyncable(key) map (set + _)
-      ifSyncable(value) map (set + _)
-    }
-    set.toList
+    throw new NotYetImplemented
   }
-
-  /** return Some(syncable) if the value is of type Syncable */
-  private def ifSyncable(value:Any):Option[Syncable] = {
-    value match {
-      case syncable:Syncable => Some(syncable)
-      case _ => None
-    }
-  }
-  
 }
+
+

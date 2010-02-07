@@ -21,13 +21,7 @@ import JsonObject._
 import collection.mutable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import SyncManager.withGetId
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Buffer
-import com.digiting.util.MultiBuffer
-import collection.mutable
-import collection.mutable.HashSet
-import scala.collection.mutable.MultiMap
+import java.io.Serializable
 
 object Partition {
   class Transaction {
@@ -87,9 +81,14 @@ abstract class Partition(val partitionId:String) {
       inTransaction {tx => getSeqMembers(instanceId, tx)}
     }
   }
-  def getSetMembers(instanceId:String):Option[mutable.Set[SyncableReference]] = {
+  def getSetMembers(instanceId:String):Option[Set[SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getSetMembers(instanceId, tx)}
+    }
+  }
+  def getMapMembers(instanceId:String):Option[Map[Serializable,SyncableReference]] = {
+    withForcedTransaction {
+      inTransaction {tx => getMapMembers(instanceId, tx)}
     }
   }
 
@@ -117,7 +116,8 @@ abstract class Partition(val partitionId:String) {
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
   private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
   private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
-  private[sync] def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]]
+  private[sync] def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]]
+  private[sync] def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]]
 
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
@@ -166,83 +166,11 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def deleteContents() {}
   def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
-  def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]] = None
+  def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]] = None
+  def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]] = None
   def update(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
-}
-
-
-class RamPartition(partId:String) extends Partition(partId) with LogHelper {
-  val log = Logger("RamPartition")
-  val store = new mutable.HashMap[String, Pickled[Syncable]]
-  val seqMembers = new mutable.HashMap[String, Buffer[SyncableReference]] 
-    with MultiBuffer[String, SyncableReference]
-  val setMembers = new mutable.HashMap[String, mutable.Set[SyncableReference]] 
-    with MultiMap[String, SyncableReference]
-  def commit(tx:Transaction) {}
-  def rollback(tx:Transaction) {}
-  
-  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = {    
-    store get instanceId map {_.asInstanceOf[Pickled[T]]}    
-  }
-  
-  def update(change:DataChange, tx:Transaction) = change match {
-    case created:CreatedChange[_] => 
-      put(created.pickled)
-    case prop:PropertyChange =>
-      get(prop.target.instanceId, tx) orElse {  
-        err("target of property change not found: %s", prop) 
-      } foreach {pickled =>
-        pickled.update(prop)
-        put(pickled)
-      }
-    case deleted:DeletedChange =>
-      throw new NotYetImplemented
-    case clear:ClearChange =>      
-      // we don't know the type of the target, so clear 'em all.  CONSIDER: should dataChange.target a SyncableReference?
-      seqMembers -= clear.target.instanceId
-      setMembers -= clear.target.instanceId
-    case put:PutChange =>
-      setMembers.add(put.target.instanceId, put.newVal)
-    case remove:RemoveChange =>
-      setMembers.remove(remove.target.instanceId, remove.oldVal)
-    case move:MoveChange =>
-      val moving = seqMembers.remove(move.target.instanceId, move.fromDex)
-      seqMembers.insert(move.target.instanceId, moving, move.toDex)
-    case insertAt:InsertAtChange =>
-      seqMembers.insert(insertAt.target.instanceId, insertAt.newVal, insertAt.at)
-    case removeAt:RemoveAtChange =>
-      seqMembers.remove(removeAt.target.instanceId, removeAt.at)
-    case putMap:PutMapChange =>
-      throw new NotYetImplemented
-    case removeMap:RemoveMapChange =>
-      throw new NotYetImplemented
-  }
-  
-  private[this] def put[T <: Syncable](pickled:Pickled[T]) {
-    store += (pickled.reference.instanceId -> pickled.asInstanceOf[Pickled[Syncable]])
-  }
-  
-  def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = {    
-    seqMembers get instanceId
-  }
-  def getSetMembers(instanceId:String, tx:Transaction):Option[mutable.Set[SyncableReference]] = {    
-    setMembers get instanceId
-  }
-
-  def deleteContents() {
-    for {(id, pickled) <- store} {
-      log.trace("deleting: %s", pickled)
-      store -= (id)
-    }
-  }
-
-  override def debugPrint() {
-    for {(_,value) <- store} {
-      log.info("  %s", value.toString)
-    }
-  }
 }
 
 import collection._

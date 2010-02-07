@@ -35,9 +35,9 @@ object Properties {
 /**
  * Reflection based access to a single property in a class
  */
-class PropertyAccessor(val name:String, setter:Method, getter:Method) {
+class PropertyAccessor(val name:String, getter:Method, setter:Method) {
   val log = Logger("PropertyAccessor")
-  log.trace("creating accessor: %s %s ", name, setter);
+  log.trace("creating accessor: %s %s %s", name, getter.getName, setter.getName);
   
   assert (name == Properties.propertySetterName(setter.getName).getOrElse(""))
   assert (setter.getParameterTypes.length == 1)
@@ -58,12 +58,10 @@ class PropertyAccessor(val name:String, setter:Method, getter:Method) {
  * currently defined as any scala getter/setter pair (value(), value_=()).
  * LATER limit properties to only certain getter/setters.
  */
-class ClassAccessor(clazz:Class[_], ignoreMethods:String=>Boolean) {
+class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) {
   val log = Logger("ClassAccessor")
   val propertyAccessors:mutable.Map[String, PropertyAccessor] = mutable.Map()
-  val referenceProperties:mutable.Set[PropertyAccessor] = mutable.Set()
-  
-  val theClass = clazz
+  val referenceProperties:mutable.Set[PropertyAccessor] = mutable.Set()  
   def set(target:AnyRef, property:String, value:AnyRef) = {
     propertyAccessors get property match {
       case Some(accessor) => accessor.set(target, value)
@@ -76,34 +74,75 @@ class ClassAccessor(clazz:Class[_], ignoreMethods:String=>Boolean) {
     for (prop <- referenceProperties) 
       yield prop.get(target).asInstanceOf[AnyRef]    
   }
-
-  // handy map of methods by name
-  val methods:mutable.Map[String, Method] = mutable.Map()
-  for (method <- clazz.getMethods) 
-    methods + (method.getName -> method)
-
-  // SCALA style how do organize this initialization code?
-
-  // walk through methods looking for setters
-  for (method <- clazz.getMethods) { 
-    val propertyNameOpt = Properties.propertySetterName(method.getName)
-    for (propertyName <- propertyNameOpt if !ignoreMethods(propertyName)) {
-      // find the matching getter too
-      val getterOpt = methods get propertyName
-      getterOpt match {
-        case Some(getter) => {
-          // create and save property accessor
-          val accessor = new PropertyAccessor(propertyName, method, getter)
-       
-          propertyAccessors + (propertyName -> accessor)
-          if (classOf[AnyRef].isAssignableFrom(accessor.propertyClass))
-            referenceProperties + accessor
-        }
-        case _ => log.warning("ignoring property: " + propertyName + " on class: " + 
-                             clazz.getName + ".  It has a setter, but no getter")
+  
+  import java.lang.reflect.Modifier.isStatic
+  private def syncableProperties:Seq[(String,Method,Method)] = {
+    val methodNames = {
+      val map = new mutable.HashMap[String,Method]()
+      clazz.getMethods foreach {method =>
+        map(method.getName) = method}
+      scala.collection.immutable.Map() ++ map
+    }
+    log.trace("syncableMethods.classes %s", clazz)
+    
+    for {
+      cls <- syncableClasses(clazz)
+      a = log.trace("syncableClass %s", cls)
+      setter <- cls.getDeclaredMethods
+      if (!isStatic(setter.getModifiers))
+      propertyName <- Properties.propertySetterName(setter.getName) if (!SyncableInfo.isReserved(propertyName))
+      a = log.trace("property %s", propertyName)
+      getter <- methodNames get propertyName orElse {
+        log.warning("ignoring property: %s on class: %s.  It has a setter, but no getter",
+          propertyName, cls)
+        None
       }
+    } yield {
+      log.trace("found property = %s ", propertyName)
+      (propertyName, getter, setter)
     }
   }
+    
+  /** classes that directly extend Syncable */
+  private def syncableClasses(cls:Class[_]):List[Class[_]] = {
+    cls match {
+      case null => Nil
+      case _ if cls.getInterfaces contains classOf[Syncable] =>
+        cls :: syncableClasses(cls.getSuperclass)
+      case _ =>
+      syncableClasses(cls.getSuperclass)        
+    }
+  }
+
+  // setup propertyAccessors and referenceProperties
+  syncableProperties foreach { case(propertyName, getter, setter) => 
+    val accessor = new PropertyAccessor(propertyName, getter, setter)
+    propertyAccessors + (propertyName -> accessor)
+    if (classOf[Syncable].isAssignableFrom(accessor.propertyClass))
+      referenceProperties + accessor    
+    accessor
+  }
+  
+//  // walk through methods looking for setters
+//  for (method <- clazz.getDeclaredMethods) { 
+//    val propertyNameOpt = Properties.propertySetterName(method.getName)
+//    for (propertyName <- propertyNameOpt if !ignoreMethods(propertyName)) {
+//      // find the matching getter too
+//      val getterOpt = methods get propertyName
+//      getterOpt match {
+//        case Some(getter) => {
+//          // create and save property accessor
+//          val accessor = new PropertyAccessor(propertyName, method, getter)
+//       
+//          propertyAccessors + (propertyName -> accessor)
+//          if (classOf[AnyRef].isAssignableFrom(accessor.propertyClass))
+//            referenceProperties + accessor
+//        }
+//        case _ => log.warning("ignoring property: " + propertyName + " on class: " + 
+//                             clazz.getName + ".  It has a setter, but no getter")
+//      }
+//    }
+//  }
 }
 
 /**
@@ -155,7 +194,7 @@ object Accessor {
    * @param base  object instance to scan for references
    */
   def observableReferences(obj:AnyRef):Seq[Syncable] = {
-    val refs = new mutable.ListBuffer[Syncable]()
+    val refs = new mutable.ListBuffer[Syncable]
     references(obj) foreach {_ match {
       case ref:Syncable => refs + ref
       case _ =>      
@@ -163,9 +202,6 @@ object Accessor {
     obj match {
       case collection:SyncableCollection => 
         refs ++ collection.syncableElements
-//        for (elem <- collection.syncableElements) {
-//          Console println ("observable element: " + elem)
-//        }
       case _ =>
     }
 

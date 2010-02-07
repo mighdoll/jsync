@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-
+import java.io.Serializable
 
 /** 
  * Subclases describe details of a change to an observable object or collection.
@@ -93,10 +93,10 @@ case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int,
 }
   
 /** remove from a map */
-case class RemoveMapChange(val target:SyncableId, oldKey:Any, oldValue:Any, 
+case class RemoveMapChange(val target:SyncableId, key:Serializable, oldValue:SyncableReference, 
     versions:VersionChange) extends DataChange(versions)
 /** add/update to a map */
-case class PutMapChange(val target:SyncableId, newKey:Any, newValue:Any,
+case class PutMapChange(val target:SyncableId, key:Serializable, newValue:SyncableReference,
     versions:VersionChange) extends DataChange(versions)
 
 //       -----------------  watch set changes --------------------  

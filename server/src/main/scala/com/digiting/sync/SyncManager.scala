@@ -131,7 +131,7 @@ object SyncManager extends LogHelper {
   def newSyncable(kind:Kind, ids:SyncableIdentity):Option[Syncable] = {
     metaAccessors.get(kind) match {
       case Some(meta) => 
-        constructSyncable(meta.theClass.asInstanceOf[Class[Syncable]], ids)
+        constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
       case None =>
         log.error("no server class found for kind: " + kind)
         constructLocalMapForSyncable(kind, ids)  // not currently tested or used
@@ -146,7 +146,7 @@ object SyncManager extends LogHelper {
     quietCreate.withValue(true) {
       migrations get VersionedKind(kind, kindVersion) match {
         case Some(meta) =>
-          constructSyncable(meta.theClass.asInstanceOf[Class[Syncable]], ids)
+          constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
         case _ =>  
           newSyncable(kind,ids)
       }

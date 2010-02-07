@@ -4,9 +4,11 @@ import SyncableInfo.isReserved
 import SyncManager.newBlankSyncable
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
+import java.io.Serializable
 
 
 object Pickled {
+  val log = Logger("Pickled")
   def apply[T <: Syncable](reference:SyncableReference, version:String,
       properties:Map[String, SyncableValue]) =
     new Pickled[T](reference, version, properties)
@@ -16,14 +18,14 @@ object Pickled {
     val props = new HashMap[String, SyncableValue]
     for {
       (prop, value) <- SyncableAccessor.properties(syncable) if !isReserved(prop)
+      a = log.trace("pickling %s: %s %s", syncable.fullId, prop, value)
       syncValue = SyncableValue.convert(value)
     } {
       props + (prop -> syncValue)
     }
     
     Pickled(ref, syncable.version, Map.empty ++ props)
-  } 
-
+  }
 }
 
 // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
@@ -42,7 +44,7 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
     }
     syncable match {
       case collection:SyncableCollection =>
-        loadMembers(collection)
+        installMembers(collection)
       case _ =>
     }
     SyncManager.instanceCache put syncable
@@ -56,43 +58,63 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
    * is not loaded (although the member objects themselves may be loaded) because
    * the collection object has just been unpickled.
    */
-  private def loadMembers(collection:SyncableCollection) {
-    collection match {
-      case seq:SyncableSeq[_] =>
-        val memberRefsOpt = 
-          Partitions.getMust(seq.fullId.partitionId).getSeqMembers(seq.fullId.instanceId)
-        Observers.withNoNotice {
-          for {
-            memberRefs <- memberRefsOpt
-            ref <- memberRefs 
-            member <- SyncManager.get(ref.id) orElse
-              err("loadMembers can't find target: %s", ref)
-            castSeq = seq.asInstanceOf[SyncableSeq[Syncable]]
-          } {            
-            castSeq += member
+  private def installMembers(collection:SyncableCollection) {
+    val partition = Partitions.getMust(collection.fullId.partitionId)
+    val instanceId = collection.fullId.instanceId
+    Observers.withNoNotice {
+      collection match {
+        case seq:SyncableSeq[_] =>
+          val castSeq = seq.asInstanceOf[SyncableSeq[Syncable]]
+          loadRefs(seq, partition.getSeqMembers(instanceId)) foreach {             
+            castSeq += _
           }
-        }
-      case set:SyncableSet[_] =>  // DRY with seq 
-        val memberRefsOpt = 
-          Partitions.getMust(set.fullId.partitionId).getSetMembers(set.fullId.instanceId)
-        Observers.withNoNotice {
-          for {
-            memberRefs <- memberRefsOpt
-            ref <- memberRefs 
-            member <- SyncManager.get(ref.id) orElse
-              err("loadMembers can't find target: %s", ref)
-            castSet = set.asInstanceOf[SyncableSet[Syncable]]
-          } {            
-            castSet += member
+        case set:SyncableSet[_] =>  // DRY with seq 
+          val castSet = set.asInstanceOf[SyncableSet[Syncable]]
+          loadRefs(set, partition.getSetMembers(instanceId)) foreach {             
+            castSet += _
           }
-        }
-        
-      case _ =>  
-        throw new NotYetImplemented
+        case map:SyncableMap[_,_] =>
+          val castMap = map.asInstanceOf[SyncableMap[Serializable, Syncable]]
+          loadMapRefs(map, partition.getMapMembers(instanceId)) foreach {
+            case (key, value) => castMap(key) = value
+          }
+        case _ =>  
+          throw new ImplementationError
+      }
     }
-    // fetch a list of member references from the partition, and load each member object
+  }
+
+  private def loadRefs(collection:SyncableCollection, 
+      refsOpt:Option[Iterable[SyncableReference]]):Iterable[Syncable] = {    
+    for {
+      ref <- ensureRefs(collection, refsOpt)
+      syncable <- SyncManager.get(ref.id) orElse
+        err("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
+    } yield 
+      syncable
   }
   
+  private def ensureRefs[T](collection:SyncableCollection, 
+      refsOpt:Option[Iterable[T]]):Iterable[T] = {
+    refsOpt match {
+      case Some(refs) => 
+        refs
+      case None => 
+        log.error("no member map found for collection: %s", collection.fullId)
+        Nil
+    }
+  }
+  
+  private def loadMapRefs(collection:SyncableCollection, 
+      refsOpt:Option[Map[Serializable,SyncableReference]]):Iterable[(Serializable,Syncable)] = {
+    for {
+      (key, ref) <- ensureRefs(collection, refsOpt)
+      syncable <- SyncManager.get(ref) orElse 
+        err("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
+    } yield {
+      (key, syncable)
+    }
+  }
   
   private def boxValue(value:Any):AnyRef = {
     value match {                 // this triggers boxing converion

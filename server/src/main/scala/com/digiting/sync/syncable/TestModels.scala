@@ -53,8 +53,8 @@ class TestPrimitiveProperties extends Syncable {
   var s:Short = _
   var i:Int = _
   var l:Long = _
-  var c:Char = _
   var t:Boolean = _
+  var c:Char = _
   var f:Float = _
   var d:Double = _
 }

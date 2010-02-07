@@ -23,6 +23,23 @@ trait MultiBuffer[K, V] extends HashMap[K, Buffer[V]] {
         this(key) = newBuf
         newBuf
     }    
+  }  
+}
+
+trait MapMap[K1, K,V] extends HashMap[K1, HashMap[K,V]] {
+  def update(mapKey:K1, tuple:Tuple2[K,V]) = {
+    getMap(mapKey) += tuple
   }
   
+  def remove(mapKey:K1, key:K) = {
+    getMap(mapKey) -= key
+  }
+  
+  private[this] def getMap(mapKey:K1):HashMap[K,V] = {
+    get(mapKey) getOrElse {
+      val newMap = new HashMap[K,V]
+      this(mapKey) = newMap
+      newMap
+    }
+  }
 }
