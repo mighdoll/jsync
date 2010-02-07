@@ -76,16 +76,21 @@ abstract class Partition(val partitionId:String) {
     }
   }
   
+  /** fetch members of a seq */
   def getSeqMembers(instanceId:String):Option[Seq[SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getSeqMembers(instanceId, tx)}
     }
   }
+  
+  /** fetch members of a set */
   def getSetMembers(instanceId:String):Option[Set[SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getSetMembers(instanceId, tx)}
     }
   }
+  
+  /** fetch members of a map */
   def getMapMembers(instanceId:String):Option[Map[Serializable,SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getMapMembers(instanceId, tx)}
@@ -112,7 +117,7 @@ abstract class Partition(val partitionId:String) {
     }    
   }
   
-  /* subclass should implement these */
+  /* subclasses should implement these */
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
   private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
   private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
@@ -149,11 +154,8 @@ abstract class Partition(val partitionId:String) {
   
   /** erase all of the data in the partition, including the PublishedRoots */
   def deleteContents():Unit
-
   
   Partitions.add(this)  // tell the manager about us
-  
-  // LATER make this is a transactional interface, see Partition2 for an early sketch
 }
 
 /** this is a trick to allow a simulated client to refer to a Partition instance 
@@ -173,10 +175,10 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def rollback(tx:Transaction) {}
 }
 
-import collection._
+import collection.mutable.HashMap
 object Partitions {
-  val log = Logger.get("Partitions")
-  val localPartitions = new mutable.HashMap[String,Partition]
+  val log = Logger("Partitions")
+  val localPartitions = new HashMap[String, Partition]    // Synchronize?
   def get(name:String):Option[Partition] = localPartitions get name
   def add(partition:Partition) = localPartitions += (partition.partitionId -> partition)
   
@@ -190,8 +192,6 @@ object Partitions {
   def remove(name:String) = {
     localPartitions -= name
   }
-  
-  add(new RamPartition("default"))	// CONSIDER don't really want a default partition do we?  is this needed?
-  
+    
   // LATER, create strategy for handling remote partitions
 }
