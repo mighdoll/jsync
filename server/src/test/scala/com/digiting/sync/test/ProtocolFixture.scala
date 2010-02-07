@@ -111,7 +111,7 @@ object ProtocolFixture extends LogHelper {
     // sync parameters
     syncs += toJsonMap(paramSeq)
     
-    val parameterRefsObs = parameters flatMap {Accessor.observableReferences(_) }
+    val parameterRefsObs = parameters flatMap {SyncableAccessor.observableReferences(_) }
     val parameterRefs = parameterRefsObs map {_.asInstanceOf[Syncable]}
     val deepParameters = new collection.mutable.HashSet[Syncable]()
     deepParameters ++= parameters

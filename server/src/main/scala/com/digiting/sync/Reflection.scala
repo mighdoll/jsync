@@ -41,7 +41,7 @@ class PropertyAccessor(val name:String, getter:Method, setter:Method) {
   
   assert (name == Properties.propertySetterName(setter.getName).getOrElse(""))
   assert (setter.getParameterTypes.length == 1)
-  val propertyClass:Class[_] = setter.getParameterTypes()(0)  // first parameter
+  val propertyClass:Class[_] = setter.getParameterTypes()(0)  // first parameter of setter is property type
 
   def set(target: AnyRef, value:AnyRef) = {
     log.trace("set()  (%s).%s[%s] = %s", target, name, propertyClass.getSimpleName, value)
@@ -122,27 +122,6 @@ class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) {
       referenceProperties + accessor    
     accessor
   }
-  
-//  // walk through methods looking for setters
-//  for (method <- clazz.getDeclaredMethods) { 
-//    val propertyNameOpt = Properties.propertySetterName(method.getName)
-//    for (propertyName <- propertyNameOpt if !ignoreMethods(propertyName)) {
-//      // find the matching getter too
-//      val getterOpt = methods get propertyName
-//      getterOpt match {
-//        case Some(getter) => {
-//          // create and save property accessor
-//          val accessor = new PropertyAccessor(propertyName, method, getter)
-//       
-//          propertyAccessors + (propertyName -> accessor)
-//          if (classOf[AnyRef].isAssignableFrom(accessor.propertyClass))
-//            referenceProperties + accessor
-//        }
-//        case _ => log.warning("ignoring property: " + propertyName + " on class: " + 
-//                             clazz.getName + ".  It has a setter, but no getter")
-//      }
-//    }
-//  }
 }
 
 /**
@@ -176,20 +155,8 @@ object SyncableAccessor {
     for (toProperty <- toClass.propertyAccessors.values) 
       yield (toProperty.name, toProperty.get(obj))
   }
-}
-
-
-/**
- * Cache of ClassAccessors and other convenience routines for working with scala 
- * classes and instances via reflection
- */
-object Accessor {
-  /* currently, this uses the SyncableAccessor.  This means that object
-     references to reserved Syncable fields are ignored.  Fine for me for now,
-     but LATER give this a separate cache if it's used for another purpose.  */
-  def references(obj:AnyRef):Iterable[AnyRef] = SyncableAccessor.references(obj)
   
-  /* Collect every reference to an Observable object directly from a given object
+    /* Collect every reference to an Observable object directly from a given object
    * 
    * @param base  object instance to scan for references
    */
@@ -208,7 +175,6 @@ object Accessor {
     refs.toSeq
   }      
 
-
 }
 
-/* LATER move the Syncable, isReserved stuff out of this file -- it should be generic.  */
+

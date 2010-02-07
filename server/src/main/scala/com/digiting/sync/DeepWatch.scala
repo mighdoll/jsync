@@ -18,7 +18,7 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import com.digiting.sync.aspects.Observable
 import Observers._
-import Accessor.observableReferences
+import SyncableAccessor.observableReferences
 import SyncManager.withGetId
 
 object DeepWatchDebug {
