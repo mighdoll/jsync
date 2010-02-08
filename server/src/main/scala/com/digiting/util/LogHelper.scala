@@ -15,9 +15,8 @@
 package com.digiting.util
 import net.lag.logging.Logger
 
-
 trait LogHelper {
-  val log:Logger
+  protected val log:Logger
   
   /* handy error logging in for comprehensions */ 
   def err[T](message:String, params:AnyRef*):Option[T] = {

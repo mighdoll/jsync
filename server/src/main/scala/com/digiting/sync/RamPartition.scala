@@ -15,13 +15,13 @@ import java.io.Serializable
 import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
-  val log = Logger("RamPartition")
-  val store = new HashMap[String, Pickled[Syncable]]
-  val seqMembers = new HashMap[String, Buffer[SyncableReference]] 
+  protected val log = Logger("RamPartition")
+  private val store = new HashMap[String, Pickled[Syncable]]
+  private val seqMembers = new HashMap[String, Buffer[SyncableReference]] 
     with MultiBuffer[String, SyncableReference]
-  val setMembers = new HashMap[String, Set[SyncableReference]] 
+  private val setMembers = new HashMap[String, Set[SyncableReference]] 
     with MultiMap[String, SyncableReference]
-  val mapMembers = new HashMap[String, HashMap[Serializable, SyncableReference]] 
+  private val mapMembers = new HashMap[String, HashMap[Serializable, SyncableReference]] 
     with MapMap[String, Serializable, SyncableReference]
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
