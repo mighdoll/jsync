@@ -84,6 +84,7 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
     }
   }
 
+  /** SOON parallel or batch load multiple objects from the backend for speedier loading from e.g. simpledb */
   private def loadRefs(collection:SyncableCollection, 
       refsOpt:Option[Iterable[SyncableReference]]):Iterable[Syncable] = {    
     for {

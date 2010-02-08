@@ -68,7 +68,7 @@ abstract class Partition(val partitionId:String) {
         inTransaction {tx => 
           for {
             pickled:Pickled[_] <- get(instanceId, tx)
-            syncable = pickled.unpickle
+            syncable = pickled.unpickle // loads referenced objects too
           } yield syncable.asInstanceOf[T]
         }
       log1.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
@@ -76,22 +76,22 @@ abstract class Partition(val partitionId:String) {
     }
   }
   
-  /** fetch members of a seq */
-  def getSeqMembers(instanceId:String):Option[Seq[SyncableReference]] = {
+  /** fetch members of a seq (for internal use by Pickled)*/
+  private[sync] def getSeqMembers(instanceId:String):Option[Seq[SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getSeqMembers(instanceId, tx)}
     }
   }
   
-  /** fetch members of a set */
-  def getSetMembers(instanceId:String):Option[Set[SyncableReference]] = {
+  /** fetch members of a set (for internal use by Pickled) */
+  private[sync] def getSetMembers(instanceId:String):Option[Set[SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getSetMembers(instanceId, tx)}
     }
   }
   
-  /** fetch members of a map */
-  def getMapMembers(instanceId:String):Option[Map[Serializable,SyncableReference]] = {
+  /** fetch members of a map (for internal use by Pickled) */
+  private[sync] def getMapMembers(instanceId:String):Option[Map[Serializable,SyncableReference]] = {
     withForcedTransaction {
       inTransaction {tx => getMapMembers(instanceId, tx)}
     }
