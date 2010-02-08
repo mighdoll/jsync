@@ -12,6 +12,7 @@ import JE._
 import Helpers._
 import _root_.com.digiting.sync._
 import net.lag.logging.Logger
+import com.digiting.sync.Start
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -19,9 +20,9 @@ import net.lag.logging.Logger
  */
 class Boot {
   def boot {
-    val log = Logger("Boot")
-  
+    val log = Logger("Boot")  
     log.info("starting Boot!")
+    Start.start()
 
     // where to search for snippets
     LiftRules.addToPackages("com.digiting.jsync-testServer")

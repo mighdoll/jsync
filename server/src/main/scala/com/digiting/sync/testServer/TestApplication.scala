@@ -12,7 +12,7 @@
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
  */
-package com.digiting.sync.test
+package com.digiting.sync.testServer
 import net.lag.logging.Logger
 import collection.mutable.ListBuffer
 

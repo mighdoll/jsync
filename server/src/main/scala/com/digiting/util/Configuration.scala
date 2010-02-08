@@ -23,15 +23,16 @@ import com.digiting.sync.ImplementationError
 /**
    * Access to a set of configuration data, typically stored in configgy .conf files.
    * 
-   * Uses a 'runMode' setting to select between configuration settings.
+   * Built on configgy, Configuration adds a few extra features:
    * 
-   * Selectively exports configuration settings to log4j (and eventually more, 
-   *  e.g. hibernate).
+   *   A configurable 'runMode' to select between configurations (e.g. debug vs. production).
    * 
-   * Allows overriding configuration for tests.
+   *   Set log4j log levels from configgy.  Useful when a library uses log4j.
    * 
-   * Allows setting configuration variables from java system properties, or from
-   * the OS environment.
+   *   A mechanism for temporarily overriding configuration for tests.
+   * 
+   *   Allows setting configuration variables from java system properties, or from
+   *   the OS environment.
    * 
    * Searches the following configuration maps in order:  
    *   withOverride (testing), 
@@ -46,12 +47,7 @@ import com.digiting.sync.ImplementationError
    *   runMode.key from .conf (configgy)
    *   key from .conf
    *   ...
-   * 
-   * 
-   * LATER consider using separate .conf files for each runMode, rather than
-   *   using sections in the same file
-   * LATER consider merging all attributes into one map, it would simplify the code.
-*/
+   */
 import net.lag.configgy.ConfigException
 import com.digiting.util.SystemConfig.getPropertyOrEnv
   
@@ -62,11 +58,6 @@ object Configuration extends LogHelper {
   var runMode:String = null
   var runModeMap:ConfigMap = null
   var configFile:String = "no-config-file-specified"
-
-  private def error[T](message:String, params:String*):Option[T] = {
-    log.error(message, params:_*)
-    None
-  }
 
   def reset() {
     Configgy.configureFromResource(configFile, this.getClass.getClassLoader)
@@ -96,8 +87,6 @@ object Configuration extends LogHelper {
     } map initFromFile
   }
   
-  private def init() {
-  }  
 
   /** apply our special sauce to each configuration element */
   private def processSettings() {
@@ -200,10 +189,10 @@ object Configuration extends LogHelper {
   
   /** get a configuration value or throw an exception */
   def apply(key:String):String = {
-	getString(key) match {
-	  case Some(string) => string
-      case None => throw new ConfigException("key: " + key + " not found")
-    }
+    getString(key) match {
+      case Some(string) => string
+        case None => throw new ConfigException("key: " + key + " not found")
+      }
   }
 
   /** property or environment variable name that sets the runmode for this application */
@@ -263,3 +252,8 @@ object Configuration extends LogHelper {
   
 }
 
+/*
+ * LATER consider using separate .conf files for each runMode, rather than
+ *   using sections in the same file
+ * LATER consider merging all attributes into one map, it would simplify the code.
+*/

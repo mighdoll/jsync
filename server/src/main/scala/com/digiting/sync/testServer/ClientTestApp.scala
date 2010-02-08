@@ -1,5 +1,4 @@
 package com.digiting.sync.testServer
-import com.digiting.sync.test.TestApplication
 import com.digiting.util.LogHelper
 import net.lag.logging.Logger
 import net.lag.logging.Logger

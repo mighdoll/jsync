@@ -23,6 +23,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonDSL._  
+import com.digiting.sync.testServer.TestApplication
 
 @RunWith(classOf[JUnitRunner])
 class ProtocolTest extends Spec with ShouldMatchers {

@@ -25,6 +25,7 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import com.digiting.sync.testServer.TestApplication
 
 @RunWith(classOf[JUnitRunner])
 class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfterAll {

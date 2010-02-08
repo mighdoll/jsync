@@ -28,6 +28,7 @@ import JsonObject.ImmutableJsonMap
 import SyncManager.withPartition
 import com.digiting.sync.syncable._
 import JsonMapParser.Reference
+import com.digiting.sync.testServer.TestApplication
 
 
 object ProtocolFixture extends LogHelper {
