@@ -8,7 +8,7 @@ import collection.mutable.HashSet
 import collection.mutable.Set
 import scala.collection.mutable.MultiMap
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util.{InifinispanCache, LogHelper}
 import scala.collection.immutable
 import java.io.Serializable
 
@@ -16,13 +16,15 @@ import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
-  private val store = new HashMap[String, Pickled[Syncable]]
+  private val store = new InifinispanCache[String, Pickled[Syncable]]
   private val seqMembers = new HashMap[String, Buffer[SyncableReference]] 
     with MultiBuffer[String, SyncableReference]
   private val setMembers = new HashMap[String, Set[SyncableReference]] 
     with MultiMap[String, SyncableReference]
   private val mapMembers = new HashMap[String, HashMap[Serializable, SyncableReference]] 
     with MapMap[String, Serializable, SyncableReference]
+
+  
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
