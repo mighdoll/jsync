@@ -7,18 +7,18 @@ import java.io.Serializable
 
 class InfinispanPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("InfinispanPartition")
-  private val store = new InifinispanCache[String, Pickled[Syncable]]
+  private val store = new InifinispanCache[String, Pickled]
 
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
 
-  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = {    
-    store get instanceId map {_.asInstanceOf[Pickled[T]]}    
+  def get(instanceId:String, tx:Transaction):Option[Pickled] = {    
+    store get instanceId 
   }
 
   def update(change:DataChange, tx:Transaction) = change match {
-    case created:CreatedChange[_] => 
+    case created:CreatedChange => 
       NYI()
 //      put(created.pickled)
     case prop:PropertyChange =>

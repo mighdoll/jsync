@@ -16,12 +16,14 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         s += new TestNameObj("Quinn")
         SyncManager.instanceCache.commit()
         cleanup() // reset the local instance pool
-        testPartition.get(s.fullId.instanceId) map {found:SyncableSeq[TestNameObj] =>
-          found.length should be (2)
-          found(0).name should be ("Gavin")
-          found(1).name should be ("Quinn")
-        } orElse {
-          fail
+        testPartition.get(s.fullId.instanceId) match {
+          case Some(found:SyncableSeq[_]) =>
+            val seq = found.asInstanceOf[SyncableSeq[TestNameObj]]
+            seq.length should be (2)
+            seq(0).name should be ("Gavin")
+            seq(1).name should be ("Quinn")
+          case _ =>
+            fail
         }
       }
     }
@@ -32,19 +34,21 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         s += new TestNameObj("Janet")
         SyncManager.instanceCache.commit()
         cleanup() // reset the local instance pool
-        testPartition.get(s.fullId.instanceId) map {found:SyncableSet[TestNameObj] =>
-          var foundJanet, foundElle = false
-          found.size should be (2)
-          for {name <- found} {
-            if (name.name == "Elle") 
-              foundElle = true
-            else if (name.name == "Janet")
-              foundJanet = true;            
-          }
-          foundJanet should be (true)
-          foundElle should be (true)
-        } orElse {
-          fail
+        testPartition.get(s.fullId.instanceId) match {
+          case Some(found:SyncableSet[_]) =>
+            val set = found.asInstanceOf[SyncableSet[TestNameObj]]
+            var foundJanet, foundElle = false
+            set.size should be (2)
+            for {name <- set} {
+              if (name.name == "Elle") 
+                foundElle = true
+              else if (name.name == "Janet")
+                foundJanet = true;            
+            }
+            foundJanet should be (true)
+            foundElle should be (true)
+          case _ =>
+            fail
         }
       }
     }
@@ -55,11 +59,13 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         s("j") = new TestNameObj("Janet")
         SyncManager.instanceCache.commit()
         cleanup() // reset the local instance pool
-        testPartition.get(s.fullId.instanceId) map {found:SyncableMap[String,TestNameObj] =>
-          found("e").name should be ("Elle")
-          found("j").name should be ("Janet")
-        } orElse {
-          fail
+        testPartition.get(s.fullId.instanceId) match {
+          case Some(found:SyncableMap[_,_]) =>
+            val map = found.asInstanceOf[SyncableMap[String,TestNameObj]]
+            map("e").name should be ("Elle")
+            map("j").name should be ("Janet")
+          case _ =>
+            fail
         }
       }
     }

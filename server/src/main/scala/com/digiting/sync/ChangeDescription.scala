@@ -50,8 +50,8 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
 }  
       
 /** create a new object.  */  // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
-case class CreatedChange[T <: Syncable](val target:SyncableReference,  
-    pickled:Pickled[T], versions:VersionChange) extends DataChange(versions)
+case class CreatedChange(val target:SyncableReference,  
+    pickled:Pickled, versions:VersionChange) extends DataChange(versions)
 
 /** delete an object. */
 case class DeletedChange(val target:SyncableReference, 

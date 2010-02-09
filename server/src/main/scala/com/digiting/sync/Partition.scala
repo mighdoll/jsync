@@ -62,14 +62,14 @@ abstract class Partition(val partitionId:String) {
   def rollback(transaction:Transaction)
   
   /** fetch an object or a collection */
-  def get[T <: Syncable](instanceId:String):Option[T] = {
+  def get(instanceId:String):Option[Syncable] = {
     withForcedTransaction {
       val syncable = 
         inTransaction {tx => 
           for {
-            pickled:Pickled[_] <- get(instanceId, tx)
-            syncable = pickled.unpickle // loads referenced objects too
-          } yield syncable.asInstanceOf[T]
+            pickled <- get(instanceId, tx)
+            syncable:Syncable = pickled.unpickle // loads referenced objects too
+          } yield syncable
         }
       log1.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
       syncable
@@ -119,7 +119,7 @@ abstract class Partition(val partitionId:String) {
   
   /* subclasses should implement these */
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
-  private[sync] def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]]
+  private[sync] def get(instanceId:String, tx:Transaction):Option[Pickled]
   private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
   private[sync] def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]]
   private[sync] def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]]
@@ -165,7 +165,7 @@ abstract class Partition(val partitionId:String) {
 object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
-  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = None
+  def get(instanceId:String, tx:Transaction):Option[Pickled] = None
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
   def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]] = None
   def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]] = None

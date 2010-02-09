@@ -15,7 +15,7 @@ import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
-  private val store = new HashMap[String, Pickled[Syncable]]
+  private val store = new HashMap[String, Pickled]
   private val seqMembers = new HashMap[String, Buffer[SyncableReference]] 
     with MultiBuffer[String, SyncableReference]
   private val setMembers = new HashMap[String, Set[SyncableReference]] 
@@ -27,13 +27,13 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
-  def get[T <: Syncable](instanceId:String, tx:Transaction):Option[Pickled[T]] = synchronized {    
-    store get instanceId map {_.asInstanceOf[Pickled[T]]}    
+  def get(instanceId:String, tx:Transaction):Option[Pickled] = synchronized {    
+    store get instanceId  
   }
   
   def update(change:DataChange, tx:Transaction) = synchronized {
     change match {
-      case created:CreatedChange[_] => 
+      case created:CreatedChange => 
         put(created.pickled)
       case prop:PropertyChange =>
         get(prop.target.instanceId, tx) orElse {  
@@ -67,8 +67,8 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     }
   }
   
-  private[this] def put[T <: Syncable](pickled:Pickled[T]) = synchronized {
-    store += (pickled.reference.instanceId -> pickled.asInstanceOf[Pickled[Syncable]])
+  private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
+    store += (pickled.reference.instanceId -> pickled)
   }
   
   def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = synchronized {    

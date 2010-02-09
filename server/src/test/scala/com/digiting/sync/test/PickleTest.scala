@@ -24,7 +24,7 @@ class PickleTest extends Spec with ShouldMatchers {
         prim.f = 2.3f
         prim.d = .1
         val pickled = Pickled(prim)
-        val prim2 = pickled.unpickle
+        val prim2:TestPrimitiveProperties = pickled.unpickle
         prim2.t should be (prim.t)
         prim2.b should be (prim.b)
         prim2.s should be (prim.s)
@@ -40,7 +40,7 @@ class PickleTest extends Spec with ShouldMatchers {
         val a = new TestTwoRefsObj
         a.ref1 = a
         a.ref2 = null
-        val b = Pickled(a).unpickle
+        val b:TestTwoRefsObj = Pickled(a).unpickle
         b.ref1 should be (b)
         b.ref2 should be (null)
       }

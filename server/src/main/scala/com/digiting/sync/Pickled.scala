@@ -25,9 +25,9 @@ object Pickled {
   val log = Logger("Pickled")
   def apply[T <: Syncable](reference:SyncableReference, version:String,
       properties:Map[String, SyncableValue]) =
-    new Pickled[T](reference, version, properties)
+    new Pickled(reference, version, properties)
   
-  def apply[T <: Syncable](syncable:T):Pickled[T] = {
+  def apply[T <: Syncable](syncable:T):Pickled = {
     val ref = SyncableReference(syncable)
     val props = new HashMap[String, SyncableValue]
     for {
@@ -37,18 +37,37 @@ object Pickled {
     } {
       props + (prop -> syncValue)
     }
+    syncable match {
+      case collection:SyncableCollection =>
+        // we don't pickle the member set the DataChange stream will contain collection add/put 
+        // operations separately.  So if we add the members here, we'd get duplicates.  
+        // is this right?  shouldn't this be called on an emtpy collection anyway?
+        new PickledCollection(ref, syncable.version, Map.empty ++ props, null)
+      case _ =>
+        Pickled(ref, syncable.version, Map.empty ++ props)
+    }
     
-    Pickled(ref, syncable.version, Map.empty ++ props)
   }
+}
+abstract class PickledMembers
+abstract class PickledSeqMembers extends Seq[SyncableReference]
+abstract class PickledSetMembers extends Set[SyncableReference]
+abstract class PickledMapMembers extends Map[Serializable,SyncableReference]
+
+class PickledCollection(ref:SyncableReference, 
+    ver:String, props:Map[String,SyncableValue], val members:PickledMembers) 
+    extends Pickled(ref,ver,props) {
+  protected val slog = Logger("PickledCollection")
+  
 }
 
 // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
-class Pickled[T <: Syncable](val reference:SyncableReference, val version:String,
+class Pickled(val reference:SyncableReference, val version:String,
     val properties:Map[String,SyncableValue]) 
-  extends LogHelper {
-  val log = Logger("Pickled")
+    extends LogHelper {
+  protected val log = Logger("Pickled")
   
-  def unpickle:T = {
+  def unpickle[T <: Syncable]:T = {
     val syncable:T = newBlankSyncable(reference.kind, reference.id) 
     val classAccessor = SyncableAccessor.get(syncable.getClass)
     Observers.withNoNotice {
@@ -153,7 +172,7 @@ class Pickled[T <: Syncable](val reference:SyncableReference, val version:String
   }
   
   /** return a new Pickled with the change applied */
-  def update(propChange:PropertyChange):Pickled[T] = {
+  def update(propChange:PropertyChange):Pickled = {
     if (propChange.versions.old != version) {
       log.warning("update() versions don't match.  changed.old=%s current=%s", 
         propChange.versions.old, version)
