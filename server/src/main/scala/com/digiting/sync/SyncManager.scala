@@ -82,13 +82,15 @@ object SyncManager extends LogHelper {
         (dataChange, partition)
       }
     
+    NYI()
+
     // sort changes by partition
-    val partitions = new mutable.HashMap[Partition, mutable.Buffer[DataChange]] 
-      with MultiBuffer[Partition, DataChange]
+    val partitions = MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
     dataChanges foreach { case (dataChange, partition) => 
       partitions append(partition, dataChange) 
     }
 
+  
     // transaction boundary within each partition
     partitions foreach { case (partition, dataChanges) =>
       partition.withTransaction {

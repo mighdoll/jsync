@@ -89,12 +89,17 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   }
 }
 
+object SyncableSeq {
+  def kind = "$sync.sequence"
+}
+
+import SyncableSeq._
 /** a collection of objects in sequential order.  
  * 
  * Not too worried about the API for now, this changes with scala 2.8
  */
 class SyncableSeq[T <: Syncable] extends SyncableCollection {
-  def kind = "$sync.sequence"
+  def kind = {SyncableSeq.kind}
   val list = new mutable.ArrayBuffer[T]
   
   def syncableElements:Seq[Syncable] = {

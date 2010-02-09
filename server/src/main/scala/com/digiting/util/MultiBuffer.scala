@@ -2,7 +2,7 @@ package com.digiting.util
 import collection.mutable.{Buffer, ListBuffer, HashMap}
 
 
-trait MultiBuffer[K, V] extends HashMap[K, Buffer[V]] {
+class MultiBuffer[K, V, S <: Seq[V]] extends HashMap[K, S] {
   def insert(key:K, value:V, at:Int) {
     buffer(key) insert(at, value)
   }
@@ -17,10 +17,11 @@ trait MultiBuffer[K, V] extends HashMap[K, Buffer[V]] {
   
   private[this] def buffer(key:K):Buffer[V] = {
     get(key) match {
-      case Some(found) => found
+      case Some(found) => 
+        found.asInstanceOf[Buffer[V]]
       case None =>
-        val newBuf= new ListBuffer[V]
-        this(key) = newBuf
+        val newBuf = new ListBuffer[V]
+        this(key) = newBuf.asInstanceOf[S]
         newBuf
     }    
   }  

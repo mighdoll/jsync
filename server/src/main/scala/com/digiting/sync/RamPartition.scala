@@ -16,8 +16,7 @@ import Partition._
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
   private val store = new HashMap[String, Pickled]
-  private val seqMembers = new HashMap[String, Buffer[SyncableReference]] 
-    with MultiBuffer[String, SyncableReference]
+  private val seqMembers = new MultiBuffer[String, SyncableReference, PickledSeqMembers]
   private val setMembers = new HashMap[String, Set[SyncableReference]] 
     with MultiMap[String, SyncableReference]
   private val mapMembers = new HashMap[String, HashMap[Serializable, SyncableReference]] 
@@ -28,7 +27,17 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   def rollback(tx:Transaction) {}
   
   def get(instanceId:String, tx:Transaction):Option[Pickled] = synchronized {    
-    store get instanceId  
+    store get instanceId map {found =>
+      found match {
+        case _ if found.reference.kind == SyncableSeq.kind =>
+          seqMembers get instanceId match {
+            case Some(members:PickledSeqMembers) => 
+              PickledCollection(found, members)
+            case _ => 
+              throw new ImplementationError
+          }
+      }
+    }
   }
   
   def update(change:DataChange, tx:Transaction) = synchronized {
