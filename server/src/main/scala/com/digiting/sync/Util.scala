@@ -27,6 +27,10 @@ class ImplementationError(message:String) extends Exception(message) {
   def this() = this("")
 }
 
+object NYI {
+  def apply() = throw new NotYetImplemented
+}
+
 object RandomIds {
   val random = new SecureRandom
   
