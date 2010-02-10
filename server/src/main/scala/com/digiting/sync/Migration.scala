@@ -24,12 +24,10 @@ trait Migration[T <: Syncable] extends Syncable {
  
   /** migrate this old instance to a current version one with the same id */
   def migrate:Syncable = {
-    val migrated = Observers.withNoNotice {
-      newSyncable(kind, SyncableIdentity(id, partition))
-    } getOrElse {
-      throw new ImplementationError("migrate() can't create syncable for kind: " + kind)
-    }
-    SyncManager.currentPartition.withValue(partition) { // new objects in copy should go in same partition
+    val migrated:Syncable = Observers.withNoNotice {
+      newSyncable(kind, SyncableId(partition.partitionId, id))
+    } 
+    SyncManager.withPartition(partition) { // new objects in copy should go in same partition
       copyTo(migrated.asInstanceOf[T])
     }
     _log.info("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 

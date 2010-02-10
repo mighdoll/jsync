@@ -36,7 +36,7 @@ class SyncableTest extends Spec with ShouldMatchers {
     it("should allow setting an id") {
       withTestEnvironment {
         val obj = 
-          SyncManager.setNextId.withValue(SyncableIdentity("foo", SyncManager.currentPartition.value)) {
+          SyncManager.withNextNewId(SyncableId(SyncManager.currentPartition.value.partitionId, "foo")) {
             new SyncableSet
           }
         obj.id should be ("foo")

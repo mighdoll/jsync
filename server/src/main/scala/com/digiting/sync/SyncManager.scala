@@ -48,7 +48,7 @@ object SyncManager extends LogHelper {
   val migrations = mutable.Map.empty[VersionedKind, ClassAccessor]
 
   // to force the id of the next created object (to instantiate remotely created objects)
-  val setNextId = new DynamicOnce[SyncableIdentity]
+  val setNextId = new DynamicOnce[SyncableId]
   
   // default partition for new objects
   val currentPartition = new DynamicVariable[Partition](null)	
@@ -117,7 +117,7 @@ object SyncManager extends LogHelper {
   }
   
   /** untested.  create a local JsonMap for*/
-  private def constructLocalMapForSyncable(kind:Kind, ids:SyncableIdentity):Option[SyncableJson] = {
+  private def constructLocalMapForSyncable(kind:Kind, ids:SyncableId):Option[SyncableJson] = {
     // handle case we're we don't have a server class registered 
     setNextId.withValue(ids) {
       val js = new SyncableJson()
@@ -127,13 +127,13 @@ object SyncManager extends LogHelper {
   }
   
   /** construct a new syncable instance in the specified partition with the specified class*/
-  def newSyncable(kind:Kind, ids:SyncableIdentity):Option[Syncable] = {
+  def newSyncable[T <: Syncable](kind:Kind, ids:SyncableId):T = {
     metaAccessors.get(kind) match {
       case Some(meta) => 
-        constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
+        constructSyncable(meta.clazz.asInstanceOf[Class[T]], ids)
       case None =>
         log.error("no server class found for kind: " + kind)
-        constructLocalMapForSyncable(kind, ids)  // not currently tested or used
+        NYI()
     }
   }
     
@@ -141,7 +141,7 @@ object SyncManager extends LogHelper {
    * does not send a creation notification to observers.
    * if the requested kindVersion is obsolete (due to Migration), then return the migrated-to type
    */
-  def newBlankSyncable(kind:Kind, kindVersion:String, ids:SyncableIdentity):Option[Syncable] = {
+  def newBlankSyncable(kind:Kind, kindVersion:String, ids:SyncableId):Syncable = {
     quietCreate.withValue(true) {
       migrations get VersionedKind(kind, kindVersion) match {
         case Some(meta) =>
@@ -155,7 +155,7 @@ object SyncManager extends LogHelper {
   def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
     val ident = SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId))
     quietCreate.withValue(true) {
-      (newSyncable(kind, ident) get).asInstanceOf[T]
+      newSyncable(kind, id).asInstanceOf[T]
     }
   }
 
@@ -215,9 +215,9 @@ object SyncManager extends LogHelper {
   }
 
   /** build a syncable with a specified Id */
-  private def constructSyncable(clazz:Class[Syncable], ids:SyncableIdentity):Option[Syncable] = {
-    setNextId.withValue(ids) {
-      Some(clazz.newInstance)
+  private def constructSyncable[T <: Syncable](clazz:Class[T], ids:SyncableId):T = {
+    withNextNewId(ids) {
+      clazz.newInstance
     }
   }
   
@@ -256,10 +256,16 @@ object SyncManager extends LogHelper {
     }      
   }
   
+  def withNextNewId[T](id:SyncableId)(fn: =>T):T = {
+    setNextId.withValue(id) {
+      fn
+    }
+  }
+  
   /** handy routine for making a temporary object, that will not be saved in a persistent partition */
   def withFakeObject[T](fn: => T):T = {
     creatingFake.withValue(true) {
-      setNextId.withValue(SyncableIdentity("fake", fakePartition)) {
+      withNextNewId(SyncableId(fakePartition.partitionId, "fake")) {
         fn
       }
     }
@@ -283,9 +289,14 @@ object SyncManager extends LogHelper {
      
   /** create the identity for a new object */
   def creating(syncable:Syncable):SyncableIdentity = {    
-	val id = setNextId.take() getOrElse SyncableIdentity(newSyncableId(), currentPartition.value)
-    log.trace("creating(): %s", id)
-    id
+    val identity = setNextId.take() match {
+      case Some(id) => 
+        SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId))
+      case None =>
+        SyncableIdentity(newSyncableId(), currentPartition.value)
+    }
+    log.trace("creating(): %s", identity)
+    identity
   }
   
   private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {

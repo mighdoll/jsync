@@ -207,7 +207,7 @@ object ProcessMessage extends LogHelper {
   /** find or create a local Syncable to match the received protocol object */
   private def localTarget(remote:JsonMap):Option[Syncable] = {
     remote match {
-      case JsonSyncableIdentity(ids) =>
+      case JsonSyncableId(ids) =>
         val kindOpt = matchOptString (remote get "$kind")
         kindOpt match { // sending '$kind' is our protocol clue to build a new object
           case Some(kind) =>
@@ -222,7 +222,7 @@ object ProcessMessage extends LogHelper {
   /** find an existing syncable with the ids specified in the local map */
   private def findLocalSyncable(json:JsonMap):Option[Syncable] = {
     for {
-      ids <- JsonSyncableIdentity.unapply(json) 
+      ids <- JsonSyncableId.unapply(json) 
       syncable <- SyncManager.get(ids)
     } yield {
         verifyKindsMatch(syncable, json)

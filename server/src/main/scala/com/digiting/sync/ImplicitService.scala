@@ -10,8 +10,8 @@ trait ImplicitServices extends AppContext {
   def createImplicitService[T <: Syncable](serviceName:String, messageClass:Class[T], 
                                            fn:(T)=>Unit):AppService3[T] = {
     log1.trace("createImplicitService: %s(%s)", serviceName, messageClass.getName)
-    val ids = new SyncableIdentity(serviceName, implicitPartition)
-    val messageQueue = SyncManager.setNextId.withValue(ids) {
+    val ids = new SyncableId(implicitPartition.partitionId, serviceName)
+    val messageQueue = SyncManager.withNextNewId(ids) {
       new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
     }
     

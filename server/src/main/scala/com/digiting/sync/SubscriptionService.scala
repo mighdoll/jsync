@@ -39,8 +39,8 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
   setup()
   
   private def setup() {
-    val ids = new SyncableIdentity("subscriptions", app.implicitPartition)
-    subscriptions = SyncManager.setNextId.withValue(ids) {
+    val ids = new SyncableId(app.implicitPartition.partitionId, "subscriptions")
+    subscriptions = SyncManager.withNextNewId(ids) {
       new SyncableSet[Syncable]
     }
     

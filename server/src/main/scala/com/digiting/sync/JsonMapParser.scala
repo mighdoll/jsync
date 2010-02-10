@@ -96,7 +96,7 @@ object JsonMapParser {
           elem <- insertMap get "elem" orElse
             err("elem not found")          
           elemMap <- toJsonMap(elem)
-          ids <- JsonSyncableIdentity.unapply(elemMap) orElse
+          ids <- JsonSyncableId.unapply(elemMap) orElse
             err("ids not found")          
           syncable <- SyncManager.get(ids) orElse
             err("syncable not found")          
@@ -137,8 +137,8 @@ object JsonMapParser {
   }
   
   
-  object JsonSyncableIdentity extends LogHelper {
-    val log = Logger("JsonSyncableIdentity")
+  object JsonSyncableId extends LogHelper {
+    val log = Logger("JsonSyncableId")
     
     /** get the instance and partition ids out of map.  If the partitionId isn't
       * specified, use the connections default partition.  
@@ -146,24 +146,24 @@ object JsonMapParser {
       * Note: relies on App.current to be valid in order to translate symbolic 
       * partition names like '.implicit'
       */
-    def unapply(json:JsonMap):Option[SyncableIdentity] = {
-      val foundIds:Option[SyncableIdentity] = 
+    def unapply(json:JsonMap):Option[SyncableId] = {
+      val foundIds:Option[SyncableId] = 
       matchOptString (json get "$id") match { 
         case Some(instanceId) => {
           matchOptString (json get "$partition") match {
             case Some(partitionId) if (partitionId == ".transient") => 
-              Some(SyncableIdentity(instanceId, App.current.value.get.transientPartition))
+              Some(SyncableId(App.current.value.get.transientPartition.partitionId, instanceId))
             case Some(partitionId) if (partitionId == ".implicit") => 
-              Some(SyncableIdentity(instanceId, App.current.value.get.implicitPartition))
+              Some(SyncableId(App.current.value.get.implicitPartition.partitionId, instanceId))
             case Some(partitionId) =>               
               Partitions get partitionId match {
-                case Some(partition) => Some(SyncableIdentity(instanceId, partition))
+                case Some(partition) => Some(SyncableId(partition.partitionId, instanceId))
                 case None => 
                   err("partition %s not found", partitionId)
               } 
             case None => 
               log.warning("no partition specified in: %s", toJson(json))
-              Some(SyncableIdentity(instanceId, App.current.value.get.defaultPartition))
+              Some(SyncableId(App.current.value.get.defaultPartition.partitionId, instanceId))
           }         
         }
         case None => err("id not found: %s", json.toString)
@@ -195,12 +195,12 @@ object JsonMapParser {
     * object references are encoded as $ref objects */
   object Reference extends LogHelper {
     val log = Logger("Reference")
-    def unapply(value:Any):Option[SyncableIdentity] = {
+    def unapply(value:Any):Option[SyncableId] = {
       for {
         jsonObj <- toJsonMap(value)
         refVal <- jsonObj get "$ref"
         refObj <- toJsonMap(refVal) 
-        ids <- JsonSyncableIdentity.unapply(refObj) orElse
+        ids <- JsonSyncableId.unapply(refObj) orElse
           err("can't parse syncable id from: ", refObj.toString)
       } yield {
         ids
@@ -226,7 +226,7 @@ import collection.mutable.ListBuffer
 
 object ReferencePatches extends LogHelper {
   val log = Logger("ReferencePatches")
-  case class ReferencePatch(referer:Syncable, field:String, targetId:SyncableIdentity) {
+  case class ReferencePatch(referer:Syncable, field:String, targetId:SyncableId) {
     override def toString = String.format("RefPatch %s.%s = %s", referer, field, targetId)
   }
   
@@ -240,7 +240,7 @@ object ReferencePatches extends LogHelper {
     patches
   }
   
-  def addReference(referer:Syncable, field:String, target:SyncableIdentity) {    
+  def addReference(referer:Syncable, field:String, target:SyncableId) {    
     val patch = ReferencePatch(referer,field,target)    
     log.trace("adding reference: %s", patch)
     references.value map {_ += patch} orElse

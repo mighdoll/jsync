@@ -44,13 +44,13 @@ class PublishedRoots(partition:Partition) {
    * clients can subscribe.  Any existing subscription at the same name will be
    * replaced */
   def create(name:String, root:Syncable) {    
-    val ids = SyncableIdentity(nameToId(name), partition)
+    val ids = SyncableId(partition.partitionId, nameToId(name))
     val published = 
-      SyncManager.setNextId.withValue(ids) {
-      SyncManager.currentPartition.withValue(partition) {
-        new PublishedRoot(normalize(name), root)
+      SyncManager.withNextNewId(ids) {
+        SyncManager.currentPartition.withValue(partition) {
+          new PublishedRoot(normalize(name), root)
+        }
       }
-    }
     
     // TODO fix this when we make the SyncManager pools per connection (and per partition?)
     val change = new CreatedChange(SyncableReference(published),

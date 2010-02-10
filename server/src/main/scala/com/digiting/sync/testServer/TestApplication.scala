@@ -32,6 +32,7 @@ object TestApplication {
           tests foreach { app.createImplicitServices(_) }
           app
       }
+      TestSubscriptions.init()
       registered = true
     }
   }

@@ -28,7 +28,7 @@ object TestData {
   def setup() {
 	testPartition = new RamPartition("test")
     val nameObj = 
-      SyncManager.setNextId.withValue(SyncableIdentity("#testName1", testPartition)) {
+      SyncManager.setNextId.withValue(SyncableId(testPartition.partitionId, "#testName1")) {
 	      new TestNameObj
       }
 
@@ -151,7 +151,7 @@ object TestData {
   }
   
   def moveSequenceChanged(change:ChangeDescription) {
-    log.debug("moveSequnceChanged: %s", change.toString)
+    log.trace("moveSequnceChanged: %s", change.toString)
     change match {
       case move:MoveChange if (change.source != "server-application") =>
         move.target.target foreach {moveSeq(_)}
