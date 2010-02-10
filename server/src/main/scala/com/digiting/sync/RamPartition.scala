@@ -9,43 +9,31 @@ import collection.mutable.Set
 import scala.collection.mutable.MultiMap
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import scala.collection.immutable
+import scala.collection.{mutable, immutable}
 import java.io.Serializable
 import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
   private val store = new HashMap[String, Pickled]
-  private val seqMembers = new MultiBuffer[String, SyncableReference, PickledSeqMembers]
-  private val setMembers = new HashMap[String, Set[SyncableReference]] 
-    with MultiMap[String, SyncableReference]
-  private val mapMembers = new HashMap[String, HashMap[Serializable, SyncableReference]] 
-    with MapMap[String, Serializable, SyncableReference]
-
   
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
   def get(instanceId:String, tx:Transaction):Option[Pickled] = synchronized {    
-    store get instanceId map {found =>
-      found match {
-        case _ if found.reference.kind == SyncableSeq.kind =>
-          seqMembers get instanceId match {
-            case Some(members:PickledSeqMembers) => 
-              PickledCollection(found, members)
-            case _ => 
-              throw new ImplementationError
-          }
-      }
-    }
+    val result = store get instanceId     
+    log.trace("get %s, found: %s", instanceId, result getOrElse "")
+    result
   }
   
   def update(change:DataChange, tx:Transaction) = synchronized {
+    val instanceId = change.target.instanceId
+    
     change match {
       case created:CreatedChange => 
         put(created.pickled)
       case prop:PropertyChange =>
-        get(prop.target.instanceId, tx) orElse {  
+        get(instanceId, tx) orElse {  
           err("target of property change not found: %s", prop) 
         } foreach {pickled =>
           pickled.update(prop)
@@ -53,26 +41,85 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         }
       case deleted:DeletedChange =>
         throw new NotYetImplemented
-      case clear:ClearChange =>      
-        // we don't know the type of the target, so clear 'em all.  CONSIDER: should dataChange.target a SyncableReference?
-        seqMembers -= clear.target.instanceId
-        setMembers -= clear.target.instanceId
-        mapMembers -= clear.target.instanceId
+      case clear:ClearChange => 
+        store get instanceId orElse {
+          err("update() ClearChange target not found: %s", clear.target)
+          throw new ImplementationError
+        } foreach {pickled =>
+          pickled match {
+            case pickledCollection:PickledCollection =>
+              val cleared = 
+                pickledCollection match {
+                  case seq:PickledSeq =>
+                    PickledSeq(pickled, PickledSeq.emptyMembers)
+                  case set:PickledSet =>
+                    PickledSet(pickled, PickledSet.emptyMembers)
+                  case map:PickledMap =>
+                    PickledMap(pickled, PickledMap.emptyMembers)
+                }
+              store(instanceId) = cleared
+            case _ =>
+              throw new ImplementationError
+          }
+        }
       case put:PutChange =>
-        setMembers.add(put.target.instanceId, put.newVal)
+        val set = expectSet(instanceId)
+        val revisedMembers = set.members + put.newVal
+        store(instanceId) = PickledSet(set, revisedMembers)
       case remove:RemoveChange =>
-        setMembers.remove(remove.target.instanceId, remove.oldVal)
-      case move:MoveChange =>
-        val moving = seqMembers.remove(move.target.instanceId, move.fromDex)
-        seqMembers.insert(move.target.instanceId, moving, move.toDex)
+        val set = expectSet(instanceId)
+        val revisedMembers = set.members - remove.oldVal
+        store(instanceId) = PickledSet(set, revisedMembers)
       case insertAt:InsertAtChange =>
-        seqMembers.insert(insertAt.target.instanceId, insertAt.newVal, insertAt.at)
+        val seq = expectSeq(instanceId)
+        val revisedMembers = seq.members.clone
+        revisedMembers insert(insertAt.at, insertAt.newVal)
+        store(instanceId) = PickledSeq(seq, revisedMembers)
       case removeAt:RemoveAtChange =>
-        seqMembers.remove(removeAt.target.instanceId, removeAt.at)
+        val seq = expectSeq(instanceId)
+        val revisedMembers = seq.members.clone
+        val moving = revisedMembers remove(removeAt.at)
+        store(instanceId) = PickledSeq(seq, revisedMembers)
+      case move:MoveChange =>
+        val seq = expectSeq(instanceId)
+        val revisedMembers = seq.members.clone
+        val moving = revisedMembers remove(move.fromDex)
+        revisedMembers insert(move.toDex, moving)
+        store(instanceId) = PickledSeq(seq, revisedMembers)
       case putMap:PutMapChange =>
-        mapMembers.update(putMap.target.instanceId, (putMap.key -> putMap.newValue))
+        val map = expectMap(instanceId)
+        val revisedMembers = map.members + (putMap.key -> putMap.newValue)
+        store(instanceId) = PickledMap(map, revisedMembers)
       case removeMap:RemoveMapChange =>
-        mapMembers.remove(removeMap.target.instanceId, removeMap.key)
+        val map = expectMap(instanceId)
+        val revisedMembers = map.members - removeMap.key
+        store(instanceId) = PickledMap(map, revisedMembers)
+    }
+  }
+  
+  private[this] def expectSeq(instanceId:String):PickledSeq = {
+    store get instanceId match {
+      case Some(pickledSeq:PickledSeq) => pickledSeq
+      case _ =>
+        err("can't find seq collection for: %s", instanceId)
+        throw new ImplementationError
+    }
+  }
+  
+  private[this] def expectSet(instanceId:String):PickledSet = {
+    store get instanceId match {
+      case Some(pickledSet:PickledSet) => pickledSet
+      case _ =>
+        err("can't find set collection for: %s", instanceId)
+        throw new ImplementationError
+    }
+  }
+  private[this] def expectMap(instanceId:String):PickledMap = {
+    store get instanceId match {
+      case Some(pickledMap:PickledMap) => pickledMap
+      case _ =>
+        err("can't find map collection for: %s", instanceId)
+        throw new ImplementationError
     }
   }
   
@@ -80,24 +127,12 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     store += (pickled.reference.instanceId -> pickled)
   }
   
-  def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = synchronized {    
-    seqMembers get instanceId 
-  }
-  def getSetMembers(instanceId:String, tx:Transaction):Option[immutable.Set[SyncableReference]] = synchronized {    
-    setMembers get instanceId map {mutableSet => immutable.Set() ++ mutableSet}
-  }
-  def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]] = synchronized {
-    mapMembers get instanceId map {mutableMap => immutable.Map() ++ mutableMap}
-  }
 
   def deleteContents() = synchronized {
     for {(id, pickled) <- store} {
       log.trace("deleting: %s", pickled)
       store -= (id)
     }
-    setMembers.clear
-    seqMembers.clear
-    mapMembers.clear
   }
 
   override def debugPrint() {

@@ -22,7 +22,6 @@ import java.io.Serializable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{mutable,immutable}
 
-
 object Pickled {
   val log = Logger("Pickled")
   def apply[T <: Syncable](reference:SyncableReference, version:String,
@@ -45,116 +44,130 @@ object Pickled {
     } {
       props + (prop -> syncValue)
     }
+    val pickledObj = Pickled(ref, syncable.version, Map.empty ++ props)
     syncable match {
       case collection:SyncableCollection => 
-        val members = 
-          collection match {
-            case seq:SyncableSeq[_]=>
-              assert (seq.list == null || seq.length == 0)
-              new immutable.Queue[SyncableReference] with PickledSeqMembers 
-            case set:SyncableSet[_] =>
-              assert (set.set == null || set.size == 0)
-              new immutable.HashSet[SyncableReference] with PickledSetMembers
-            case map:SyncableMap[_,_] =>
-              assert (map.size == 0)
-              new immutable.HashMap[Serializable, SyncableReference] with PickledMapMembers
-          }
-        new PickledCollection(ref, syncable.version, Map.empty ++ props, members)
-      case _ =>
-        Pickled(ref, syncable.version, Map.empty ++ props)
-    }
-    
+        collection match {
+          case seq:SyncableSeq[_]=>
+            assert (seq.list == null || seq.length == 0)
+            PickledSeq(pickledObj, PickledSeq.emptyMembers)
+          case set:SyncableSet[_] =>
+            assert (set.set == null || set.size == 0)
+            PickledSet(pickledObj, PickledSet.emptyMembers)
+          case map:SyncableMap[_,_] =>
+            assert (map.size == 0)
+            PickledMap(pickledObj, PickledMap.emptyMembers)
+        }
+      case _ => pickledObj
+    }    
   }
+  
 }
 
-sealed trait PickledMembers
-trait PickledSeqMembers extends PickledMembers with Seq[SyncableReference] 
-trait PickledSetMembers extends PickledMembers with Set[SyncableReference]
-trait PickledMapMembers extends PickledMembers with Map[Serializable,SyncableReference]
 
-object PickledCollection {
-  def apply(p:Pickled, members:PickledMembers) = {
-    new PickledCollection(p.reference, p.version, p.properties, members)
-  }
-}
+object LoadRefs extends LogHelper {
+  val log = Logger("LoadRefs")  
   
-class PickledCollection(ref:SyncableReference, 
-    ver:String, props:Map[String,SyncableValue], val members:PickledMembers) 
-    extends Pickled(ref,ver,props) {
-  protected val slog = Logger("PickledCollection")
-  
-  override def unpickle[T <: Syncable]:T = {
-    val collection:T = super.unpickle
-    val partition = Partitions.getMust(collection.fullId.partitionId)
-    val instanceId = collection.fullId.instanceId
-    Observers.withNoNotice {
-      collection match {
-        case seq:SyncableSeq[_] =>
-          val castSeq = seq.asInstanceOf[SyncableSeq[Syncable]]
-          loadRefs(seq, partition.getSeqMembers(instanceId)) foreach {             
-            castSeq += _
-          }
-        case set:SyncableSet[_] =>  // DRY with seq 
-          val castSet = set.asInstanceOf[SyncableSet[Syncable]]
-          loadRefs(set, partition.getSetMembers(instanceId)) foreach {             
-            castSet += _
-          }
-        case map:SyncableMap[_,_] =>
-          val castMap = map.asInstanceOf[SyncableMap[Serializable, Syncable]]
-          loadMapRefs(map, partition.getMapMembers(instanceId)) foreach {
-            case (key, value) => castMap(key) = value
-          }
-        case x =>
-          throw new ImplementationError("unexpected pickled type: " + x)
-      }
-    }
-    collection
-  }
-  
-  
-  /** SOON parallel or batch load multiple objects from the backend for speedier loading from e.g. simpledb */
-  private def loadRefs(collection:SyncableCollection, 
-      refsOpt:Option[Iterable[SyncableReference]]):Iterable[Syncable] = {    
+    /** SOON parallel or batch load multiple objects from the backend for speedier loading from e.g. simpledb */
+  def loadRefs(collection:SyncableCollection, 
+      refs:Iterable[SyncableReference]):Iterable[Syncable] = {    
     for {
-      ref <- ensureRefs(collection, refsOpt)
+      ref <- refs
       syncable <- SyncManager.get(ref.id) orElse
         err("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield 
       syncable
   }
   
-  private def ensureRefs[T](collection:SyncableCollection, 
-      refsOpt:Option[Iterable[T]]):Iterable[T] = {
-    refsOpt match {
-      case Some(refs) => 
-        refs
-      case None => 
-        log.error("no member map found for collection: %s", collection.fullId)
-        Nil
-    }
-  }
-  
-  private def loadMapRefs(collection:SyncableCollection, 
-      refsOpt:Option[Map[Serializable,SyncableReference]]):Iterable[(Serializable,Syncable)] = {
+  def loadMapRefs(collection:SyncableCollection, 
+      refs:Map[Serializable,SyncableReference]):Iterable[(Serializable,Syncable)] = {
     for {
-      (key, ref) <- ensureRefs(collection, refsOpt)
+      (key, ref) <- refs
       syncable <- SyncManager.get(ref) orElse 
         err("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield {
       (key, syncable)
     }
-  }
+  }        
+}
+import LoadRefs._
 
+trait PickledCollection
+
+object PickledSeq {
+  def apply(p:Pickled, members:mutable.Buffer[SyncableReference] ) = {
+    new PickledSeq(p.reference, p.version, p.properties, members)
+  }
+  val emptyMembers = new ArrayBuffer[SyncableReference] 
 }
 
-// CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
+object PickledSet {
+  def apply(p:Pickled, members:Set[SyncableReference]) = {
+    new PickledSet(p.reference, p.version, p.properties, members)
+  }
+  val emptyMembers = new immutable.HashSet[SyncableReference]
+}
+
+object PickledMap {
+  def apply(p:Pickled, members:Map[Serializable, SyncableReference]) = {
+    new PickledMap(p.reference, p.version, p.properties, members)
+  }
+  val emptyMembers = new immutable.HashMap[Serializable, SyncableReference] 
+}
+
+@serializable
+class PickledSeq(ref:SyncableReference, ver:String, 
+    props:Map[String,SyncableValue], val members:mutable.Buffer[SyncableReference]) 
+    extends Pickled(ref,ver,props) with PickledCollection {
+  override def unpickle:SyncableSeq[Syncable] = {
+    val seq = super.unpickle.asInstanceOf[SyncableSeq[Syncable]]
+    Observers.withNoNotice {
+      loadRefs(seq, members) foreach {             
+        seq += _
+      }
+    }
+    seq
+  }
+}
+    
+@serializable
+class PickledSet(ref:SyncableReference, ver:String, 
+    props:Map[String,SyncableValue], val members:Set[SyncableReference]) 
+    extends Pickled(ref,ver,props) with PickledCollection{
+  override def unpickle:SyncableSet[Syncable] = {
+    val set = super.unpickle.asInstanceOf[SyncableSet[Syncable]]
+    Observers.withNoNotice {
+      loadRefs(set, members) foreach {             
+        set += _
+      }
+    }
+    set
+  }
+}
+    
+@serializable
+class PickledMap(ref:SyncableReference, ver:String, 
+    props:Map[String,SyncableValue], val members:Map[Serializable, SyncableReference]) 
+    extends Pickled(ref,ver,props) with PickledCollection{
+  override def unpickle:SyncableMap[Serializable, Syncable] = {
+    val map = super.unpickle.asInstanceOf[SyncableMap[Serializable, Syncable]]
+    Observers.withNoNotice {
+      loadMapRefs(map, members) foreach {
+        case (key, value) => map(key) = value
+      }
+    }
+    map
+  }
+}
+    
+
+@serializable
 class Pickled(val reference:SyncableReference, val version:String,
-    val properties:Map[String,SyncableValue]) 
-    extends LogHelper {
+    val properties:Map[String, SyncableValue]) extends LogHelper {
   protected val log = Logger("Pickled")
   
-  def unpickle[T <: Syncable]:T = {
-    val syncable:T = newBlankSyncable(reference.kind, reference.id) 
+  def unpickle:Syncable = {
+    val syncable:Syncable = newBlankSyncable(reference.kind, reference.id) 
     val classAccessor = SyncableAccessor.get(syncable.getClass)
     Observers.withNoNotice {
       for ((propName, value) <- properties) {
@@ -165,13 +178,6 @@ class Pickled(val reference:SyncableReference, val version:String,
     
     syncable
   }
-  
-  /** load the membership list of this collection.  
-   * 
-   * We can assume the membership list
-   * is not loaded (although the member objects themselves may be loaded) because
-   * the collection object has just been unpickled.
-   */
   
   private def boxValue(value:Any):AnyRef = {
     value match {                 // this triggers boxing converion

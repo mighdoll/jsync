@@ -76,27 +76,6 @@ abstract class Partition(val partitionId:String) {
     }
   }
   
-  /** fetch members of a seq (for internal use by Pickled)*/
-  private[sync] def getSeqMembers(instanceId:String):Option[Seq[SyncableReference]] = {
-    withForcedTransaction {
-      inTransaction {tx => getSeqMembers(instanceId, tx)}
-    }
-  }
-  
-  /** fetch members of a set (for internal use by Pickled) */
-  private[sync] def getSetMembers(instanceId:String):Option[Set[SyncableReference]] = {
-    withForcedTransaction {
-      inTransaction {tx => getSetMembers(instanceId, tx)}
-    }
-  }
-  
-  /** fetch members of a map (for internal use by Pickled) */
-  private[sync] def getMapMembers(instanceId:String):Option[Map[Serializable,SyncableReference]] = {
-    withForcedTransaction {
-      inTransaction {tx => getMapMembers(instanceId, tx)}
-    }
-  }
-
   /** create a single operation transaction if necessary */
   private def withForcedTransaction[T](fn: =>T):T = {
     currentTransaction value match {
@@ -120,9 +99,6 @@ abstract class Partition(val partitionId:String) {
   /* subclasses should implement these */
   private[sync] def update(change:DataChange, tx:Transaction):Unit  
   private[sync] def get(instanceId:String, tx:Transaction):Option[Pickled]
-  private[sync] def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]]
-  private[sync] def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]]
-  private[sync] def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]]
 
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
@@ -166,9 +142,6 @@ object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:String, tx:Transaction):Option[Pickled] = None
-  def getSeqMembers(instanceId:String, tx:Transaction):Option[Seq[SyncableReference]] = None
-  def getSetMembers(instanceId:String, tx:Transaction):Option[Set[SyncableReference]] = None
-  def getMapMembers(instanceId:String, tx:Transaction):Option[Map[Serializable,SyncableReference]] = None
   def update(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}

@@ -82,10 +82,8 @@ object SyncManager extends LogHelper {
         (dataChange, partition)
       }
     
-    NYI()
-
     // sort changes by partition
-    val partitions = MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
+    val partitions = new MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
     dataChanges foreach { case (dataChange, partition) => 
       partitions append(partition, dataChange) 
     }
