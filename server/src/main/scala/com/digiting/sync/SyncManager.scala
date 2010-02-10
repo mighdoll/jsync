@@ -76,7 +76,7 @@ object SyncManager extends LogHelper {
       for {
         change <- changes
         dataChange <- matchDataChange(change)
-        partition <- Partitions.get(change.target.partitionId) orElse 
+        partition <- Partitions.get(change.target.partitionId.id) orElse 
           err("partition not found for change: %s", change.toString)
       } yield {
         (dataChange, partition)
@@ -153,7 +153,7 @@ object SyncManager extends LogHelper {
   }
   
   def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
-    val ident = SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId))
+    val ident = SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId.id))
     quietCreate.withValue(true) {
       newSyncable(kind, id).asInstanceOf[T]
     }
@@ -191,7 +191,7 @@ object SyncManager extends LogHelper {
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(ids:SyncableIdentity):Option[Syncable] = {
-    instanceCache get(ids.partition.partitionId, ids.instanceId) orElse {
+    instanceCache get(ids.partition.partitionId.id, ids.instanceId) orElse {
       ids.partition get ids.instanceId map {found =>
         instanceCache put found
         found
@@ -202,8 +202,8 @@ object SyncManager extends LogHelper {
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(ids:SyncableId):Option[Syncable] = {
-    instanceCache get(ids.partitionId, ids.instanceId) orElse {
-      Partitions.get(ids.partitionId) orElse {
+    instanceCache get(ids.partitionId.id, ids.instanceId) orElse {
+      Partitions.get(ids.partitionId.id) orElse {
         err("no partition found for: %s", ids.toString)
       } flatMap {partition =>
         partition get ids.instanceId map {found =>
@@ -291,7 +291,7 @@ object SyncManager extends LogHelper {
   def creating(syncable:Syncable):SyncableIdentity = {    
     val identity = setNextId.take() match {
       case Some(id) => 
-        SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId))
+        SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId.id))
       case None =>
         SyncableIdentity(newSyncableId(), currentPartition.value)
     }

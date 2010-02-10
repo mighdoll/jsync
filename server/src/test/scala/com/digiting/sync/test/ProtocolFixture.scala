@@ -121,7 +121,7 @@ object ProtocolFixture extends LogHelper {
     syncs ++= paramJsonMaps
     val parameterIds = parameters map {_.fullId}
 
-    var serviceQueueId = SyncableId(".implicit", serviceName)
+    var serviceQueueId = SyncableId(PartitionId(".implicit"), serviceName)
     val edits = 
       insertAts(paramSeq.fullId, parameterIds) :::
       insertAtToJsonMap(serviceQueueId, serviceCall.fullId, 0) :: Nil   

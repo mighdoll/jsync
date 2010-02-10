@@ -40,7 +40,7 @@ class SyncableTest extends Spec with ShouldMatchers {
             new SyncableSet
           }
         obj.id should be ("foo")
-        SyncManager.get(SyncManager.currentPartition.value.partitionId, "foo") should be (Some(obj))
+        SyncManager.get(SyncManager.currentPartition.value.partitionId.id, "foo") should be (Some(obj))
       } 
     }        
   }

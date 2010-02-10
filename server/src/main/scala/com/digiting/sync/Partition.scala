@@ -32,6 +32,10 @@ object Partition {
   }
 }
 
+case class PartitionId(val id:String) {
+  override def toString:String = id
+}
+
 /** A storage segment of syncable objects 
  * 
  * Put() and update() operations are asynchronous and eventually consistent.  
@@ -41,8 +45,9 @@ object Partition {
  * put() is called, the data is lost.
  */
 import Partition._
-abstract class Partition(val partitionId:String) {  
+abstract class Partition(val id:String) {  
   val log1 = Logger("Partition")
+  val partitionId = PartitionId(id)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   
   /** all CRUD operations should be called within a transaction */
@@ -124,7 +129,7 @@ abstract class Partition(val partitionId:String) {
   
   /** destory this partition and its contents */
   def deletePartition() {
-    Partitions.remove(partitionId)
+    Partitions.remove(partitionId.id)
     deleteContents()
   }
   
@@ -153,7 +158,7 @@ object Partitions {
   val log = Logger("Partitions")
   val localPartitions = new HashMap[String, Partition]    // Synchronize?
   def get(name:String):Option[Partition] = localPartitions get name
-  def add(partition:Partition) = localPartitions += (partition.partitionId -> partition)
+  def add(partition:Partition) = localPartitions += (partition.partitionId.id -> partition)
   
   def getMust(name:String):Partition = {
     get(name) getOrElse {

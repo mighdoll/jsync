@@ -211,7 +211,7 @@ object ProcessMessage extends LogHelper {
         val kindOpt = matchOptString (remote get "$kind")
         kindOpt match { // sending '$kind' is our protocol clue to build a new object
           case Some(kind) =>
-            SyncManager.newSyncable(kind, ids)          
+            Some(SyncManager.newSyncable(kind, ids))          
           case None =>
             SyncManager.get(ids)
         }    

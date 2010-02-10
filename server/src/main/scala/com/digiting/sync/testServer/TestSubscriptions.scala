@@ -6,11 +6,11 @@ package com.digiting.sync.testServer
  * of the published objects respond to client changes to enable round trip testing.
  */
 object TestSubscriptions {
-  val testPartition = new RamPartition("test")
+//  val testPartition = new RamPartition("test")
   
   def init() {}
   
-  SyncManager.withPartition(testPartition) {
-    
-  }
+//  SyncManager.withPartition(testPartition) {
+//    
+//  }
 }

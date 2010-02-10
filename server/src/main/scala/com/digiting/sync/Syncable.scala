@@ -61,7 +61,7 @@ trait Syncable extends Observable {
     }
   }
   
-  def shortCompositeId:String = partition.partitionId.take(4) + "/" + id.take(5)
+  def shortCompositeId:String = partition.partitionId.id.take(4) + "/" + id.take(5)
   def compositeId:String = fullId.toCompositeIdString
   
   /** return a shallow serialization of this instance */
@@ -109,7 +109,7 @@ object CompositeId {
   val compositeIdRegex = """([a-zA-Z0-9_\.]+)/(.*)""".r
   def toSyncableId(compositeId:String):Option[SyncableId] = {
     compositeIdRegex.unapplySeq(compositeId) match {
-      case Some(part :: id :: nil) => Some(SyncableId(part,id))
+      case Some(part :: id :: nil) => Some(SyncableId(PartitionId(part),id))
       case _ => None
     }
   }
@@ -120,40 +120,42 @@ import CompositeId.compositeIdRegex
 object SyncableId {
   def unapply(s:String):Option[SyncableId] = {
     compositeIdRegex.unapplySeq(s) match {
-      case Some(part :: id :: nil) => Some(SyncableId(part,id))
+      case Some(part :: id :: nil) => Some(SyncableId(PartitionId(part),id))
       case _ => None
     }
   }
-  def apply(partitionId:String, instanceId:String) = 
+  def apply(partitionId:PartitionId, instanceId:String) = 
     new SyncableId(partitionId, instanceId)
 }
 
-class SyncableId(val partitionId:String, val instanceId:String) {  
-  def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId)
+class SyncableId(val partitionId:PartitionId, val instanceId:String) {  
+  def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId.id)
   def toJson = JsonUtil.toJson(toJsonMap)
-  def toCompositeIdString = partitionId + "/" + instanceId
+  def toCompositeIdString = partitionId.id + "/" + instanceId
   override def toString = toCompositeIdString
   def target = SyncManager.get(this)
 }
 
 object SyncableReference {
-  def apply(pId:String, id:String, kind:SyncManager.Kind) =
-    new SyncableReference(pId, id, kind)
+  def apply(partitionId:String, instanceId:String, kind:SyncManager.Kind) = {
+    val id = SyncableId(PartitionId(partitionId), instanceId)
+    new SyncableReference(id, kind)    
+  }
   
   def apply(id:SyncableId) = {
-    withGetId(id) {obj => new SyncableReference(id.partitionId, id.instanceId, obj.kind)}
+    withGetId(id) {obj => 
+      new SyncableReference(id, obj.kind)
+    }
   }
   
   def apply(syncable:Syncable) = {
-    new SyncableReference(syncable.partition.partitionId, syncable.id, syncable.kind)
+    new SyncableReference(syncable.fullId, syncable.kind)
   }
 }
 
-class SyncableReference(partitionId:String, instanceId:String, val kind:SyncManager.Kind) 
-  extends SyncableId(partitionId, instanceId) {
-    
-  def id = SyncableId(partitionId, instanceId) 
-  override def toString = toCompositeIdString + "[" + kind + "]"
+class SyncableReference(val id:SyncableId, val kind:SyncManager.Kind) extends 
+  SyncableId(id.partitionId, id.instanceId) {
+  override def toString = id.toCompositeIdString + "[" + kind + "]"
 }
 
 /**
