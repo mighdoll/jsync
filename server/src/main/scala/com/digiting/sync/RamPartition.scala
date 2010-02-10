@@ -36,8 +36,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         get(instanceId, tx) orElse {  
           err("target of property change not found: %s", prop) 
         } foreach {pickled =>
-          pickled.update(prop)
-          put(pickled)
+          store(instanceId) = pickled.revise(prop)
         }
       case deleted:DeletedChange =>
         throw new NotYetImplemented

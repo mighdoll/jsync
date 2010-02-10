@@ -26,6 +26,21 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
   }
                                   
   describe("RamPartition") {
+    it("should store and modify a simple object") {
+      withTestFixture {
+        val s = new TestNameObj("Oleg")
+        SyncManager.instanceCache.commit()
+        s.name = "Huck"
+        SyncManager.instanceCache.commit()
+        cleanup() // reset the local instance pool
+        testPartition.get(s.fullId.instanceId) match {
+          case Some(found:TestNameObj) =>
+            found.name should be ("Huck")
+          case _ =>
+            fail
+        }
+      }
+    }
     it("should store and retrieve a seq") {
       withTestFixture {
         val s = commitTestSeq()

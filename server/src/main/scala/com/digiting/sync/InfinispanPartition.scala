@@ -26,7 +26,7 @@ class InfinispanPartition(partId:String) extends Partition(partId) with LogHelpe
       get(prop.target.instanceId, tx) orElse {  
         err("target of property change not found: %s", prop) 
       } foreach {pickled =>
-        pickled.update(prop)
+        pickled.revise(prop)
 //        put(pickled)
       }
     case deleted:DeletedChange =>

@@ -201,7 +201,7 @@ class Pickled(val reference:SyncableReference, val version:String,
   }
   
   /** return a new Pickled with the change applied */
-  def update(propChange:PropertyChange):Pickled = {
+  def revise(propChange:PropertyChange):Pickled = {
     if (propChange.versions.old != version) {
       log.warning("update() versions don't match.  changed.old=%s current=%s", 
         propChange.versions.old, version)
