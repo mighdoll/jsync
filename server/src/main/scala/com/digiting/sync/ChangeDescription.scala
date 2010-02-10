@@ -30,8 +30,6 @@ abstract class DataChange(val versionChange:VersionChange) extends ChangeDescrip
 
 case class VersionChange(val old:String, val current:String)
 
-abstract class WatchChange extends ChangeDescription
-
 /** changes to a collection's membership. */
 abstract class MembershipChange(val operation:String, 
   val newValue:SyncableId, val oldValue:SyncableId, versionChange:VersionChange) 
@@ -101,15 +99,18 @@ case class PutMapChange(val target:SyncableId, key:Serializable, newValue:Syncab
 
 //       -----------------  watch set changes --------------------  
 
-/* added to the DeepWatch  */
+abstract class WatchChange(val watcher:DeepWatch) extends ChangeDescription 
+
+/** added to the DeepWatch  */
 case class BeginWatch(val target:SyncableId, val newValue:SyncableId, 
-                      val watcher:AnyRef) extends WatchChange {
+    val watch:DeepWatch) extends WatchChange(watch) {
   override def toString = {super.toString + " newWatch: " + newValue + "  watcher: " + watcher}  
 }
-/* dropped from the DeepWatch  */
-case class EndWatch(val target:SyncableId, val oldValue:SyncableId) extends WatchChange
+/** dropped from the DeepWatch  */
+case class EndWatch(val target:SyncableId, val oldValue:SyncableId,
+    val watch:DeepWatch) extends WatchChange(watch) 
 
 /** initial state of a collection */      
-case class BaseMembership(val target:SyncableId, members:Seq[SyncableId]) 
-  extends WatchChange
+case class BaseMembership(val target:SyncableId, members:Seq[SyncableId], 
+    val watch:DeepWatch) extends WatchChange(watch) 
 

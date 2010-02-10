@@ -144,7 +144,7 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
     connectedSet - obj
     Observers.unwatch(obj, this)
  
-    watchFn(EndWatch(root.fullId, obj.fullId))
+    watchFn(EndWatch(root.fullId, obj.fullId, this))
  
     // update reference counts 
     for (ref <- observableReferences(obj)) 
@@ -174,7 +174,7 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
       case collection:SyncableCollection =>
         val elements = collection.syncableElementIds
         if (!elements.isEmpty)
-          watchFn(BaseMembership(collection.fullId, elements))
+          watchFn(BaseMembership(collection.fullId, elements, this))
       case _ =>                                           
     }
     

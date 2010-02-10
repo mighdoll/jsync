@@ -108,7 +108,7 @@ class ObservationTest extends Spec with ShouldMatchers {
               propCount += 1
             case BeginWatch(_,_,_) =>
               watchCount += 1
-            case EndWatch(_,_) =>
+            case EndWatch(_,_,_) =>
               unwatchCount += 1
             case _ =>
           }
@@ -131,7 +131,6 @@ class ObservationTest extends Spec with ShouldMatchers {
         set + name
         Observers.watchDeep(set, changed, changed, "test")	// two watch changes, one BaseMembership
         name.name = "Ben"	// one property change
-        Console println changes.mkString("\n")        
         changes.size should be (4)
       }
     }

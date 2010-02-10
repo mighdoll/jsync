@@ -65,7 +65,7 @@ object ProtocolReferenceTestServer extends LogHelper {
     App.withTransientPartition {
       ref.ref match {
         case name:TestNameObj if (name.name == "fred") =>
-          log.debug("test succeeded")
+          log.trace("test succeeded")
           new TestNameObj("success")
         case _ =>
           log.error("test failed")

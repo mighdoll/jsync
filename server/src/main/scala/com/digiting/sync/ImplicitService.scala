@@ -3,13 +3,13 @@ import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 
 trait ImplicitServices extends AppContext {
-  val log1 = Logger("ImplicitService")
+  val log1 = Logger("ImplicitServices")
   import java.lang.reflect.Method
   import com.digiting.sync.syncable.ServiceCall
   
   def createImplicitService[T <: Syncable](serviceName:String, messageClass:Class[T], 
                                            fn:(T)=>Unit):AppService3[T] = {
-    log1.info("createImplicitService: %s(%s)", serviceName, messageClass.getName)
+    log1.trace("createImplicitService: %s(%s)", serviceName, messageClass.getName)
     val ids = new SyncableIdentity(serviceName, implicitPartition)
     val messageQueue = SyncManager.setNextId.withValue(ids) {
       new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
