@@ -20,6 +20,7 @@ import _root_.net.liftweb.common.Empty
 import collection._	// CONSIDER importing mutable,immutable explicitly, watch out for wildcards, you might get implicits!
 import JsonObject._	// CONSIDER good style on SCALA placement: import types at the top, constants/methods near to the use
 import net.lag.logging.Logger
+import com.digiting.util._
 
 // CONSIDER making JsonMap it's own class (no explicit conversions, type alias for immutable, someday immutable view of mutable class?, changing in 2.8...)
 object JsonObject {

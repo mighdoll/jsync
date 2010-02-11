@@ -44,7 +44,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
       new SyncableSet[Syncable]
     }
     
-    Observers.watch(subscriptions, subscriptionsChanged, serviceName)
+    Observers.watch(subscriptions, serviceName, subscriptionsChanged)
   }
   
   private def subscriptionsChanged(change:ChangeDescription) {

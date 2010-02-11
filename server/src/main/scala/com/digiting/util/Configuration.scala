@@ -17,7 +17,6 @@ import net.lag.configgy._
 import net.lag.logging.Logger
 import scala.util.matching.Regex
 import scala.collection._
-import com.digiting.sync.ImplementationError
 
 
 /**

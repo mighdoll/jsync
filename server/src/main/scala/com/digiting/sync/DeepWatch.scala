@@ -167,7 +167,7 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
     log.trace("%d addObj: %s", debugId, obj)
     // start watching this object
     connectedSet + (obj -> 1); 			 
-    Observers.watch(obj, handleChanged, this)   
+    Observers.watch(obj, this, handleChanged)   
     
     watchFn(BeginWatch(root.fullId, obj.fullId, this))
     obj match {

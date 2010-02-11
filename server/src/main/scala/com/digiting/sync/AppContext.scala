@@ -16,6 +16,7 @@ package com.digiting.sync
 import net.lag.logging.Logger
 import scala.util.DynamicVariable
 import Receiver.ReceiveMessage
+import com.digiting.util._
 
 /** thread local access to the currently running app context */
 object App {
@@ -45,13 +46,17 @@ trait HasTransientPartition {
   
 }
 
-class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
+class GenericAppContext(connection:Connection) extends AppContext(connection) {
+  val appName = "generic-app-context"
+}
+
+abstract class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
 
 // CONSIDER -- the apps should probably be actors..
 // for now, we assume that each app context has one and only one connection
-class AppContext(val connection:Connection) extends HasTransientPartition {
+abstract class AppContext(val connection:Connection) extends HasTransientPartition {
   private val log = Logger("AppContext")
-  val appName = "server-application"
+  val appName:String
   override val transientPartition = new RamPartition(connection.connectionId)
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
@@ -99,9 +104,11 @@ class AppContext(val connection:Connection) extends HasTransientPartition {
   def withApp[T](fn: =>T):T = {
     App.current.withValue(Some(this)) {
       Observers.currentMutator.withValue(appName) {
-        val result = fn 
-        commit()  // commit changes to partitions and to subscribing clients
-        result
+        SyncManager.withPartition(transientPartition) { // by default create objects in the transient partition.
+          val result = fn 
+          commit()  // commit changes to partitions and to subscribing clients
+          result
+        }
       }
     }
   }

@@ -1,5 +1,5 @@
 package com.digiting.sync
-import com.digiting.util.{InifinispanCache, LogHelper}
+import com.digiting.util._
 import net.lag.logging.Logger
 import Partition._
 import collection.immutable

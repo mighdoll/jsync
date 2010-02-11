@@ -1,8 +1,7 @@
 package com.digiting.sync
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
-import com.digiting.util.MultiBuffer
-import com.digiting.util.MapMap
+import com.digiting.util._
 import collection.mutable.HashMap
 import collection.mutable.HashSet
 import collection.mutable.Set

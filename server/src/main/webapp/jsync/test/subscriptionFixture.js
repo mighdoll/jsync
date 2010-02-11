@@ -18,7 +18,7 @@
  * @param {function} subscribedFn - called when the subscription arrives 
  * @param {function} ?watchedFn - called when+if the server modifies the subscribed
  *   objects after noticing modifications made by the subscribedFn.  Allows for testing
- *   server repsonses.
+ *   server responses.
  * @param {function} ?subscribedAgainFn - if this function provided, the test fixture
  *   restarts the connection machine and then connects and resubscribes as if from a 
  *   newly connecting client, then calls the subscribedAgainFn.  Allows for testing

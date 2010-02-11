@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import com.digiting.util.LogHelper
+import com.digiting.util._
 import net.lag.logging.Logger
 import scala.collection.mutable.ListBuffer
 import SyncableInfo.isReserved

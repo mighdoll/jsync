@@ -20,6 +20,7 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import com.digiting.sync.testServer.TestContext
 
   
 @ImplicitServiceClass("SampleServices")
@@ -41,7 +42,7 @@ class ServicesTest extends Spec with ShouldMatchers {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should create implicit services") {
-      val app = new RichAppContext(new Connection("ServicesTest"))
+      val app = new TestContext(new Connection("ServicesTest"))
       app.createImplicitServices(SampleServices)      
     }
   }

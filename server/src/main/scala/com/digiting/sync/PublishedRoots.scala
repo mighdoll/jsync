@@ -16,7 +16,7 @@ package com.digiting.sync
 
 import net.lag.logging.Logger
 import collection.mutable.HashMap
-
+import com.digiting.util._
 
 /** An avalailable subscription within a partition.  
  *

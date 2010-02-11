@@ -47,6 +47,7 @@ object TestApplication {
 
 class TestContext(connection:Connection) extends RichAppContext(connection) {
   override val appVersion = TestApplication.appVersion
+  override val appName = "test-application-context"
 }
   
 

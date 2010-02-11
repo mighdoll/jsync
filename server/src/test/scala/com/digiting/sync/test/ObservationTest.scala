@@ -29,7 +29,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     it("should notice property change on an object") {
       withTestEnvironment {
         val obj = new TestNameObj
-        Observers.watch(obj, changed, this)
+        Observers.watch(obj, this, changed)
         obj.name = "MiloJ"  // should trigger an observable change
 
         assert (changes.length == 1)
@@ -39,7 +39,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     it("it should be able to defer notification") {
       withTestEnvironment {
         val ref = new TestRefObj
-        Observers.watch(ref, changed, "test")
+        Observers.watch(ref, "test", changed)
         Observers.pauseNotification {
           ref.ref = ref
           changes.size should be (0)

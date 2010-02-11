@@ -1,6 +1,6 @@
 package com.digiting.sync
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util._
 
 trait ImplicitServices extends AppContext {
   val log1 = Logger("ImplicitServices")

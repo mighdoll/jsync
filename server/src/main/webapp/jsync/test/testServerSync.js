@@ -86,27 +86,27 @@ test("sync.modifyOneName", function() {
 
 /** subscribe and then modify a server set, server makes modification too, 
  * client sees both client and server objects in the set. */
-test("sync.bothModifyTwoSet", function() {
+test("sync.duplicatingSet", function() {
   var uniqueName = "time-" + $sync.util.now();
   var connection, connection2;  
   var ourName;
   
   expect(3);
-  withTestSubscription("twoSet", modify, undefined, verify);
+  withTestSubscription("duplicatingSet", modify, verify);
   
   function modify(twoSet) {
 	  ourName = $sync.test.nameObj();
 	  ourName.name_(uniqueName);	
 	  	
-      // modify the name and send it to the server
-	  twoSet.clear();
+      // add a name and send it to the server
     twoSet.put(ourName);
   }
     
-  function verify(twoSet) {
-	var foundSelf, foundServerChange;
-	
-    ok(twoSet.size() === 2);
+    // server should have duplicated the change
+  function verify(change) {
+    var twoSet = change.target;
+    var foundSelf, foundServerChange;	
+    ok(twoSet.size() === 2);  
     twoSet.each(function(elem) {
       if (elem.name === uniqueName) {
         foundSelf = true;
@@ -117,14 +117,14 @@ test("sync.bothModifyTwoSet", function() {
     });
     ok(foundSelf);
     ok(foundServerChange);
-  }    
+  } 
 });
 
 /** modify an object reference and add a new object containing a reference
- *  on both cliet and server */
+ *  on both client and server */
 test("sync.modifyReference", function() {
-  expect(2);
   var newRef;
+  expect(2);
 
   withTestSubscription("modifyReference", modify, changed);
   

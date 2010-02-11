@@ -17,7 +17,7 @@ import scala.collection.mutable.HashMap
 import SyncableInfo.isReserved
 import SyncManager.newBlankSyncable
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util._
 import java.io.Serializable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.{mutable,immutable}

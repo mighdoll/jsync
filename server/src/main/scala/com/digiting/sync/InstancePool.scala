@@ -52,7 +52,7 @@ class WatchedPool(name:String) {
   def put(syncable:Syncable) = {
     log.ifTrace("put" + syncable)
     localObjects put (key(syncable), syncable)
-    Observers.watch(syncable, changeNoticed, this)
+    Observers.watch(syncable, this, changeNoticed)
   }
 
   /** called when any object in the pool is change */

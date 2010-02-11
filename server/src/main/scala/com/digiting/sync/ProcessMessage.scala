@@ -17,7 +17,7 @@ import net.lag.logging.Logger
 import net.lag.logging.Level._
 import com.digiting.sync.syncable._
 import JsonUtil._
-import com.digiting.util.LogHelper
+import com.digiting.util._
 import collection.mutable.ListBuffer
 import JsonMapParser._
 import com.digiting.sync.JsonObject.JsonMap

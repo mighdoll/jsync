@@ -109,7 +109,7 @@ object Observers extends LogHelper {
 
     
   /* Register a function to be called when an object is changed.  */
-  def watch(obj:Syncable, fn:DataChangeFn, watchClass:Any) {
+  def watch(obj:Syncable, watchClass:Any, fn:DataChangeFn) {
     log.trace("watch: %s by %s", obj, watchClass)
     watchers + (obj, Watcher(fn, watchClass))
   }

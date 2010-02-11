@@ -20,7 +20,7 @@ import scala.actors.Actor._
 import JsonObject._
 import collection.mutable
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util._
 import java.io.Serializable
 
 object Partition {
@@ -122,7 +122,14 @@ abstract class Partition(val id:String) {
    * objects in the partition that are not referenced directly or indirectly by one
    * of these roots may be garbage collected by the partition.
    */
-  val published = new PublishedRoots(this)
+  private[sync] val published = new PublishedRoots(this)
+  
+  def publish(publicName:String, root:Syncable) {
+    published.create(publicName, root)
+  }
+  def publishGenerator(publicName:String, generator: ()=>Option[Syncable]) {
+    published.createGenerated(publicName, generator)
+  }
   
   /** debug utility, prints contents to log */
   def debugPrint() {}

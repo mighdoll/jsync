@@ -19,6 +19,7 @@ import actors.Actor._
 import actors.Actor
 import net.lag.logging.Logger
 import RandomIds.randomUriString
+import com.digiting.util._
 
 /**
  * Maintains a collection of active connections from clients to this

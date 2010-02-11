@@ -84,7 +84,7 @@ object Applications extends LogHelper {
       case None =>
         log.warning("using generic AppContext, because no application context is defined for message: %s, sent to: %s",
           message.toJson, syncPath mkString("/"))
-        new AppContext(connection)
+        new GenericAppContext(connection)
     }
   }
   

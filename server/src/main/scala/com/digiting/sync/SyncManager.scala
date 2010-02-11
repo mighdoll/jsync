@@ -18,12 +18,10 @@ package com.digiting.sync
 import scala.collection._
 import com.digiting.sync.aspects.Observable
 import com.digiting.sync.syncable._
-import com.digiting.util.DynamicOnce
+import com.digiting.util._
 import scala.util.DynamicVariable
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
 import scala.collection.mutable.Buffer
-import com.digiting.util.MultiBuffer
 
 /**
  * Some handy interfaces for creating and fetching syncable objects

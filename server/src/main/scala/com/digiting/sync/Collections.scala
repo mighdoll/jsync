@@ -18,6 +18,7 @@ import collection._
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
 import java.io.Serializable
+import com.digiting.util._
 
 /**
  * SyncableCollections are wrappers over collections with extensions to

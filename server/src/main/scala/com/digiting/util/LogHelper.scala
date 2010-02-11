@@ -30,5 +30,11 @@ trait LogHelper {
     Left(errorMessage)
   }
   
+  def abort(message:String, params:AnyRef*) = {
+    val errorMessage = String.format(message, params:_*)
+    log.error(errorMessage)
+    throw new ImplementationError(errorMessage)
+  }
+  
 }
 
