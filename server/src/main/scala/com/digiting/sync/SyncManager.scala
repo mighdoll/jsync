@@ -111,7 +111,6 @@ object SyncManager extends LogHelper {
     metaAccessors.clear
     registerSyncableKinds()
     setNextId.set(None)
-    TestData.setup()  // SOON, move this to test application
   }
   
   /** untested.  create a local JsonMap for*/
