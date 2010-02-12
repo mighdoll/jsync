@@ -88,7 +88,7 @@ function matchSequenceNames(seq, matchArray) {
   }		
 }
 
-test("sync.serverSequence.addReferencedSeqeunce", function() {
+test("sync.serverSequence.addReferencedSequence", function() {
   withTestSubscription("addReferencedSequence", addElement, verify);
   
   function addElement(ref) {

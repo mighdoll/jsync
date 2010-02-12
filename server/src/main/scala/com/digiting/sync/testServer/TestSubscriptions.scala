@@ -41,7 +41,7 @@ object TestSubscriptions extends LogHelper {
       addReferencedSequence()
     }
   }
-  
+  /** client views a single object */
   def oneName() {
     val id = SyncableId(testPartition.partitionId, "#testName1")
     val name = SyncManager.withNextNewId(id) {
@@ -50,19 +50,22 @@ object TestSubscriptions extends LogHelper {
     testPartition.publish("oneName", name)        
   }
   
+  /** client views a single set */
   def oneSet() {
     val set = new SyncableSet[Syncable]
     set += TestNameObj("mercer")
     testPartition.publish("oneSet", set)
   }
   
+  /** client modifis a simple object */
   def modifyOneName() {
     testPartition.publish("modifyOneName", new TestNameObj)
   }
 
-  /** modify reference chain:
-   * root -> clientNewRef -> root   
-   * root -> serverNewRef -> clientNewRef -> root
+  /** client and server modify objects that refer to each other.
+   * server: root ->
+   * client: root -> clientNewRef -> root   
+   * server: root -> serverNewRef -> clientNewRef -> root
    */
   def modifyReference() {
     def modify(change:DataChange) {
@@ -84,6 +87,7 @@ object TestSubscriptions extends LogHelper {
     })    
   }
   
+  /** server adds an object to a set when the client adds an object */
   def duplicatingSet() {
     def duplicate(set:SyncableSet[Syncable], change:DataChange) {
       partialMatch(change) {
@@ -107,6 +111,11 @@ object TestSubscriptions extends LogHelper {
     })  
   }
   
+  /** server and client insert and erase a sequence 
+    * server: a,b,c
+    * client: foo
+    * server: (chris,anya,brian), val, foo
+    */
   def sequence() {
     def modify(change:DataChange) {
       partialMatch(change) {        
@@ -125,8 +134,10 @@ object TestSubscriptions extends LogHelper {
     })
   }
   
+  /**
+   */
   def moveSequence() {    
-    generatedAbcSequence("moveSequence") {
+    abcMatch("moveSequence") {
       case move:MoveChange =>
         val seq:SyncableSeq[Syncable] = expectSome(move.target.target)
         seq.move(2, 0)
@@ -134,7 +145,7 @@ object TestSubscriptions extends LogHelper {
   }
   
   def removeSequence() {     
-    generatedAbcSequence("removeSequence") {
+    abcMatch("removeSequence") {
       case remove:RemoveAtChange =>
         val seq:SyncableSeq[Syncable] = expectSome(remove.target.target)
         seq.remove(1)
@@ -149,30 +160,28 @@ object TestSubscriptions extends LogHelper {
           val seq = new SyncableSeq[TestNameObj]
           seq += new TestNameObj("don't duplicate me")
           ref.ref = seq
-      }
+      }      
     }
-    
     testPartition.publishGenerator("addReferencedSequence", {() =>
       val ref = new TestRefObj    
       withForeignChange(ref, "addReferencedSequence") {modified}
       Some(ref)
-    })
-                                   
+    })                                   
   }
   
   
-  private def generatedAbcSequence[R](publicName:String)(pf:PartialFunction[DataChange,R]) {
-    def modified(change:DataChange) {
-      partialMatch(change)(pf)
-    }
-    
+  private def abcMatch[R](publicName:String)(pf:PartialFunction[DataChange,R]) {    
+    generateAbc(publicName) {partialMatch(_)(pf)}
+  }
+  
+  
+  private def generateAbc(publicName:String)(modifiedFn:(DataChange)=>Unit) {
     testPartition.publishGenerator(publicName, {() =>
       val seq = createNameSequence("a","b","c")
-      withForeignChange(seq, "generatedAbcSequence") {modified}
+      withForeignChange(seq, publicName) {modifiedFn}
       Some(seq)
     })        
   }
-  
   
   /* CONSIDER move this to util?  */
   def expectSome[T](opt:Option[_]):T = {
