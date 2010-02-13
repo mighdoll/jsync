@@ -19,7 +19,6 @@ import SyncManager.newBlankSyncable
 import net.lag.logging.Logger
 import com.digiting.util._
 import java.io.Serializable
-import scala.collection.mutable.ArrayBuffer
 import scala.collection.{mutable,immutable}
 
 object Pickled {
@@ -65,102 +64,6 @@ object Pickled {
 }
 
 
-object LoadRefs extends LogHelper {
-  val log = Logger("LoadRefs")  
-  
-    /** SOON parallel or batch load multiple objects from the backend for speedier loading from e.g. simpledb */
-  def loadRefs(collection:SyncableCollection, 
-      refs:Iterable[SyncableReference]):Iterable[Syncable] = {    
-    for {
-      ref <- refs
-      syncable <- SyncManager.get(ref.id) orElse
-        err("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
-    } yield 
-      syncable
-  }
-  
-  def loadMapRefs(collection:SyncableCollection, 
-      refs:Map[Serializable,SyncableReference]):Iterable[(Serializable,Syncable)] = {
-    for {
-      (key, ref) <- refs
-      syncable <- SyncManager.get(ref) orElse 
-        err("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
-    } yield {
-      (key, syncable)
-    }
-  }        
-}
-import LoadRefs._
-
-trait PickledCollection
-
-object PickledSeq {
-  def apply(p:Pickled, members:mutable.Buffer[SyncableReference] ) = {
-    new PickledSeq(p.reference, p.version, p.properties, members)
-  }
-  val emptyMembers = new ArrayBuffer[SyncableReference] 
-}
-
-object PickledSet {
-  def apply(p:Pickled, members:Set[SyncableReference]) = {
-    new PickledSet(p.reference, p.version, p.properties, members)
-  }
-  val emptyMembers = new immutable.HashSet[SyncableReference]
-}
-
-object PickledMap {
-  def apply(p:Pickled, members:Map[Serializable, SyncableReference]) = {
-    new PickledMap(p.reference, p.version, p.properties, members)
-  }
-  val emptyMembers = new immutable.HashMap[Serializable, SyncableReference] 
-}
-
-@serializable
-class PickledSeq(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:mutable.Buffer[SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection {
-  override def unpickle:SyncableSeq[Syncable] = {
-    val seq = super.unpickle.asInstanceOf[SyncableSeq[Syncable]]
-    Observers.withNoNotice {
-      loadRefs(seq, members) foreach {             
-        seq += _
-      }
-    }
-    seq
-  }
-}
-    
-@serializable
-class PickledSet(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:Set[SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection{
-  override def unpickle:SyncableSet[Syncable] = {
-    val set = super.unpickle.asInstanceOf[SyncableSet[Syncable]]
-    Observers.withNoNotice {
-      loadRefs(set, members) foreach {             
-        set += _
-      }
-    }
-    set
-  }
-}
-    
-@serializable
-class PickledMap(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:Map[Serializable, SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection{
-  override def unpickle:SyncableMap[Serializable, Syncable] = {
-    val map = super.unpickle.asInstanceOf[SyncableMap[Serializable, Syncable]]
-    Observers.withNoNotice {
-      loadMapRefs(map, members) foreach {
-        case (key, value) => map(key) = value
-      }
-    }
-    map
-  }
-}
-    
-
 @serializable
 class Pickled(val reference:SyncableReference, val version:String,
     val properties:Map[String, SyncableValue]) extends LogHelper {
@@ -202,12 +105,13 @@ class Pickled(val reference:SyncableReference, val version:String,
   
   /** return a new Pickled with the change applied */
   def revise(propChange:PropertyChange):Pickled = {
+    log.trace("revise() %s", propChange)
     if (propChange.versions.old != version) {
-      log.warning("update() versions don't match.  changed.old=%s current=%s", 
-        propChange.versions.old, version)
+      log.warning("update() versions don't match on changed.old=%s current=%s  %s  %s", 
+        propChange.versions.old, version, propChange, this)
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
-    new Pickled(reference, propChange.versions.current, updatedProperties)
+    new Pickled(reference, propChange.versions.now, updatedProperties)
   }
   
 }

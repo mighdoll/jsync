@@ -161,7 +161,7 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
 /** A collection of syncable objects.  Keys are typically strings, values are Syncable.
  */
 class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V] with SyncableCollection {
-  def kind = "$sync.stringMap"
+  def kind = "$sync.map"
   val log = Logger("SyncableMap")
 
   override def update(key:K, value:V) {
@@ -169,7 +169,9 @@ class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V]
       case k:Syncable => throw new IllegalArgumentException
       case _ =>
     }
-    Observers.notify(PutMapChange(this.fullId, key, SyncableReference(value), newVersion() ))
+    val oldValueOpt = get(key) map {SyncableReference(_)}
+    Observers.notify(PutMapChange(this.fullId, key, oldValueOpt, 
+        SyncableReference(value), newVersion() ))
     super.update(key,value)
   }
   

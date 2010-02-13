@@ -15,7 +15,7 @@
 package com.digiting.sync
 import collection._
 import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util._
 import com.digiting.sync.aspects.Observable
 import Observers._
 import SyncableAccessor.observableReferences
@@ -86,6 +86,16 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
       case clearChange:ClearChange =>
         handleClearChange(clearChange)
       case m:MoveChange =>
+      case put:PutMapChange =>
+        put.oldValue map {
+          withGetId(_) {removedRef}
+        }
+        withGetId(put.newValue) {addedRef}
+      case remove:RemoveMapChange =>
+        withGetId(remove.oldValue) {removedRef}
+      case deleted:DeletedChange =>
+        NYI()
+      case created:CreatedChange =>        
     }
     
     // tell the client observer about this about this change

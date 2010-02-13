@@ -70,7 +70,7 @@ object TestSubscriptions extends LogHelper {
   def modifyReference() {
     def modify(change:DataChange) {
       partialMatch(change) {
-        case mod:PropertyChange if mod.newValue.value != null =>  // CONSIDER we get propChange to null, why? 
+        case mod:PropertyChange =>  
           log.trace("modifyReference: %s", mod)
           mod.target.target orElse {abort("modifyReference")} foreach {found =>
             val root = found.asInstanceOf[TestRefObj]

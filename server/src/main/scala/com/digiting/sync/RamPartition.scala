@@ -53,59 +53,13 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         }
       case deleted:DeletedChange =>
         throw new NotYetImplemented
-      case clear:ClearChange => 
+      case collectionChange:CollectionChange =>
         store get instanceId orElse {
-          err("update() ClearChange target not found: %s", clear.target)
-          throw new ImplementationError
+          abort("collection target not found: %s", change)
         } foreach {pickled =>
-          pickled match {
-            case pickledCollection:PickledCollection =>
-              val cleared = 
-                pickledCollection match {
-                  case seq:PickledSeq =>
-                    PickledSeq(pickled, PickledSeq.emptyMembers)
-                  case set:PickledSet =>
-                    PickledSet(pickled, PickledSet.emptyMembers)
-                  case map:PickledMap =>
-                    PickledMap(pickled, PickledMap.emptyMembers)
-                }
-              store(instanceId) = cleared
-            case _ =>
-              throw new ImplementationError
-          }
+          val pickledCollection = pickled.asInstanceOf[PickledCollection]
+          store(instanceId) = pickledCollection.revise(collectionChange)
         }
-      case put:PutChange =>
-        val set = expectSet(instanceId)
-        val revisedMembers = set.members + put.newVal
-        store(instanceId) = PickledSet(set, revisedMembers)
-      case remove:RemoveChange =>
-        val set = expectSet(instanceId)
-        val revisedMembers = set.members - remove.oldVal
-        store(instanceId) = PickledSet(set, revisedMembers)
-      case insertAt:InsertAtChange =>
-        val seq = expectSeq(instanceId)
-        val revisedMembers = seq.members.clone
-        revisedMembers insert(insertAt.at, insertAt.newVal)
-        store(instanceId) = PickledSeq(seq, revisedMembers)
-      case removeAt:RemoveAtChange =>
-        val seq = expectSeq(instanceId)
-        val revisedMembers = seq.members.clone
-        val moving = revisedMembers remove(removeAt.at)
-        store(instanceId) = PickledSeq(seq, revisedMembers)
-      case move:MoveChange =>
-        val seq = expectSeq(instanceId)
-        val revisedMembers = seq.members.clone
-        val moving = revisedMembers remove(move.fromDex)
-        revisedMembers insert(move.toDex, moving)
-        store(instanceId) = PickledSeq(seq, revisedMembers)
-      case putMap:PutMapChange =>
-        val map = expectMap(instanceId)
-        val revisedMembers = map.members + (putMap.key -> putMap.newValue)
-        store(instanceId) = PickledMap(map, revisedMembers)
-      case removeMap:RemoveMapChange =>
-        val map = expectMap(instanceId)
-        val revisedMembers = map.members - removeMap.key
-        store(instanceId) = PickledMap(map, revisedMembers)
     }
   }
   

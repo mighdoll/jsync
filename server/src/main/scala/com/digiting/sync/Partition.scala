@@ -81,17 +81,6 @@ abstract class Partition(val id:String) {
     }
   }
   
-  /** create a single operation transaction if necessary */
-  private def withForcedTransaction[T](fn: =>T):T = {
-    currentTransaction value match {
-      case Some(_) => 
-        fn
-      case None =>
-        currentTransaction.withValue(Some(new Transaction)) {
-          fn
-        }        
-    }
-  }
   
   /** create, update or delete an object or a collection*/
   def update(change:DataChange):Unit  = {
@@ -115,6 +104,18 @@ abstract class Partition(val id:String) {
     }
   }
     
+  /** create a single operation transaction if necessary */
+  private def withForcedTransaction[T](fn: =>T):T = {
+    currentTransaction value match {
+      case Some(_) => 
+        fn
+      case None =>
+        currentTransaction.withValue(Some(new Transaction)) {
+          fn
+        }        
+    }
+  }
+  
   /** name to object mapping of for well known objects in the partition.  The published
    * roots are persistent, so clients of the partition can use well known names to get
    * started with the partition data, w/o having to resort to querying, etc.
@@ -127,6 +128,7 @@ abstract class Partition(val id:String) {
   def publish(publicName:String, root:Syncable) {
     published.create(publicName, root)
   }
+  
   def publishGenerator(publicName:String, generator: ()=>Option[Syncable]) {
     published.createGenerated(publicName, generator)
   }
@@ -134,7 +136,7 @@ abstract class Partition(val id:String) {
   /** debug utility, prints contents to log */
   def debugPrint() {}
   
-  /** destory this partition and its contents */
+  /** destroy this partition and its contents */
   def deletePartition() {
     Partitions.remove(partitionId.id)
     deleteContents()

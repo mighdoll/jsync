@@ -25,15 +25,22 @@ abstract class ChangeDescription {
   override def toString = {this.getClass.getSimpleName + " target: " + target + " mutator: " + source}
 }
 
-abstract class DataChange(val versionChange:VersionChange) extends ChangeDescription {  
+case class VersionChange(val old:String, val now:String) {
+  override def toString = "old=" + old + " now=" + now
 }
 
-case class VersionChange(val old:String, val current:String)
+/** change to a mutable object or collection */
+abstract sealed class DataChange(val versionChange:VersionChange) extends ChangeDescription {
+   override def toString = super.toString + " " + versionChange
+}
 
-/** changes to a collection's membership. */
-abstract class MembershipChange(val operation:String, 
+/** change to a collection */
+abstract sealed class CollectionChange(versionChange:VersionChange) extends DataChange(versionChange)
+
+/** changes to a collection's membership. LATER get rid of this */
+abstract sealed class MembershipChange(val operation:String, 
   val newValue:SyncableId, val oldValue:SyncableId, versionChange:VersionChange) 
-  extends DataChange(versionChange) {
+  extends CollectionChange(versionChange) {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
 }
 
@@ -47,7 +54,7 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
 }  
       
-/** create a new object.  */  // CONSIDER SCALA type parameters are a hassle for pickling/unpickling.  manifest?  
+/** create a new object.  */  
 case class CreatedChange(val target:SyncableReference,  
     pickled:Pickled, versions:VersionChange) extends DataChange(versions)
 
@@ -60,7 +67,7 @@ case class DeletedChange(val target:SyncableReference,
 
 /** remove all contents from a collection */
 case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
-  versions:VersionChange) extends DataChange(versions) {
+  versions:VersionChange) extends CollectionChange(versions) {
   def operation = "clear"
 }
 
@@ -86,16 +93,16 @@ case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:In
 }  
 /** rearrange a seq */
 case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int, 
-    versions:VersionChange) extends DataChange(versions) {
+    versions:VersionChange) extends CollectionChange(versions) {
   def operation = "move"
 }
   
 /** remove from a map */
 case class RemoveMapChange(val target:SyncableId, key:Serializable, oldValue:SyncableReference, 
-    versions:VersionChange) extends DataChange(versions)
+    versions:VersionChange) extends CollectionChange(versions)
 /** add/update to a map */
-case class PutMapChange(val target:SyncableId, key:Serializable, newValue:SyncableReference,
-    versions:VersionChange) extends DataChange(versions)
+case class PutMapChange(val target:SyncableId, key:Serializable, oldValue:Option[SyncableReference], 
+    newValue:SyncableReference, versions:VersionChange) extends CollectionChange(versions)
 
 //       -----------------  watch set changes --------------------  
 
