@@ -21,7 +21,6 @@ import collection._
 import ActiveConnections._
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import scala.actors.Actor
 
 /**
  * Hooks to connect sync processing to Lift http requests

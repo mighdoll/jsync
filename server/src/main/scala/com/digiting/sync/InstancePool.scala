@@ -57,6 +57,7 @@ class WatchedPool(name:String) {
 
   /** called when any object in the pool is change */
   private def changeNoticed(change:ChangeDescription) = {
+    log.ifTrace {"changeNoticed: " + change}
     changes add change
   }
 
@@ -76,7 +77,7 @@ class WatchedPool(name:String) {
   /** commit current set of changes */
   def commit() = {
     val changesCopy = drainChanges()
-    log.ifTrace("committing: " + {changesCopy map {_.toString} mkString("\n")})
+    log.ifTrace{changesCopy map {"commit()ing: " + _.toString} mkString("\n")}
     for (watcher <- commitWatchers) {
       watcher(changesCopy)
     }
@@ -106,28 +107,3 @@ class WatchedPool(name:String) {
 }
 
 
-/*
- * Application processing loop:
- *  -- incoming message is received by container/lift
- *  -- message is parsed and passed to Connection.Receiver (ActiveConnections maintains a map of current Connections)
- *  -- Receiver 
- * 		-- instantiates the local objects from the client, and from foreign and local partitions
- * 	    -- applies modifications from the message (change notification is queued)
- * 		-- sends notifications 
- * 		-- calls visibleSet.commit() 
- * 		-- sends modifications back to the partition
- * 	-- Connection, on commit() sends changes to the client via Connection.sender
- *  -- Partition 
-*/ 
-/*
- * Connection - info about the client connection including:  connectionId, defaultPartition.  
- * -- send and receive actors.
- * -- ClientSubscriptions
- *  
- * ClientSubscriptions
- * -- observe changes in visibleSet?  hmm.. seems like we'd really like to watch changes in the partition itself..
- * Receiver - handles incoming messages,
- * Cache
- * 
- 
- */

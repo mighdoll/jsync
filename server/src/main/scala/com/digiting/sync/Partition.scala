@@ -15,8 +15,6 @@
 package com.digiting.sync
 
 import scala.util.DynamicVariable
-import scala.actors.Actor
-import scala.actors.Actor._
 import JsonObject._
 import collection.mutable
 import net.lag.logging.Logger

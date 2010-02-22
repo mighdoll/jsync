@@ -107,11 +107,17 @@ class Pickled(val reference:SyncableReference, val version:String,
   def revise(propChange:PropertyChange):Pickled = {
     log.trace("revise() %s", propChange)
     if (propChange.versions.old != version) {
-      log.warning("update() versions don't match on changed.old=%s current=%s  %s  %s", 
+      log.warning("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
         propChange.versions.old, version, propChange, this)
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
     new Pickled(reference, propChange.versions.now, updatedProperties)
+  }
+  
+  override def toString:String = {
+    val props = properties map Function.tupled {(k,v) => k + "=" + v.toString}
+    
+    String.format("<%s %s %s>", reference, version, props)
   }
   
 }

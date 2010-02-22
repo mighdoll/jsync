@@ -38,10 +38,10 @@ object Applications extends LogHelper {
           if (!message.isEmpty)     
             app receiveMessage(message)
           app
-          false // continue delivering
+          false // continue delivering messages in this message set
         case Left(err) => 
           foundError = Some(err)
-          true  // stop iteration
+          true  // don't deliver any more messages from this message set (consider this SOMEDAY)
       }
     }
 

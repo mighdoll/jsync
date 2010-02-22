@@ -44,11 +44,9 @@ object ProcessMessage extends LogHelper {
         // apply modifications in the transaction to all objects as a group, before notifying app
         Observers.pauseNotification {
           Observers.currentMutator.withValue(app.connection.connectionId) {
-            val references = 
-              ReferencePatches.collectReferences {
-                processSyncs(message.syncs) 
-              }
-            
+            val references = ReferencePatches.collectReferences {
+              processSyncs(message.syncs) 
+            }            
             patchReferences(references)
             processEdits(message.edits)
             
