@@ -14,7 +14,6 @@
  */
 package com.digiting.sync.test
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import com.digiting.util.Configuration
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
@@ -28,7 +27,7 @@ import org.scalatest.junit.JUnitRunner
 import com.digiting.sync.testServer.TestApplication
 
 @RunWith(classOf[JUnitRunner])
-class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfterAll {
+class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfterAll with SyncFixture{
   val log = Logger("ProtocolReferenceTest")
   
   override def beforeAll() {
@@ -38,7 +37,7 @@ class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfter
   
   describe("JsonSync") {        
     it("should process references to objects within the transaction") {
-      withTestEnvironment {
+      withTestFixture {
         callService("ProtocolReferenceTestServer.serveTest", serveTestParameters) map {
           _.get("name") should be (Some("success"))
         } orElse {

@@ -18,12 +18,11 @@ import org.scalatest.junit.JUnitRunner
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import com.digiting.util.Configuration
 
 
 @RunWith(classOf[JUnitRunner])
-class SyncableAccessorTest extends Spec with ShouldMatchers {
+class SyncableAccessorTest extends Spec with ShouldMatchers with SyncFixture {
   describe("A SyncableAccessor") {
     
     it("should initialize configuration") {
@@ -31,7 +30,7 @@ class SyncableAccessorTest extends Spec with ShouldMatchers {
     }
     
     it("should find references from object properties") {
-      withTestEnvironment {
+      withTestFixture {
         val obj = new TestRefObj()
         val obj2 = new TestRefObj()
         obj.ref = obj2
@@ -47,7 +46,7 @@ class SyncableAccessorTest extends Spec with ShouldMatchers {
   }
   
   it("should support setting a property") {
-      withTestEnvironment {
+      withTestFixture {
         val obj = new TestNameObj()
         obj.name = "Bruce"
         val accessor = SyncableAccessor.get(classOf[TestNameObj])

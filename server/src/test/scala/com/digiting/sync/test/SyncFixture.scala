@@ -42,7 +42,7 @@ trait SyncFixture {
   }
 
     
-  private def changed(change:ChangeDescription) {
+  protected def changed(change:ChangeDescription) {
     changes + change
   }
 

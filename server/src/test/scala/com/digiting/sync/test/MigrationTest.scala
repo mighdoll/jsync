@@ -17,20 +17,19 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import com.digiting.util.Configuration
-import ObserveUtil.withTestEnvironment
 import com.digiting.sync.SyncableSerialize._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class MigrationTest extends Spec with ShouldMatchers {
+class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
   describe("Migration") {
     it("should initialize configuration") {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     
     it("should migrate a simple object from an old to a new schema") {
-      withTestEnvironment {
+      withTestFixture {
         val old = new KindVersion0
         old.ref = new TestNameObj("wheel")
         val oldAttributes = syncableAttributes(old)

@@ -21,13 +21,12 @@ import org.scalatest.junit.JUnitRunner
 import com.digiting.sync.syncable.TestPrimitiveProperties
 import com.digiting.sync.syncable.TestTwoRefsObj
 import com.digiting.sync.syncable.TestNameObj
-import com.digiting.sync.test.ObserveUtil.withTestEnvironment
 
 @RunWith(classOf[JUnitRunner])
-class PickleTest extends Spec with ShouldMatchers {
+class PickleTest extends Spec with ShouldMatchers with SyncFixture {
   describe("Pickle") {
     it("should pickle primitives") {
-      withTestEnvironment {
+      withTestFixture {
         val prim = new TestPrimitiveProperties
         prim.t = true
         prim.b  =1
@@ -50,7 +49,7 @@ class PickleTest extends Spec with ShouldMatchers {
       }
     }
     it("should pickle references") {
-      withTestEnvironment {
+      withTestFixture {
         val a = new TestTwoRefsObj
         a.ref1 = a
         a.ref2 = null

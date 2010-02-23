@@ -14,7 +14,6 @@
  */
 package com.digiting.sync.test
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
@@ -22,12 +21,12 @@ import org.scalatest.junit.JUnitRunner
 import net.lag.logging.Logger
 
 @RunWith(classOf[JUnitRunner])
-class ObservationTest extends Spec with ShouldMatchers {
+class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
   val log = Logger("ObservationTest")
   
   describe("Observation.watch") {
     it("should notice property change on an object") {
-      withTestEnvironment {
+      withTestFixture {
         val obj = new TestNameObj
         Observers.watch(obj, this, changed)
         obj.name = "MiloJ"  // should trigger an observable change
@@ -37,7 +36,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     }
     
     it("it should be able to defer notification") {
-      withTestEnvironment {
+      withTestFixture {
         val ref = new TestRefObj
         Observers.watch(ref, "test", changed)
         Observers.pauseNotification {
@@ -52,7 +51,7 @@ class ObservationTest extends Spec with ShouldMatchers {
   
   describe("Observation.watchDeep") {
     it("should stop watching objects that are no longer referenced") {
-      withTestEnvironment {
+      withTestFixture {
         val root = new TestRefObj
         val one = new TestNameObj
         root.ref = one
@@ -66,7 +65,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     }
     
     it ("should see changes in a reference chain") {
-      withTestEnvironment {
+      withTestFixture {
         val obj = new TestRefObj()
         val obj2 = new TestRefObj()
         val obj3 = new TestRefObj()
@@ -83,7 +82,7 @@ class ObservationTest extends Spec with ShouldMatchers {
   }
 
     it("should see changes in a tree") {
-      withTestEnvironment {
+      withTestFixture {
         val root = new TestRefObj
         Observers.watchDeep(root, changed, changed, this)	// watch
         val branch = new TestTwoRefsObj			
@@ -125,7 +124,7 @@ class ObservationTest extends Spec with ShouldMatchers {
     }
 
     it("should find members referenced from a collection") {
-      withTestEnvironment {
+      withTestFixture {
         val set = new SyncableSet[Syncable]
         val name = new TestNameObj 
         set + name

@@ -14,7 +14,6 @@
  */
 package com.digiting.sync.test
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import com.digiting.util.Configuration
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers

@@ -14,7 +14,6 @@
  */
 package com.digiting.sync.test
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import com.digiting.util.Configuration
 import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
@@ -22,13 +21,13 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class ParseTest extends Spec with ShouldMatchers {
+class ParseTest extends Spec with ShouldMatchers with SyncFixture {
   describe("JsonSync") {
     it("should initialize configuration") {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should convert maps to messages and back") {
-      withTestEnvironment {
+      withTestFixture {
         // create message manually
         val syncs = ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test", "name" -> "Sandi" ) :: Nil
         val puts = ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test") :: Nil

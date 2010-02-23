@@ -24,17 +24,16 @@ import com.digiting.sync.aspects.Observable
 import com.digiting.sync.syncable._
 import com.digiting.util._
 import collection._
-import ObserveUtil._
 import com.digiting.util.Configuration
 
 @RunWith(classOf[JUnitRunner])
-class SyncableTest extends Spec with ShouldMatchers {
+class SyncableTest extends Spec with ShouldMatchers with SyncFixture {
   describe("Syncable") {
     it("should initialize configuration") {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     it("should allow setting an id") {
-      withTestEnvironment {
+      withTestFixture {
         val obj = 
           SyncManager.withNextNewId(SyncableId(SyncManager.currentPartition.value.partitionId, "foo")) {
             new SyncableSet

@@ -14,7 +14,6 @@
  */
 package com.digiting.sync.test
 import com.digiting.sync.syncable._
-import ObserveUtil._
 import com.digiting.util.Configuration
 import net.lag.logging.Logger
 import org.scalatest.Spec

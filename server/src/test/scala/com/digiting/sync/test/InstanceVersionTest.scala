@@ -18,13 +18,12 @@ import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import com.digiting.sync.syncable.TestNameObj
-import ObserveUtil._ 
 
 @RunWith(classOf[JUnitRunner])
-class InstanceVersionTest extends Spec with ShouldMatchers {
+class InstanceVersionTest extends Spec with ShouldMatchers with SyncFixture {
   describe("InstanceVersion") {
     it("should update the version after a property change") {
-      withTestEnvironment {
+      withTestFixture {
         val n = TestNameObj()
         n.version should be ("initial")
         n.name = "fred"
@@ -32,7 +31,7 @@ class InstanceVersionTest extends Spec with ShouldMatchers {
       }
     }
     it("should update the version after a collection change") {
-      withTestEnvironment {
+      withTestFixture {
         val s = new SyncableSeq[TestNameObj]()
         s.version should be ("initial")
         s += TestNameObj("sal")
