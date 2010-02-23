@@ -16,7 +16,6 @@ package com.digiting.sync
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
 import com.digiting.util._
-import collection.mutable.SynchronizedMap
 import collection.mutable.HashMap
 import collection.mutable.HashSet
 import collection.mutable.Set
@@ -29,7 +28,7 @@ import Partition._
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
 
-  private val store = new HashMap[String, Pickled] with SynchronizedMap[String,Pickled]
+  protected val store:collection.mutable.Map[String,Pickled] = new HashMap[String, Pickled] 
   
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
