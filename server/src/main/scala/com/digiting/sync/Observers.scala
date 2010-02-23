@@ -87,12 +87,12 @@ object Observers extends LogHelper {
         case Some(paused) => 
           watchers.foreachValue(target) {watch =>  
             val notify = Notification(watch, change)
-            log.trace("queing notification: %s", notify)
+            log.trace("notify() queueing: %s", notify)
             paused += notify
           }
         case _ =>
     	    watchers.foreachValue(target) {watch =>  
-            log.trace("notify %s to %s", change, target)
+            log.trace("notify() to: %s %s", watch.watchClass, change)
     	      watch.changed(change)
           }        
       }
@@ -170,7 +170,7 @@ object Observers extends LogHelper {
     pauseBuffer match {	    
       case Some(paused) => 
         paused foreach { notification =>
-          log.trace("pauseNotification, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+          log.trace("pauseNotification, releasing to: %s %s", notification.watcher.watchClass, notification.change)
           notification.watcher.changed(notification.change)
         }
       case _ =>

@@ -50,11 +50,14 @@ object ProcessMessage extends LogHelper {
             patchReferences(references)
             processEdits(message.edits)
             
-      	    // release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
-            Observers.releasePaused(_.isInstanceOf[DeepWatch])
+      	    // first release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
+            Observers.releasePaused {_.isInstanceOf[DeepWatch]}
+            
+            // second release notifications to the SyncManager watch pool (mutator doesn't matter for this)
+            Observers.releasePaused {_ == SyncManager.instanceCache}
           }          
         }          
-        ; // notifications of changes are released.  Responses are processed in app context 
+        ; // third, release notifications to the app.  Responses are processed in app context 
       } catch {
         // LATER send client a protocol reset message, reset our state too
         case e:Exception => log.error(e, "exception procesing request")
