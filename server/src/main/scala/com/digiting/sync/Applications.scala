@@ -13,7 +13,6 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import net.lag.logging.Level._
 import scala.collection.mutable
@@ -21,7 +20,7 @@ import scala.collection.mutable.ListBuffer
 import com.digiting.util.TryCast.matchString
 
 object Applications extends LogHelper {
-  implicit val log = Logger("Applications")
+  protected implicit lazy val log = logger("Applications")
 
   /** deliver a message to the appropriate registered application (asynchronously). 
    * returns the application that is processing the message */
@@ -97,8 +96,8 @@ object Applications extends LogHelper {
   import com.digiting.sync.JsonObject.JsonMap
   import net.liftweb.json.JsonParser
     
-  object HasStart {
-    val log = Logger("HasStart")
+  object HasStart extends LogHelper {
+    lazy val log = logger("HasStart")
     implicit val formats = net.liftweb.json.DefaultFormats
     def unapply(message:Message):Option[StartParameters] = 
       message.findControlProperty("#start") flatMap {
@@ -111,7 +110,7 @@ object Applications extends LogHelper {
             val start = parsed.extract[StartParameters]
             Some(start)
           case x => 
-            log.error("unexpected target of #start: ", x)
+            err("unexpected target of #start: ", x)
             None
         }
       } 

@@ -23,7 +23,6 @@ import collection.mutable.Set
 import scala.collection.mutable.MultiMap
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import scala.collection.{mutable, immutable}
 import java.io.Serializable
 import Partition._
 
