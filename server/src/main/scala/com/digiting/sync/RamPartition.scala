@@ -16,6 +16,7 @@ package com.digiting.sync
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
 import com.digiting.util._
+import collection.mutable.SynchronizedMap
 import collection.mutable.HashMap
 import collection.mutable.HashSet
 import collection.mutable.Set
@@ -28,7 +29,8 @@ import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val log = Logger("RamPartition")
-  private val store = new HashMap[String, Pickled]
+
+  private val store = new HashMap[String, Pickled] with SynchronizedMap[String,Pickled]
   
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
@@ -60,32 +62,6 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
           val pickledCollection = pickled.asInstanceOf[PickledCollection]
           store(instanceId) = pickledCollection.revise(collectionChange)
         }
-    }
-  }
-  
-  private[this] def expectSeq(instanceId:String):PickledSeq = {
-    store get instanceId match {
-      case Some(pickledSeq:PickledSeq) => pickledSeq
-      case _ =>
-        err("can't find seq collection for: %s", instanceId)
-        throw new ImplementationError
-    }
-  }
-  
-  private[this] def expectSet(instanceId:String):PickledSet = {
-    store get instanceId match {
-      case Some(pickledSet:PickledSet) => pickledSet
-      case _ =>
-        err("can't find set collection for: %s", instanceId)
-        throw new ImplementationError
-    }
-  }
-  private[this] def expectMap(instanceId:String):PickledMap = {
-    store get instanceId match {
-      case Some(pickledMap:PickledMap) => pickledMap
-      case _ =>
-        err("can't find map collection for: %s", instanceId)
-        throw new ImplementationError
     }
   }
   

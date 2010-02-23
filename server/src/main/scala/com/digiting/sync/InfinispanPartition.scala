@@ -26,7 +26,6 @@ class InfinispanPartition(partId:String) extends Partition(partId) with LogHelpe
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   
-
   def get(instanceId:String, tx:Transaction):Option[Pickled] = {    
     store get instanceId 
   }
