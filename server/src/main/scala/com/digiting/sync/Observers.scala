@@ -159,17 +159,15 @@ object Observers extends LogHelper {
   
   def pauseNotification[T](fn: =>T):T = {    
     log.trace("pausing notification")    
-    val origHold = holdNotify.value
-    holdNotify.value = Some(new mutable.ListBuffer[Notification])
-    val (result, pausedBuffer) = 
-      try {
-        (fn, holdNotify.value) // note that the fn could change the holdNotify value (e.g via releasePaused), so we refetch
-      } finally {
-        holdNotify.value = origHold
-      }    
     
-    log.trace("releasing paused notifications")
-    pausedBuffer match {	
+    val (result, pauseBuffer) =
+      holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
+        (fn, // executes function
+         holdNotify.value)  // fn may have changed holdNotify.value (via releasePaused), so refetch    
+      }
+    
+    log.trace("releasing paused notifications")    
+    pauseBuffer match {	    
       case Some(paused) => 
         paused foreach { notification =>
           log.trace("pauseNotification, releasing: %s : %s", notification.watcher.watchClass, notification.change)
@@ -182,17 +180,19 @@ object Observers extends LogHelper {
     result
   }
   
+  /** release notifications that match a provided function */
   def releasePaused(matchFn:(Any)=>Boolean) {
-    // accumulate notifiations that we're leaking out of the pause buffer
-    val releasing = new mutable.ListBuffer[Notification]
- 
-    // release notifications that match 	                                      
     holdNotify.value map {held =>
-      for {
-        notification <- held
-        if matchFn(notification.watcher.watchClass)
-      } {        
-        releasing += notification
+      // accumulate notifiations that we're leaking out of the pause buffer
+      val releasing = 
+        for {
+          notification <- held
+          if matchFn(notification.watcher.watchClass)
+        } yield {        
+          notification
+        }
+      
+      releasing foreach {notification =>
         log.trace("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
         notification.watcher.changed(notification.change)
       }
@@ -202,6 +202,6 @@ object Observers extends LogHelper {
       remainder ++= (held.toList -- releasing.toList)
       holdNotify.value = Some(remainder)
     }
-  }  
+  }
 }
 
