@@ -21,7 +21,12 @@ import scala.collection.mutable.ArrayBuffer
 import LoadReferences._
 
 abstract trait PickledCollection extends Pickled {
-  def revise(change:CollectionChange):PickledCollection 
+  def revise(change:CollectionChange):PickledCollection = {
+    assert(version == change.versionChange.old)
+    reviseCollection(change)
+  }
+  
+  def reviseCollection(change:CollectionChange):PickledCollection 
 }
 
 object PickledSeq {
@@ -60,7 +65,7 @@ class PickledSeq(ref:SyncableReference, ver:String,
     seq
   }
   
-  def revise(change:CollectionChange):PickledSeq = {
+  def reviseCollection(change:CollectionChange):PickledSeq = {    
     val revisedMembers = members.clone 
     change match {
       case insertAt:InsertAtChange =>
@@ -94,7 +99,7 @@ class PickledSet(ref:SyncableReference, ver:String,
     set
   }
     
-  def revise(change:CollectionChange):PickledSet = {
+  def reviseCollection(change:CollectionChange):PickledSet = {
     val revisedMembers = 
       change match {
         case put:PutChange =>
@@ -126,7 +131,7 @@ class PickledMap(ref:SyncableReference, ver:String,
     map
   }
     
-  def revise(change:CollectionChange):PickledMap = {
+  def reviseCollection(change:CollectionChange):PickledMap = {
     val revisedMembers = 
       change match {
         case putMap:PutMapChange =>
