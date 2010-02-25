@@ -16,7 +16,6 @@ package com.digiting.sync.testServer
 import com.digiting.sync.syncable._
 import com.digiting.util._
 import com.digiting.util.Matching._
-import net.lag.logging.Logger
 import com.digiting.sync.SyncManager.withGetId
 
 /**
@@ -25,9 +24,10 @@ import com.digiting.sync.SyncManager.withGetId
  * of the published objects respond to client changes to enable round trip testing.
  */
 object TestSubscriptions extends LogHelper {
-  val log = Logger("TestSubscriptions")
-  val testPartition = new RamPartition("test")
-  
+  lazy val log = logger("TestSubscriptions")
+  private val partitionType = Configuration.getString("testPartition-type") getOrElse "RamPartition"
+  private val testPartition = Partition.create(partitionType, "test");
+                                       
   def init() {
     SyncManager.withPartition(testPartition) {
       oneName()
@@ -134,7 +134,7 @@ object TestSubscriptions extends LogHelper {
     })
   }
   
-  /**
+  /** move an element in a sequence
    */
   def moveSequence() {    
     abcMatch("moveSequence") {
@@ -144,6 +144,8 @@ object TestSubscriptions extends LogHelper {
     }
   }
   
+  /** remove an element in a sequence
+   */
   def removeSequence() {     
     abcMatch("removeSequence") {
       case remove:RemoveAtChange =>
@@ -152,6 +154,8 @@ object TestSubscriptions extends LogHelper {
     }
   }
   
+  /** add a sequence as an element of another sequence
+   */
   def addReferencedSequence() {
     def modified(change:DataChange) {
       partialMatch(change) {

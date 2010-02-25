@@ -17,6 +17,7 @@ import net.lag.configgy._
 import net.lag.logging.Logger
 import scala.util.matching.Regex
 import scala.collection._
+import net.lag.logging.Level
 
 
 /**
@@ -52,27 +53,24 @@ import com.digiting.util.SystemConfig.getPropertyOrEnv
   
 object Configuration extends LogHelper {   
   var propOverrides:Map[String,Option[String]] = new immutable.HashMap[String,Option[String]]
-  lazy val log = Logger("Configuration")
+  lazy val log = logger("Configuration")
   var initialized = false
   var runMode:String = null
   var runModeMap:ConfigMap = null
   var configFile:String = "no-config-file-specified"
 
+  /** erase configuration, recalc runMode, and reload */
   def reset() {
     Configgy.configureFromResource(configFile, this.getClass.getClassLoader)
     runMode = determineRunMode
     runModeMap = findRunModeMap(runMode)
 
     setupConfiggyLogging()
-    log.info("runMode: %s", runMode)
+    info("runMode: %s", runMode)
     processSettings()
   }  
-  
-  private def findRunModeMap(mode:String):ConfigMap = {
-    Configgy.config getConfigMap(mode) getOrElse {
-      throw new ConfigException("can't find runMode: " + mode)}
-  }
       
+  /** initialize from file */
   def initFromFile(fileName:String) {
     configFile = fileName
     if (!initialized)
@@ -80,12 +78,76 @@ object Configuration extends LogHelper {
     initialized = true
   }
   
+  /** initialize from a java or enbironment variable that specifies the config file */
   def initFromVariable(variableName:String) {
     getPropertyOrEnv(variableName) orElse {
-      err("Configuration: variable not found in java property or OS environment variable: " + variableName) 
+      abort("Configuration: variable not found in java property or OS environment variable: " + variableName) 
     } map initFromFile
   }
+
   
+  /** Get a configured value.  */
+  def getString(key:String):Option[String] = {    
+    propOverrides get key getOrElse {  
+      runModeMap.getString(key) 
+    } 
+  }
+  
+  /** Get a configured value or throw an exception */
+  def apply(key:String):String = {
+    getString(key) getOrElse {
+      throw new ConfigException("key: " + key + " not found")
+    }
+  }
+
+  /** temporarily override a property value, useful for testing.  Passing None will
+   * force the property to be unset */
+  def withOverride(overrides:(String, Option[String])*)(body: =>Unit) {
+    val overridesMap = immutable.HashMap[String, Option[String]](overrides:_*)
+    val orig = new mutable.HashMap[String,Option[String]]
+
+    // run it through our configuration observer if it's a value
+    for {
+      (key,valueOpt) <- overridesMap
+      value <- valueOpt
+    } {
+      val normalizedKey = key.toLowerCase
+      trace("withOverride, setting %s = %s, was: %s", normalizedKey, value, getString(normalizedKey))
+      orig += (normalizedKey -> getString(normalizedKey))
+      keyChanged(normalizedKey, value)      // grr, configgy forces keys to be lower case
+    }
+    
+    
+    val origOverrides = propOverrides
+    propOverrides = overridesMap ++ origOverrides
+    body
+    propOverrides = origOverrides
+    
+    // run our config observer on the original values
+    for {(key, valueOpt) <- orig} {
+      log.trace("withOverride, resetting %s = %s", key, valueOpt)
+      valueOpt match {
+        case Some(value) => keyChanged(key, value)            
+        case _ => 
+          log.warning("Unsetting value of overriden key: %s is NYI.  Key had no original value.  ", key)
+      }
+    }
+  } 
+
+  /** drive special handling of each configuration value */
+  private def keyChanged(key:String, value:String) {
+    log.trace("keyChanged: %s = %s", key, value)
+    val keyParts = List.fromString(key, '-')
+    keyParts match {
+      case "logoverride" :: "log4j" :: "logger" :: tail  => 
+        log4jLogEntry(value)
+      case prefix :: "logoverride" :: tail => 
+        logOverrideEntry(value)
+      case "logoverride" :: tail => 
+        logOverrideEntry(value)
+      case _ =>
+    }
+  }
 
   /** apply our special sauce to each configuration element */
   private def processSettings() {
@@ -105,22 +167,6 @@ object Configuration extends LogHelper {
     }
   }
   
-  /** drive special handling of each configuration value */
-  def keyChanged(key:String, value:String) {
-    log.trace("keyChanged: %s = %s", key, value)
-    val keyParts = List.fromString(key, '-')
-    keyParts match {
-      case "logoverride" :: "log4j" :: "logger" :: tail  => 
-        log4jLogEntry(value)
-      case prefix :: "logoverride" :: tail => 
-        logOverrideEntry(value)
-      case "logoverride" :: tail => 
-        logOverrideEntry(value)
-      case _ =>
-    }
-  }
-
-  import net.lag.logging.Level
   
   /** handy extractor for log override values */
   object LogOverride {
@@ -176,24 +222,6 @@ object Configuration extends LogHelper {
   }
     
 
-  /** Get a configuration value.  
-   * 
-   * The key can be in a runmode section or in the base section
-   */
-  def getString(key:String):Option[String] = {    
-    propOverrides get key getOrElse {  
-      runModeMap.getString(key) 
-    } 
-  }
-  
-  /** get a configuration value or throw an exception */
-  def apply(key:String):String = {
-    getString(key) match {
-      case Some(string) => string
-        case None => throw new ConfigException("key: " + key + " not found")
-      }
-  }
-
   /** property or environment variable name that sets the runmode for this application */
   private def runModeKey:Option[String] = {
     Configgy.config.getString("Configuration.name") map {appName =>
@@ -215,39 +243,12 @@ object Configuration extends LogHelper {
       "debug" 
   }
   
-  /** temporarily override a property value, useful for testing.  Passing None will
-    * force the property to be unset */
-  def withOverride(overrides:(String, Option[String])*)(body: =>Unit) {
-    val overridesMap = immutable.HashMap[String, Option[String]](overrides:_*)
-    val orig = new mutable.HashMap[String,Option[String]]
+    
+  private def findRunModeMap(mode:String):ConfigMap = {
+    Configgy.config getConfigMap(mode) getOrElse {
+      throw new ConfigException("can't find runMode: " + mode)}
+  }
 
-    // run it through our configuration observer if it's a value
-    for {
-      (key,valueOpt) <- overridesMap
-      value <- valueOpt
-    } {
-      val normalizedKey = key.toLowerCase
-      log.trace("withOverride, setting %s = %s, was: %s", normalizedKey, value, getString(normalizedKey))
-      orig += (normalizedKey -> getString(normalizedKey))
-      keyChanged(normalizedKey, value)      // grr, configgy forces keys to be lower case
-    }
-    
-    
-    val origOverrides = propOverrides
-    propOverrides = overridesMap ++ origOverrides
-    body
-    propOverrides = origOverrides
-    
-    // run our config observer on the original values
-    for {(key, valueOpt) <- orig} {
-      log.trace("withOverride, resetting %s = %s", key, valueOpt)
-      valueOpt match {
-        case Some(value) => keyChanged(key, value)            
-        case _ => 
-          log.warning("Unsetting value of overriden key: %s is NYI.  Key had no original value.  ", key)
-      }
-    }
-  } 
   
 }
 

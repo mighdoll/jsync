@@ -66,18 +66,18 @@ object ProtocolFixture extends LogHelper {
       for {
         message <- ParseMessage.parse(messageStr)
         syncObj <- message.syncs 
-          a = log.trace("considering reply sync: %s", syncObj)
+        a = log.trace("considering reply sync: %s", syncObj)
       } yield syncObj
     
     var resultIds = 
       for {
         syncObj <- syncJsonMaps
         id <- syncObj get("$id") if id == serviceCall.id
-          a = log.trace("found service call: %s", syncObj)
+          a = trace("found service call: %s", syncObj)
         result <- syncObj get("results")
-          a = log.trace("found results: %s", result)      
+          a = trace("found results: %s", result)      
         resultRefId <- Reference.unapply(result)
-          a = log.trace("found resultRefId: %s", resultRefId)      
+          a = trace("found resultRefId: %s", resultRefId)      
       } yield resultRefId
     
     var resultIdOpt = resultIds find {_ => true}

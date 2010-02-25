@@ -17,16 +17,27 @@ package com.digiting.sync
 import scala.util.DynamicVariable
 import JsonObject._
 import collection.mutable
-import net.lag.logging.Logger
 import com.digiting.util._
 import java.io.Serializable
 
-object Partition {
+object Partition extends LogHelper {
+  lazy val log = logger("Partition(Obj)")
   class Transaction {
     val id = RandomIds.randomUriString(8)
   }
   class InvalidTransaction(message:String) extends Exception(message) {
     def this() = this("")
+  }
+  
+  def create(partitionType:String, name:String):Partition = {
+    partitionType match {
+      case "RamPartition" =>
+        new RamPartition(name)
+      case "InfinispanPartition" =>
+        new InfinispanPartition(name)
+      case x =>
+        abort("unexptected partition type: ", x)
+    }
   }
 }
 
@@ -43,8 +54,8 @@ case class PartitionId(val id:String) {
  * put() is called, the data is lost.
  */
 import Partition._
-abstract class Partition(val id:String) {  
-  val log1 = Logger("Partition")
+abstract class Partition(val id:String) extends LogHelper {  
+  protected lazy val log = logger("Partition")
   val partitionId = PartitionId(id)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   
@@ -74,18 +85,19 @@ abstract class Partition(val id:String) {
             syncable:Syncable = pickled.unpickle // loads referenced objects too
           } yield syncable
         }
-      log1.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
+      log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
       syncable
     }
   }
   
   
   /** create, update or delete an object or a collection*/
-  def update(change:DataChange):Unit  = {
+  def update(change:DataChange) { 
     inTransaction {tx => 
-      log1.trace("#%s update(%s)", partitionId, change)
+      trace("#%s update(%s)", partitionId, change)
       update(change, tx)
     }    
+    // SOON, rename this since the update method is magic in scala
   }
   
   /* subclasses should implement these */
@@ -161,16 +173,15 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
 }
 
 import collection.mutable.HashMap
-object Partitions {
-  val log = Logger("Partitions")
+object Partitions extends LogHelper {
+  val log = logger("Partitions")
   val localPartitions = new HashMap[String, Partition]    // Synchronize?
   def get(name:String):Option[Partition] = localPartitions get name
   def add(partition:Partition) = localPartitions += (partition.partitionId.id -> partition)
   
   def getMust(name:String):Partition = {
     get(name) getOrElse {
-      log.error("user Partition %s not found", name)
-      throw new ImplementationError
+      abort("user Partition %s not found", name)
     }
   }
   

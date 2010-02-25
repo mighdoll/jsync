@@ -26,7 +26,7 @@ import java.io.Serializable
 import Partition._
 
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
-  protected val log = Logger("RamPartition")
+  protected override lazy val log = logger("RamPartition")
 
   protected val store:collection.mutable.Map[String,Pickled] = new HashMap[String, Pickled] 
   

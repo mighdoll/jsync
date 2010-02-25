@@ -16,7 +16,7 @@ package com.digiting.sync
 
 import scala.collection._
 import java.lang.reflect.Method
-import net.lag.logging.Logger
+import com.digiting.util._
 import com.digiting.sync.aspects.Observable
 
 
@@ -35,8 +35,8 @@ object Properties {
 /**
  * Reflection based access to a single property in a class
  */
-class PropertyAccessor(val name:String, getter:Method, setter:Method) {
-  val log = Logger("PropertyAccessor")
+class PropertyAccessor(val name:String, getter:Method, setter:Method) extends LogHelper {
+  protected lazy val log = logger("PropertyAccessor")
   log.trace("creating accessor: %s %s %s", name, getter.getName, setter.getName);
   
   assert (name == Properties.propertySetterName(setter.getName).getOrElse(""))
@@ -58,8 +58,8 @@ class PropertyAccessor(val name:String, getter:Method, setter:Method) {
  * currently defined as any scala getter/setter pair (value(), value_=()).
  * LATER limit properties to only certain getter/setters.
  */
-class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) {
-  val log = Logger("ClassAccessor")
+class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) extends LogHelper {
+  protected lazy val log = logger("ClassAccessor")
   val propertyAccessors:mutable.Map[String, PropertyAccessor] = mutable.Map()
   val referenceProperties:mutable.Set[PropertyAccessor] = mutable.Set()  
   def set(target:AnyRef, property:String, value:AnyRef) = {
@@ -87,11 +87,11 @@ class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) {
     
     for {
       cls <- syncableClasses(clazz)
-      a = log.trace("syncableClass %s", cls)
+      a = trace("syncableClass %s", cls)
       setter <- cls.getDeclaredMethods
       if (!isStatic(setter.getModifiers))
       propertyName <- Properties.propertySetterName(setter.getName) if (!SyncableInfo.isReserved(propertyName))
-      a = log.trace("property %s", propertyName)
+      a = trace("property %s", propertyName)
       getter <- methodNames get propertyName orElse {
         log.warning("ignoring property: %s on class: %s.  It has a setter, but no getter",
           propertyName, cls)
