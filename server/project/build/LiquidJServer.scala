@@ -4,7 +4,7 @@ import Process._
 
 class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
 {
-  lazy val projectRootPath = Path.fromFile(outputPath.asFile.getParentFile.getParentFile) 
+  lazy val projectRootPath = Path.fromFile(outputPath.asFile.getParentFile.getParentFile.getParentFile) 
   lazy val aspects = project(projectRootPath / "aspects").asInstanceOf[DefaultProject]
   override def deliverProjectDependencies = super.deliverProjectDependencies ++ Seq(aspects.projectID)
 
@@ -59,6 +59,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
     FileUtilities.scalaLibraryJar.getAbsolutePath :: Nil
   lazy val syncableClasses = (mainCompilePath / "com" / "digiting" / "sync" / "syncable").absolutePath :: Nil
 
+
   lazy val aspectCmd = <o> 
     ../tools/aspectj/ajc 
     -showWeaveInfo 
@@ -68,6 +69,7 @@ class LiquidJServer(info: ProjectInfo) extends DefaultWebProject(info)
     -cp {ajcClassLibs mkString(":") }
     -1.6 -source 1.6 -target 1.6
     -d target/classes </o>
+
 
   lazy val processAspects = task {Console println aspectCmd.text; None} && execTask(aspectCmd)
 
