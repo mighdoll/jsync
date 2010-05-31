@@ -1,0 +1,13 @@
+
+body {font-family:"Lucida Grande","Lucida Sans Unicode","Lucida Sans",Helvetica,Arial,sans-serif;}
+.central { margin-left:auto; margin-right:auto; min-width:20em; max-width:40em; 
+  font-size:115%;}
+.title > .subtitle {margin-left: .25em }
+
+.advantages li  { font-size:90% } 
+.advantages li strong { font:bold 100%;  } 
+
+.logo { color:red; display:inline }
+.advantages > .title { }
+ul {padding: 0}
+li {margin: 0 4em .5em 2em }
