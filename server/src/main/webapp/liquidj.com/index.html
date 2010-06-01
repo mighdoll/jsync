@@ -1,20 +1,40 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html lang="en">
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="description" content="LiquidJ ">
-    <meta name="keywords" content="LiquidJ,scala,jquery,javascript">
-    <meta name="author" content="LiquidJ">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+               "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="description" content="LiquidJ "/>
+  <meta name="keywords" content="LiquidJ,scala,jquery,javascript"/>
+  <meta name="author" content="LiquidJ"/>
 
-    <link href="style/style.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="../jsync/jslib/jquery-1.3.2.js"></script>
+  <script type="text/javascript" src="../jsync/jslib/json2.js"></script>
+  <script type="text/javascript" src="../util/log.js"></script>
+  <script type="text/javascript" src="../jsync/debug.js"></script>
+  <script type="text/javascript" src="../jsync/util.js"></script>
+  <script type="text/javascript" src="../jsync/future.js"></script>
+  <script type="text/javascript" src="../jsync/observe.js"></script>
+  <script type="text/javascript" src="../jsync/changeDescription.js"></script>
+  <script type="text/javascript" src="../jsync/manager.js"></script>
+  <script type="text/javascript" src="/generatedModels.js"></script>
+  <script type="text/javascript" src="../jsync/syncCollections.js"></script>
+  <script type="text/javascript" src="../jsync/protocolVersion.js"></script>
+  <script type="text/javascript" src="../jsync/connection.js"></script>
+  <script type="text/javascript" src="../jsync/receive.js"></script>
+
+  <script type="text/javascript" src="js/main.js"></script>
+
+  <link href="style/style.css" rel="stylesheet" type="text/css"/>
     
-    <title>LiquidJ</title>
+  <title>LiquidJ - Better Ajax </title>
 
 </head>
 <body>
-  <div class="page">
+  <div class="home">
     <div class="central">
-      <div class="title"> <h2 class="logo"> LiquidJ </h2> <span class="subtitle"> Shared objects for javascript <span>  </div>
+      <div class="title"> <h2 class="logo"> LiquidJ </h2> <span class="subtitle"> Beyond ajax --  
+      shared objects for javascript. </span>  </div>
       <p> 
        LiquidJ provides transparent replication of object state between browser and server.  
       </p>
@@ -24,58 +44,43 @@
        in the server and it's transparently sent to the browser.  
       </p>
        
+       <span class="advantages title"> You can use LiquidJ to: </span>
        <ul class="advantages">
-         <span class="title"> You can use LiquidJ to: <span>
-         <li> <strong>Easily persist javascript objects to the server</strong>.  LiquidJ saves you from writing ajax
-         boilerplate each time you write code that modifies data.  You just define the data types you care 
-         about, and LiquidJ does change detection and ajax stuff automatically.
+         <li> <strong>Easily persist javascript objects to the server</strong>.  
+         You just define the data types you care 
+         about, and LiquidJ does change detection and ajax saving/loading automatically.  
           </li>
-         <li> <strong>Drop in UI widgets that know how to save and load their state. </strong> LiquidJ enhanced versions
-         of are drop in extensions to existing UI widgets.  jQuery.UI widgets are included, and it's easy to 
-         data enhance your favorite widget too.
+         <li> <strong>Drop in persistent UI widgets. </strong> LiquidJ enhanced Javascript UI widgets 
+         save themselves automatically, and update live via Comet.  LiquidJ enhancements to jQuery.UI 
+         widgets are included, and it's easy to data enhance your favorite widget too.
          </li>
          <li> <strong>Create richer javascript apps by separating data from markup.</strong> LiquidJ helps enable
-         a programming style that moves dynamic view logic out of the server and into the browser.  You
-         can load complex data easily.  By avoiding server round trips by rendering changes locally, you
-         can build richer and faster interactivity.
+         a programming style that moves dynamic view logic out of the server and into the browser.  
+         By avoiding server round trips by rendering changes locally, you can build richer and faster interactivity.
+         Complex data structures are 
          </li>
          <li> <strong>Use Comet (server push).</strong>  LiquidJ automatically pushes object changes in 
-         both directions - Comet is built in.  So when fresh messages or other data is available, the user can
-         see it immediately, no need for a manual page refresh or a timer.  And if your users open multiple windows
-         open, they'll all be kept up to date automatically.
+         both directions - Comet is built in.  So when fresh data is available, the user can
+         see it immediately.  Similarly, multiple browser windows are kept up to date automatically.
          </li>
        </ul>
 
+      <div class="example">
       <code>
       <pre>
-      // imagine a data structure like this:
-        homeData: {
-          name: {
-            first:"Lee",
-            last:"Mighdoll"
-          }
-          
-          notes: [
-            { title:"edit Me",
-              contents:""
-              pos: {
-                x:50,
-                y:50
-              } 
-            }
-          ]
-        }
-
       // load personal settings.  
       var connection = $liquid.connect("http://testserver.liquidj.com");
-      connection.subscribe("mySettings", settings);
+      connection.subscribe("MainPage", settings);
 
       // create a new note.
-      var note = note();
       settings.notes.append(note);
       
       </pre>
       </code>
+      </div>
     </div>
   </div>
 </body>
+</html>
+
+
