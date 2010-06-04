@@ -21,13 +21,14 @@ var $sync = $sync || {};      // namespace
  * or even in parallel over multiple connections simultaneously.  
  * 
  * @param {String} feedUrl - url of the jsonsync protocol endpoint
- * @param {Object} params -  optional { 
+ * @param {Object} params (optional) - { 
  *                  testMode: true/false, 
  *                  connected: function,
  *                  failFn: function,   // called when any http request fails (useful for tests)
  *                  appVersion: string, 
  *                  requestTimeout: int, // msec to wait on ajax requests
- *                  authorization: token (string) }
+ *                  authorization: token (string) 
+ *                }
  */
 $sync.connect = function(feedUrl, params) {
 //  var log = oops;   // triggers an internal firefox bug on 3.5: internal error cannot access optimized closure
@@ -98,12 +99,12 @@ $sync.connect = function(feedUrl, params) {
     $.each(changeSet, function(index, change) {      
       target = change.target;
       changeType = change.changeType;
-//      $debug.log("sendModified, change: " + change);
+//      $log.log("sendModified, change: " + change);
       if (changeType === "create") {        
         if (target.$partition !== '.implicit') {// don't send 'well known' objects 
           outgoing = outgoingSyncable(target);
           xact.push(outgoing);
-//          $debug.log(".outgoing: " + JSON.stringify(outgoing));
+//          $log.log(".outgoing: " + JSON.stringify(outgoing));
         }
       } else if (changeType === "property") {
         delta = {};
@@ -111,7 +112,7 @@ $sync.connect = function(feedUrl, params) {
         delta.$partition = target.$partition;
         delta[change.property] = outgoingValue(target[change.property]);
         xact.push(delta);
-//        $debug.log(".sending delta: " + JSON.stringify(delta));
+//        $log.log(".sending delta: " + JSON.stringify(delta));
       } else if (changeType === "edit") {
         edit = {};
         $debug.assert(target.$partition !== undefined);
@@ -136,13 +137,13 @@ $sync.connect = function(feedUrl, params) {
         } else if (typeof(change.removeAt) !== 'undefined') {
           edit.removeAt = change.removeAt;
         } else {
-          $debug.error("sendModified doesn't know how to send change:" + change);     
+          $log.error("sendModified doesn't know how to send change:" + change);     
         }
         
         xact.push(edit);
-//      $debug.log(".sending #edit: " + JSON.stringify(edit));
+//      $log.log(".sending #edit: " + JSON.stringify(edit));
       } else {
-         $debug.error("sendModified doesn't know how to send change: " + change);     
+         $log.error("sendModified doesn't know how to send change: " + change);     
       }
     });
     if (params && params.testMode)
@@ -180,7 +181,7 @@ $sync.connect = function(feedUrl, params) {
    * replace object references to syncable objects with $ref objects.  */  
   function outgoingValue(value) {
 //  if (typeof(value) !== 'function') {
-//    $debug.log("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
+//    $log.log("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
 //  }
     if ($sync.manager.isSyncable(value)) {
       return {$ref: {$partition: value.$partition, $id:value.$id}};
@@ -195,7 +196,8 @@ $sync.connect = function(feedUrl, params) {
     return testModeOut;
   };
     
-  /** Subscribe to server propagated changes on a set of objects
+  /** Subscribe to server propagated changes on a set of objects connected
+   * to a root object.
    * The caller can watch for changes on the returned subscription object.
    * When the root field is filled in, the subscription request has been
    * filled.
@@ -258,7 +260,7 @@ $sync.connect = function(feedUrl, params) {
     });
     
     $sync.util.arrayFind(sendWhenConnected, function(queued) {
-      $debug.warn("sendWhenConnected: is this still used?");
+      $log.warn("sendWhenConnected: is this still used?");
       sendNow(queued.xact, queued.successFn);
     });
     if (params && params.connected) // notify anyone who's listening that we're now connected
@@ -313,7 +315,7 @@ $sync.connect = function(feedUrl, params) {
     }
     
     var xactStr = JSON.stringify(xact);
-//    $debug.log("sending xact to server: " + xactStr);
+//    $log.log("sending xact to server: " + xactStr);
     requestsActive += 1;
     $.ajax({
       url: feedUrl,

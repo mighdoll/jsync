@@ -14,30 +14,38 @@
  */
 
 /**
- *  Debug logging and assertions
+ *  Debug assertions
  */
 var $debug = (function() {
-  var logger = $log.getLogger('jsync');
 
+  // manually copy array elements.  Array.concat doesn't work on built in arguments pseudo-array
+  function concatArray(a, aStart, b, bStart) {
+    var i, result = [];
+    for (i = aStart; i < a.length; i++) {
+      result.push(a[i]);
+    }
+    for (i = bStart; i < b.length; i++) {
+      result.push(b[i]);
+    }
+    return result;
+  }
+  
+  // when logging, we pass the logging arguments along to the underlying logger 
+  // rather than concatenating them here, so e.g. firebug can pretty print appropriately
   var self = {
-    assert: function(val, msg) {
-      if (!val) {
-        self.log("ASSERT: " + (msg || ""));
+    assert: function(test) {
+      var args;
+      if (!test) {
+        args = concatArray(["ASSERT: "], 0, arguments, 1);
+        $log.debug.apply($log, args);  
         debugger;
       }
     },
     
-    logger: logger,
-
-    fail: logger.fail,
-    
-    log: logger.log,
-    
-    error: logger.error,
-    
-    info: logger.info,
-    
-    warn: logger.warn
+    fail: function() {
+      $log.error.apply($log, arguments);
+      debugger;
+    }
   };
   return self;
 })();

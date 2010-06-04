@@ -8,26 +8,25 @@
   <meta name="keywords" content="LiquidJ,scala,jquery,javascript"/>
   <meta name="author" content="LiquidJ"/>
 
-  <script type="text/javascript" src="../jsync/jslib/jquery-1.3.2.js"></script>
-  <script type="text/javascript" src="../jsync/jslib/json2.js"></script>
-  <script type="text/javascript" src="../util/log.js"></script>
-  <script type="text/javascript" src="../jsync/debug.js"></script>
-  <script type="text/javascript" src="../jsync/util.js"></script>
-  <script type="text/javascript" src="../jsync/future.js"></script>
-  <script type="text/javascript" src="../jsync/observe.js"></script>
-  <script type="text/javascript" src="../jsync/changeDescription.js"></script>
-  <script type="text/javascript" src="../jsync/manager.js"></script>
+  <script type="text/javascript" src="/jslib/jquery-1.4.2.js"></script>
+  <script type="text/javascript" src="/util/log.js"></script>
+  <script type="text/javascript" src="/jsync/debug.js"></script>
+  <script type="text/javascript" src="/jsync/util.js"></script>
+  <script type="text/javascript" src="/jsync/future.js"></script>
+  <script type="text/javascript" src="/jsync/observe.js"></script>
+  <script type="text/javascript" src="/jsync/changeDescription.js"></script>
+  <script type="text/javascript" src="/jsync/manager.js"></script>
   <script type="text/javascript" src="/generatedModels.js"></script>
-  <script type="text/javascript" src="../jsync/syncCollections.js"></script>
-  <script type="text/javascript" src="../jsync/protocolVersion.js"></script>
-  <script type="text/javascript" src="../jsync/connection.js"></script>
-  <script type="text/javascript" src="../jsync/receive.js"></script>
-
+  <script type="text/javascript" src="/jsync/syncCollections.js"></script>
+  <script type="text/javascript" src="/jsync/protocolVersion.js"></script>
+  <script type="text/javascript" src="/jsync/connection.js"></script>
+  <script type="text/javascript" src="/jsync/receive.js"></script>
+  
   <script type="text/javascript" src="js/main.js"></script>
 
   <link href="style/style.css" rel="stylesheet" type="text/css"/>
     
-  <title>LiquidJ - Better Ajax </title>
+  <title>LiquidJ - Better than Ajax </title>
 
 </head>
 <body>
@@ -68,16 +67,15 @@
       <div class="example">
       <code>
       <pre>
-      // load personal settings.  
-      var connection = $liquid.connect("http://testserver.liquidj.com");
-      connection.subscribe("MainPage", settings);
+      // open a liquid connection
+      connect();
 
-      // create a new note.
-      settings.notes.append(note);
-      
+      // Change a bit of data.   
+      settings.modifyFieldExample.number_(7);        
       </pre>
       </code>
       </div>
+      <button id="tryIt">Try it</button>
     </div>
   </div>
 </body>

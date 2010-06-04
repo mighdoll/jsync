@@ -53,7 +53,7 @@ $sync.manager = function() {
   var dirty;			// set to true when local objects have been changed and need to be sent to the server
 
   function logSidebar(message) {
-    $debug.log(message);
+    $log.log(message);
   }
 
   /** reset to initial state (useful for testing!) */
@@ -124,7 +124,7 @@ $sync.manager = function() {
    * @return constructor function for objects of this kind
    */
   self.defineKind = function(kind, dataModel, providedConstructor) {
-//  	$debug.log("defineKind: " + kind);
+//  	$log.log("defineKind: " + kind);
     if (kindPrototypes[kind] !== undefined) {
       $debug.fail("defineKind called twice on kind: " + kind);
       return kindPrototypes[kind];
@@ -238,10 +238,10 @@ $sync.manager = function() {
 
   /** log the entire local syncable instance table for debugging */
   self.printLocal = function() {
-    $debug.log("local syncable instances:");
+    $log.log("local syncable instances:");
     for (var id in ids) {
       if (typeof id !== 'function' && ids.hasOwnProperty(id)) {
-         $debug.log("  " + ids[id]);
+         $log.log("  " + ids[id]);
       }
     }
   };
@@ -254,7 +254,7 @@ $sync.manager = function() {
   self.update = function(received) {
     var prop, obj = self.get(received.$partition, received.$id);
 
-//    $debug.log("manager.update: " + JSON.stringify(received));
+//    $log.log("manager.update: " + JSON.stringify(received));
     $debug.assert(obj && obj !== received);
     $debug.assert(obj.$id === received.$id);
     $debug.assert(!received.$kind || obj.$kind === received.$kind);
@@ -287,7 +287,7 @@ $sync.manager = function() {
   	var editRef = edit["#edit"];
     var collection = self.get(editRef.$partition, editRef.$id);
     if (typeof(collection) === 'undefined') {
-      $debug.error("target of collection edit not found: " + JSON.stringify(edit));
+      $log.error("target of collection edit not found: " + JSON.stringify(edit));
 	  $sync.manager.printLocal();
 	  $debug.assert(false);
     } else if (collection.$kind === "$sync.set") {
@@ -295,7 +295,7 @@ $sync.manager = function() {
     } else if (collection.$kind === "$sync.sequence") {
       editSequence(collection, edit);
     } else {
-      $debug.log("unexpected $kind of collection for #edit: " + JSON.stringify(edit) + " found: " + JSON.stringify(collection));
+      $log.log("unexpected $kind of collection for #edit: " + JSON.stringify(edit) + " found: " + JSON.stringify(collection));
     }
   };
 
@@ -309,7 +309,7 @@ $sync.manager = function() {
     if (!ids[key]) {
 	  ids[key] = obj;
 	} else {
- 	  $debug.error("creating syncable already in map:" + obj);
+ 	  $log.error("creating syncable already in map:" + obj);
 	}
     return false;
   };
@@ -360,7 +360,7 @@ $sync.manager = function() {
 	  self.withNewIdentity({partition: partition, $id:id}, function() {
 	  	obj = constructFn();
 	  });
-//	  $debug.log("createRaw() created: " + obj + " contains?=" +
+//	  $log.log("createRaw() created: " + obj + " contains?=" +
 //			  $sync.manager.contains(partition,id));
     }
     else {
@@ -410,7 +410,7 @@ $sync.manager = function() {
    * @return the result of fn()
    */
   self.withTransientPartition = function(fn) {
-//  $debug.log("transientPartition: " + self.transientPartition);
+//  $log.log("transientPartition: " + self.transientPartition);
   	return self.withPartition(self.transientPartition, fn);
   };
   
@@ -444,7 +444,7 @@ $sync.manager = function() {
       }
     }
     else {
-      //      $debug.log("skipping server change (not adding to changeSet): " + change);
+      //      $log.log("skipping server change (not adding to changeSet): " + change);
     }
   }
 
@@ -572,7 +572,7 @@ $sync.manager = function() {
           $debug.assert(obj);
           // these changes came from the server, no sense sending them back)
           $debug.assert($sync.observation.currentMutator() === "server");
-//          $debug.log("manager.editSet: put" + onePut + " into: " + set);
+//          $log.log("manager.editSet: put" + onePut + " into: " + set);
           set.put(obj);
         }
       }

@@ -16,12 +16,12 @@ $sync.receive = function(connection) {
      * queue it until new message comes along.  */
     receiveMessages: function(messages) {
       var msgDex;
-      if (messages.length === 0) 
+      if (!messages || messages.length === 0) 
         return;
       
       if (connection.isClosed) {
         if (!connection.isClosed.ignoreMessages) {
-          $debug.warn("connection (" + connection.connectionToken +
+          $log.warn("connection (" + connection.connectionToken +
           ") is closed.  Dropping these messages: " +
           JSON.stringify(messages));
         }
@@ -66,10 +66,10 @@ $sync.receive = function(connection) {
     }
     if ($sync.util.now() - lastProcessed > missedMessageTimeout) {
       // SOON, reset the connection, etc.
-      $debug.error("waited too long for message: " + (receivedTransaction + 1));
+      $log.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
-      $debug.log("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
+      $log.log("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
     }
     return undefined;
   }
@@ -83,7 +83,7 @@ $sync.receive = function(connection) {
     });
 
     if (number === undefined)
-      $debug.error("missing #transaction in: " + JSON.stringify(jsonMessage));
+      $log.error("missing #transaction in: " + JSON.stringify(jsonMessage));
     return number;
   }
 
@@ -112,14 +112,14 @@ $sync.receive = function(connection) {
       obj = message[i];
       if (obj === undefined) {
         // empty elements oughtn't be in the stream 
-        $debug.warn("empty object in JSON stream");
+        $log.warn("empty object in JSON stream");
       }
       else if (obj.hasOwnProperty("#edit")) {
         // queue collection changes to handle a little later
         toEdit.push(obj);
       }
       else if (obj.hasOwnProperty("#reset")) {
-        $debug.error("#reset not yet implemented");
+        $log.error("#reset not yet implemented");
       }
       else if (obj.hasOwnProperty("#transaction")) {
       }
@@ -128,7 +128,7 @@ $sync.receive = function(connection) {
         connection.connectionToken = obj["#token"];
       }
       else if (hasHashProperty(obj)) {
-        $debug.error("unsupported #property in: " + JSON.stringify(obj));
+        $log.error("unsupported #property in: " + JSON.stringify(obj));
       }
       else {
         // create and register objects heretofore unknown
@@ -181,7 +181,7 @@ $sync.receive = function(connection) {
     var prop, arrayDex, arrayVal;
 
     if (typeof obj !== 'object') {
-      $debug.warn("resolveRefs can't resolve obj: " + obj); // shouldn't happen
+      $log.warn("resolveRefs can't resolve obj: " + obj); // shouldn't happen
       return obj;
     }
         

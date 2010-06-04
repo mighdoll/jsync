@@ -91,7 +91,7 @@ function testCollectionClass(className, creator) {
 	  } else if (set.$kind == "$sync.sequence") {
 	  	ok(change.removeAt === 0);
 	  } else {
-	    $debug.error("unexpected collection type in test: " + className + ".notification");	  	
+	    $log.error("unexpected collection type in test: " + className + ".notification");	  	
 	  }
     })(function() {
       set.remove(item1);

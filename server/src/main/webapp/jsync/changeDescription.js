@@ -49,7 +49,7 @@ $sync.changeDescription = function(changeType, target, params) {
   }
   
   setParams();
-//  $debug.log("created: " + self);
+//  $log.log("created: " + self);
   return self;
 };
 
