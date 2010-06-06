@@ -67,7 +67,7 @@ $sync.connect = function(feedUrl, params) {
   
   self.requestsActive = function() { 
     return requestsActive;
-  }
+  };
   
   self.isClosed = false;                 // true or object if this connection has been closed
   self.connectionToken = undefined;      // password for this connection 
@@ -264,8 +264,7 @@ $sync.connect = function(feedUrl, params) {
       sendNow(queued.xact, queued.successFn);
     });
     if (params && params.connected) // notify anyone who's listening that we're now connected
-      params.connected(self);
-    
+      params.connected(self);  
   }
 
   /** continually keep a request outstanding to the server */

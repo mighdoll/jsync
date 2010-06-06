@@ -1,6 +1,8 @@
 $(function() {
-  var settings, demoWindow;
-  
+  var settings, demoWindow;  
+  var connection = $sync.connect("http://localhost:8080/test/sync", 
+      {authorization:"guest", appVersion:"0.1", connected:subscribe});
+    
   function subscribe() {
     registerButtons();
     connection.subscribe("GuestSettings", "guests", registerButtons);
@@ -16,8 +18,5 @@ $(function() {
   function modifyObject() {
     settings.fieldExample.number_(7);
   }
-  
-  var connection = $sync.connect("http://localhost:8080/test/sync", 
-    {authorization:"guest", appVersion:"0.1", connected:subscribe});
   
 });

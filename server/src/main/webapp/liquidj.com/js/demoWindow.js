@@ -31,6 +31,6 @@ var scopeWrapper = function() {
       demoWindow.focus();
       demoWindow.location = target;
     }
-  }
+  };
 
 }();

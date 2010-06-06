@@ -31,8 +31,8 @@ test("defineKind.kind", function() {
 test("defineKind.kindPrototype", function() {
   var kind = $sync.test.nameObj;
   $.extend(kind.kindPrototype, {
-    fn1: function() { return 1 },
-    fn2: function() { return 2 },
+    fn1: function() { return 1; },
+    fn2: function() { return 2; }
   });
 
   var obj = kind();

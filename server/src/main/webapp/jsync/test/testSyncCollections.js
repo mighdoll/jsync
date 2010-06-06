@@ -207,7 +207,7 @@ test("sequence.each", function() {
     ok(i === i_expect);
     i_expect++;
     ok(item == items_expect[i]);
-  })
+  });
 });
 
 /** verify a sequence matches an array
@@ -235,5 +235,5 @@ function withWatch(collection, fn, owner) {
     // TODO use try/except, in MSIE-safe way
     $sync.observation.ignore(collection, fn, owner);
     return value;
-  }
+  };
 }

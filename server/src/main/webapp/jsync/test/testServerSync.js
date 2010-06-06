@@ -52,7 +52,7 @@ test("sync.subscribe.oneSet", function() {
         if (elem.name === "mercer") 
           foundMercer = true;
       });
-      ok(foundMercer)
+      ok(foundMercer);
       $sync.manager.reset();
       start();
     });
@@ -219,7 +219,7 @@ function sendRawTest(msgOrObj, connected, failed) {
   if (typeof(msgOrObj) === 'string') {
     data = msgOrObj;
   } else {
-    data = JSON.stringify(msgOrObj)
+    data = JSON.stringify(msgOrObj);
   }
 
   $.ajax({

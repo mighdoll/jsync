@@ -256,7 +256,7 @@ test("json-sync.send-obj", function() {
   
   subscriptions = $sync.util.arrayFind(out, function(elem) {
     if (elem.$id === "subscriptions") 
-      return elem
+      return elem;
     return undefined;
   });
   ok(subscriptions === undefined);

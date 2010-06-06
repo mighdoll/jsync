@@ -164,7 +164,7 @@ object TestSubscriptions extends LogHelper {
           val seq = new SyncableSeq[TestNameObj]
           seq += new TestNameObj("don't duplicate me")
           ref.ref = seq
-      }      
+      }
     }
     testPartition.publishGenerator("addReferencedSequence", {() =>
       val ref = new TestRefObj    

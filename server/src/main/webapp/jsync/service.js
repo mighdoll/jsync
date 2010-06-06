@@ -79,7 +79,7 @@ $sync.serviceForm = function(responseFn) {
           $id: serviceName
         }, $sync.sequence);
         
-        message = formToServiceCall(form)
+        message = formToServiceCall(form);
         messageQueue.append(message);
         $sync.observation.watchProperty(message, 'response', function(change) {
           $log.assert(change.target == message);

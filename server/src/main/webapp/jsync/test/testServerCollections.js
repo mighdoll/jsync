@@ -100,4 +100,3 @@ test("sync.serverSequence.addReferencedSequence", function() {
     ok(ref.ref.size() === 1);
   }
 });
-

@@ -63,7 +63,7 @@ test("observe.pause", function() {
   expect(2);
   
   $sync.observation.watch(syncable, function() {
-    fired = true
+    fired = true;
   });
   
   $sync.observation.pause();
