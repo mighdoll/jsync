@@ -70,7 +70,7 @@ $sync.receive = function(connection) {
       $log.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
-      $log.debug("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
+      log.debug("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
     }
     return undefined;
   }
@@ -84,7 +84,7 @@ $sync.receive = function(connection) {
     });
 
     if (number === undefined)
-      $log.error("missing #transaction in: " + JSON.stringify(jsonMessage));
+      log.error("missing #transaction in: " + JSON.stringify(jsonMessage));
     return number;
   }
 
@@ -100,7 +100,7 @@ $sync.receive = function(connection) {
   function parseMessage(message) {
     var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
-    $log.detail("parseMessage: ", message);
+    log.detail("parseMessage: ", message);
     if (message.length === 0) 
       return;
     
@@ -113,14 +113,14 @@ $sync.receive = function(connection) {
       obj = message[i];
       if (obj === undefined) {
         // empty elements oughtn't be in the stream 
-        $log.warn("empty object in JSON stream");
+        log.warn("empty object in JSON stream");
       }
       else if (obj.hasOwnProperty("#edit")) {
         // queue collection changes to handle a little later
         toEdit.push(obj);
       }
       else if (obj.hasOwnProperty("#reset")) {
-        $log.error("#reset not yet implemented");
+        log.error("#reset not yet implemented");
       }
       else if (obj.hasOwnProperty("#transaction")) {
       }
@@ -129,7 +129,7 @@ $sync.receive = function(connection) {
         connection.connectionToken = obj["#token"];
       }
       else if (hasHashProperty(obj)) {
-        $log.error("unsupported #property in: " + JSON.stringify(obj));
+        log.error("unsupported #property in: " + JSON.stringify(obj));
       }
       else {
         // create and register objects heretofore unknown

@@ -29,14 +29,15 @@
  *  log.error(msg) - serious error
  *  log.assert(test, msg) - invokes log.error(msg), if test is false-y
  *
- *  $log.getLogger(name) returns a logger that acts just like $log, except that:
+ *  $log.logger(name) returns a logger that acts just like $log, except that:
  *
  *  (1) It can be selectively enabled or disabled via:
  *    logger.enable()
  *    logger.disable()
  *
- *  (2) It initializes its enabled state to the value of the 'log{Name}'
- *  query parameter, if this is present; and:
+ *  (2) It initializes its enabled state to the value of the 'logXYZ'
+ *  query parameter, if this is present.  logXYZ=off disables the XYZ logger,
+ *  and logXYZ=0 sets the logger to level 0 (detail).
  *
  *  (3) It can prefix its messages by the name of the logger, or by a
  *  custom string:
@@ -54,9 +55,10 @@ var $log = (function() {
   var logLevels = {detail:0, debug:1, info:2, log:3, warn:4, error:5};
   var instances = {};
   var self = {
+    name: "$log",
     registerListener: registerListener,
     _listeners: listeners,
-    _level: 1,
+    _level: 0,
     logger: logger,
     setLevel: function(level) { this._level = logLevels[level]; return this; }
   };
@@ -123,18 +125,27 @@ var $log = (function() {
   }
 
   function createLogger(parent, name, enabled) {
+    var level = 1;
     var override = document.location.search.match(
       RegExp('\\blog[_-]?' + name + '(?:=([^&]*))?\\b', 'i'));
-    enabled = override
-      ? (override[1]===undefined ? true : ['0','false'].indexOf(override[1]) < 0)
-      : (enabled || false);
+    if (override) {
+      if (override[1]===undefined) {
+        enabled = true;
+      } else if (['false','off'].indexOf(override[1]) >= 0) {
+        enabled = false;
+      } else if (+override[1] != NaN) {
+        enabled = true;
+        level = +override[1];
+      }
+      $log.info("logger " + name + (enabled ? " to level: " + level : "off"));
+    }
     var prefix = false;
 
     var instance = {
       enable:function() { enabled=true; return this; },
       disable:function() { enabled=false; return this; },
       setPrefix:function(prefix_) { prefix=prefix_; return this; },
-      _level: 0,
+      _level: level,
       setLevel: self.setLevel, // shares implementation; doesn't delegate
       assert: self.assert
     };
