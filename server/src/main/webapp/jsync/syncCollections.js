@@ -15,7 +15,7 @@
 var $sync = $sync || {}; // namespace
 
 $sync._sequenceWrap = function() {
-  var log = $log.getLogger("$sync.sequence", true);
+  var log = $log.logger("$sync.sequence", true);
   
   /** --- private methods --- */
  
@@ -38,7 +38,7 @@ $sync._sequenceWrap = function() {
   }
   
   function doAppend(item) {
-    log.assert($sync.manager.isSyncable(item), "sequence.put: elem isn't syncable: " + item);
+    $debug.assert($sync.manager.isSyncable(item), "sequence.put: elem isn't syncable: " + item);
         
     if (this.contains(item)) 
       return;
@@ -102,8 +102,8 @@ $sync._sequenceWrap = function() {
     /** Insert `item` after `prev`.  If `prev` is falsey, insert `item` at the
      beginning of the list. */
     insert: function(item, prev) {
-      log.assert($sync.manager.isSyncable(item), "sequence.insert: elem isn't syncable: " + item);
-      log.assert(!prev || this.contains(prev));
+      $debug.assert($sync.manager.isSyncable(item), "sequence.insert: elem isn't syncable: " + item);
+      $debug.assert(!prev || this.contains(prev));
       
       var index = 0;
       var prevDex = prev && this.indexOf(prev);
@@ -121,7 +121,7 @@ $sync._sequenceWrap = function() {
      * @param {Object} index
      */
     insertAt: function(item, index) {
-      log.assert($sync.manager.isSyncable(item), "sequence.insertAt: elem isn't syncable: " + item);
+      $debug.assert($sync.manager.isSyncable(item), "sequence.insertAt: elem isn't syncable: " + item);
       
       this._elems.splice(index, 0, item);
       notifyInsertAt.apply(this, [item, index]);
@@ -129,7 +129,7 @@ $sync._sequenceWrap = function() {
     
     /** Move `item` to the specified index position.  If toDex is undefined, move item to the first position. */
     move: function(item, toDex) {
-      log.assert(this.contains(item));
+      $debug.assert(this.contains(item));
       this.moveAt(this.indexOf(item), toDex);
     },
     
@@ -171,7 +171,7 @@ $sync._sequenceWrap = function() {
 /* Create a syncable set collection.  Both the set and the elements
  themselves are Syncable objects */
 $sync._setWrap = function() {
-  var log = $log.getLogger("$sync.set");
+  var log = $log.logger("$sync.set");
 
   $sync.set.defineInstanceMethods({
     /* add a syncable element to the syncable set */
@@ -181,7 +181,7 @@ $sync._setWrap = function() {
     },
     
     put: function(elem) {
-      log.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: " + elem);
+      $debug.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: " + elem);
       if (!this.contains(elem)) {
         this._elems[elem.$id] = elem; // TODO: include partition in index
         this._size += 1;

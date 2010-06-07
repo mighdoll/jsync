@@ -26,7 +26,7 @@ var $sync = $sync || {};
  * description object.  See below for examples. 
  */
 $sync.observation = function() {
-  var log = $log.getLogger("$sync.observation");
+  var log = $log.logger("$sync.observation");
   var deferred;
   var watchers; // map of watching functions, indexed by the
                 // $id field of syncable objects, where each item

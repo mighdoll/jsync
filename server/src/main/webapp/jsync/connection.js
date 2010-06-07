@@ -31,8 +31,7 @@ var $sync = $sync || {};      // namespace
  *                }
  */
 $sync.connect = function(feedUrl, params) {
-//  var log = oops;   // triggers an internal firefox bug on 3.5: internal error cannot access optimized closure
-  var log = $log.getLogger("connect");     
+  var log = $log.logger("connect");     
   var self = {};
   var sentTransaction = 0;              // protocol sequence number sent
   var testModeOut;                      // output for test mode

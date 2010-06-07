@@ -51,13 +51,13 @@
  */
 var $log = (function() {
   var listeners = {};
-  var logLevels = {debug:0, info:1, log:2, warn:3, error:4};
+  var logLevels = {detail:0, debug:1, info:2, log:3, warn:4, error:5};
   var instances = {};
   var self = {
     registerListener: registerListener,
     _listeners: listeners,
-    _level: 0,
-    getLogger: getLogger,
+    _level: 1,
+    logger: logger,
     setLevel: function(level) { this._level = logLevels[level]; return this; }
   };
 
@@ -91,10 +91,6 @@ var $log = (function() {
       listeners[fnName] = [];
       self[fnName] = createLogFunction(fnName);
     }
-    self.assert = function(test, message) {
-      // use this, not self, since this is copied to descendant loggers
-      if (!test) this.error.apply(this, arguments);
-    };
 
     /** return a function that calls the listeners for a given
      * logFunction name */
@@ -106,23 +102,24 @@ var $log = (function() {
     }
   }
 
-  /** set up listeners for the console.  Assumes the console has like
-   * named functions: log(), info(), etc.) */
+  /** set up listeners for the firebug console.  */
   function registerConsoleListeners() {
     // set up a listener for the console functions that match the $log functions
     if (typeof window.console != 'undefined') {
       for (var fnName in logLevels) {
         if (typeof console[fnName] == 'function') {
           registerListener(console, console[fnName], fnName);
+        } else {
+          registerListener(console, console.log, fnName);
         }
       }
     }
   }
 
-  function getLogger(name, enabled) {
-    var logger = instances[name] =
+  function logger(name, enabled) {
+    var log = instances[name] =
       instances[name] || createLogger(this, name, enabled !== undefined ? enabled : true);
-    return logger;
+    return log;
   }
 
   function createLogger(parent, name, enabled) {

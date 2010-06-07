@@ -5,6 +5,7 @@
 var $sync = $sync || {};      // namespace
 
 $sync.receive = function(connection) {
+  var log = $log.logger("receive");
   var received = [];                    // queue of received messages (possibly out of sequence)
   var receivedTransaction = -1;         // protocol sequence number received
   var lastProcessed = $sync.util.now(); // last time a message was received
@@ -69,7 +70,7 @@ $sync.receive = function(connection) {
       $log.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
-      $log.log("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
+      $log.debug("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
     }
     return undefined;
   }
@@ -99,7 +100,7 @@ $sync.receive = function(connection) {
   function parseMessage(message) {
     var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
-//    $log.debug("parseMessage: ", message);
+    $log.detail("parseMessage: ", message);
     if (message.length === 0) 
       return;
     

@@ -63,7 +63,7 @@ $sync.service = function(serviceName, messageCreateFn) {
  * Returns a function suitable for a submit form handler
  */
 $sync.serviceForm = function(responseFn) {
-  var log = $log.getLogger("serviceForm");
+  var log = $log.logger("serviceForm");
   
   /** called by a submit handler to submit this form to a sync service endpoint */
   function processForm(formOrEvent) {
@@ -82,7 +82,7 @@ $sync.serviceForm = function(responseFn) {
         message = formToServiceCall(form);
         messageQueue.append(message);
         $sync.observation.watchProperty(message, 'response', function(change) {
-          $log.assert(change.target == message);
+          $debug.assert(change.target == message);
           responseFn(change.target.response);
         });
       }
