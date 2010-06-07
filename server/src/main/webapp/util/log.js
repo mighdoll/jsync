@@ -182,3 +182,6 @@ var $log = (function() {
 // call to setupConsoleListeners in the initialization of $log.
 if (typeof window.console == 'undefined')
   window.console = $log;
+
+ 
+ 

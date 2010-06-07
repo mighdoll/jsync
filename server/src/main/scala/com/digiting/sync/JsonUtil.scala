@@ -141,7 +141,7 @@ object JsonUtil {
       case bool:Boolean => bool.toString
       case int:Integer => int.toString
       case double:Double => double.toString
-      case string:String => quote(StringEscapeUtils.escapeJavaScript(string))
+      case string:String => quote(StringEscapeUtils.escapeJava(string))
       case null => "null"
       case none:net.liftweb.common.EmptyBox[_] => "null"	
       case other => quote(other.toString)  		// unfortunately, type erasure prevents matching on refs vs. vals here

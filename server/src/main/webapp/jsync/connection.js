@@ -336,7 +336,7 @@ $sync.connect = function(feedUrl, params) {
     /** called if there's a an error with the http request 
      * (also called, I think, if there's an error with json format in the result */
     function failed(xmlHttpRequest, textStatus, errorThrown) {
-//      log.warn("$sync protocol request failed: ", xmlHttpRequest.status, xmlHttpRequest.statusText);      // causes this error: (only when run in the test suite though..) uncaught exception: [Exception... "Component returned failure code: 0x80040111 (NS_ERROR_NOT_AVAILABLE) [nsIXMLHttpRequest.status]" nsresult: "0x80040111 (NS_ERROR_NOT_AVAILABLE)" location: "JS frame :: http://localhost:8080/jsync/connection.js :: failed :: line 334" data: no]
+      log.warn("$sync protocol request failed: ", xmlHttpRequest);      
       if (textStatus === "timeout") {
         consecutiveTimeouts += 1;
         requestsActive -= 1;

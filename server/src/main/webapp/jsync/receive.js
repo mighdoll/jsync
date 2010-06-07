@@ -17,12 +17,13 @@ $sync.receive = function(connection) {
      * queue it until new message comes along.  */
     receiveMessages: function(messages) {
       var msgDex;
+      log.detail("receiveMessages: ", messages);
       if (!messages || messages.length === 0) 
         return;
       
       if (connection.isClosed) {
         if (!connection.isClosed.ignoreMessages) {
-          $log.warn("connection (" + connection.connectionToken +
+          log.warn("connection (" + connection.connectionToken +
           ") is closed.  Dropping these messages: " +
           JSON.stringify(messages));
         }
@@ -52,8 +53,10 @@ $sync.receive = function(connection) {
   function takeNextMessage() {
     var i, transactionNum, message;
     
-    if (received.length === 0)
+    if (received.length === 0) {
+      log.debug("empty message received");
       return undefined;
+    }
     
     for (i = 0; i < received.length; i++) {
       message = received[i];
@@ -67,7 +70,7 @@ $sync.receive = function(connection) {
     }
     if ($sync.util.now() - lastProcessed > missedMessageTimeout) {
       // SOON, reset the connection, etc.
-      $log.error("waited too long for message: " + (receivedTransaction + 1));
+      log.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
       log.debug("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
@@ -182,7 +185,7 @@ $sync.receive = function(connection) {
     var prop, arrayDex, arrayVal;
 
     if (typeof obj !== 'object') {
-      $log.warn("resolveRefs can't resolve obj: " + obj); // shouldn't happen
+      log.warn("resolveRefs can't resolve obj: " + obj); // shouldn't happen
       return obj;
     }
         
