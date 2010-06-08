@@ -36,6 +36,8 @@ object SyncRequestApi extends LogHelper {
       () => sync(req)
     case req @ Req("test" :: "sync" :: Nil, _, PostRequest) =>
       () => sync(req)
+    case req @ Req("demo" :: "sync" :: Nil, _, PostRequest) =>
+      () => sync(req)
     case Req("generatedModels" :: Nil, _, GetRequest) =>
       () => jsModels
   }
@@ -89,9 +91,6 @@ object SyncRequestApi extends LogHelper {
         log.trace("sync() response: %s", response)
         Full(InMemoryResponse(response.getBytes,
           ("Content-Type" -> "application/json") :: Nil, Nil, 200))     
-    }      
-
+    }
   }
-  
- 
 }

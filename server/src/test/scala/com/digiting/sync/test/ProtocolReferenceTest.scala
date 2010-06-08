@@ -51,8 +51,7 @@ class ProtocolReferenceTest extends Spec with ShouldMatchers with BeforeAndAfter
     val nameObj = new TestNameObj("fred")
     val refObj = new TestRefObj(nameObj)
     refObj :: Nil  
-  }
-  
+  }  
 }
 
 @ImplicitServiceClass("ProtocolReferenceTestServer")

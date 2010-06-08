@@ -97,7 +97,7 @@ abstract class Partition(val id:String) extends LogHelper {
       trace("#%s update(%s)", partitionId, change)
       update(change, tx)
     }    
-    // SOON, rename this since the update method is magic in scala
+    // SOON, rename this method since the 'update' method is magic in scala syntax
   }
   
   /* subclasses should implement these */
@@ -139,7 +139,7 @@ abstract class Partition(val id:String) extends LogHelper {
     published.create(publicName, root)
   }
   
-  def publishGenerator(publicName:String, generator: ()=>Option[Syncable]) {
+  def publish(publicName:String, generator: ()=>Option[Syncable]) {
     published.createGenerated(publicName, generator)
   }
   

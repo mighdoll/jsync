@@ -31,7 +31,7 @@ var $sync = $sync || {};      // namespace
  *                }
  */
 $sync.connect = function(feedUrl, params) {
-  var log = $log.logger("connect");     
+  var log = $log.logger("connection");     
   var self = {};
   var sentTransaction = 0;              // protocol sequence number sent
   var testModeOut;                      // output for test mode
@@ -98,12 +98,12 @@ $sync.connect = function(feedUrl, params) {
     $.each(changeSet, function(index, change) {      
       target = change.target;
       changeType = change.changeType;
-//      $log.log("sendModified, change: " + change);
+//      log.detail("sendModified, change: ", change);
       if (changeType === "create") {        
         if (target.$partition !== '.implicit') {// don't send 'well known' objects 
           outgoing = outgoingSyncable(target);
           xact.push(outgoing);
-//          $log.log(".outgoing: " + JSON.stringify(outgoing));
+//          log.detail(".outgoing: ", outgoing);
         }
       } else if (changeType === "property") {
         delta = {};
@@ -111,7 +111,7 @@ $sync.connect = function(feedUrl, params) {
         delta.$partition = target.$partition;
         delta[change.property] = outgoingValue(target[change.property]);
         xact.push(delta);
-//        $log.log(".sending delta: " + JSON.stringify(delta));
+//        log.detail(".sending delta: ", delta);
       } else if (changeType === "edit") {
         edit = {};
         $debug.assert(target.$partition !== undefined);
@@ -136,13 +136,13 @@ $sync.connect = function(feedUrl, params) {
         } else if (typeof(change.removeAt) !== 'undefined') {
           edit.removeAt = change.removeAt;
         } else {
-          $log.error("sendModified doesn't know how to send change:" + change);     
+          log.error("sendModified doesn't know how to send change:", change);     
         }
         
         xact.push(edit);
-//      $log.log(".sending #edit: " + JSON.stringify(edit));
+//      log.detail(".sending #edit: ", edit);
       } else {
-         $log.error("sendModified doesn't know how to send change: " + change);     
+         log.error("sendModified doesn't know how to send change: ", change);     
       }
     });
     if (params && params.testMode)
@@ -180,7 +180,7 @@ $sync.connect = function(feedUrl, params) {
    * replace object references to syncable objects with $ref objects.  */  
   function outgoingValue(value) {
 //  if (typeof(value) !== 'function') {
-//    $log.log("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
+//    log.detail("outgoing property: " + property + " = " + value + " isSyncable:" + $sync.manager.isSyncable(value));          
 //  }
     if ($sync.manager.isSyncable(value)) {
       return {$ref: {$partition: value.$partition, $id:value.$id}};
@@ -203,8 +203,8 @@ $sync.connect = function(feedUrl, params) {
    *
    * @param name - well known name shared by the server to identify this
    *  tree of subscribed objects
-   * @param watchFunc - applied to the subscribed root object when it arrives
-   *  (and again in the unlikely event that the root is subsequently changed)
+   * @param watchFunc (optional) - called with the subscribed root object 
+   *  as a param when the root arrives over the network
    * @return a subscription object: {name: "string", root: rootObject}
    */
   self.subscribe = function(name, partition, watchFunc) {
@@ -229,12 +229,12 @@ $sync.connect = function(feedUrl, params) {
         
   /** start connection to the server */
   function start() {
-//    $log.info("starting connection to: " + feedUrl);
+//    log.detail("starting connection to: " + feedUrl);
     var xact = startNextSendXact();
     var startMessage = {
       '#start': {
         authorization: params.authorization || "",
-        appVersion: params.appVersion || $sync.defaultAppVersion || "",
+        appVersion: params.appVersion || $sync.defaultAppVersion || "unspecified",
         protocolVersion: $sync.protocolVersion
       }
     };
@@ -245,7 +245,7 @@ $sync.connect = function(feedUrl, params) {
   /** called when the sync connection to the server is opened
    * -- we've heard a response from the server in response to our initial connection attempt */
   function connected(data) {
-//    $log.info("connected");
+    log.detail("connected");
     
     receive.receiveMessages(data); // parse any data the server has waiting for us
     $debug.assert(self.connectionToken !== undefined);
@@ -259,7 +259,7 @@ $sync.connect = function(feedUrl, params) {
     });
     
     $sync.util.arrayFind(sendWhenConnected, function(queued) {
-      $log.warn("sendWhenConnected: is this still used?");
+      log.warn("sendWhenConnected: is this still used?");
       sendNow(queued.xact, queued.successFn);
     });
     if (params && params.connected) // notify anyone who's listening that we're now connected
@@ -313,7 +313,7 @@ $sync.connect = function(feedUrl, params) {
     }
     
     var xactStr = JSON.stringify(xact);
-//    $log.log("sending xact to server: " + xactStr);
+//    log.log("sending xact to server: ", xactStr);
     requestsActive += 1;
     $.ajax({
       url: feedUrl,

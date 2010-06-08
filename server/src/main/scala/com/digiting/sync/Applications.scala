@@ -65,7 +65,7 @@ object Applications extends LogHelper {
   type Path = List[String]
   type AppContextCreator = PartialFunction[(Path, Message, Connection), AppContext]
   val appContextCreators = new mutable.ListBuffer[AppContextCreator]
-  
+    
   def register(creator:AppContextCreator) {
     appContextCreators += creator
   }

@@ -40,7 +40,8 @@ object JavascriptModels {
       for {
         (kind, accessor) <- SyncManager.metaAccessors
         if !(classOf[LocalOnly].isAssignableFrom(accessor.clazz))
-        ignored = saveNameSpace(kind)}
+        ignored = saveNameSpace(kind)
+      }
         yield String.format("""%s = $sync.manager.defineKind("%s", %s);""", 
                             kind, kind, propertiesArray(accessor))
     nameSpaceJs(nameSpaces) + "\n\n" + lines.mkString("\n")

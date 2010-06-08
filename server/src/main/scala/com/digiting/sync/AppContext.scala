@@ -50,6 +50,7 @@ class GenericAppContext(connection:Connection) extends AppContext(connection) {
   val appName = "generic-app-context"
 }
 
+/** App with the ability to connect syncable message queues to annotated service endpoints.  */
 abstract class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
 
 // CONSIDER -- the apps should probably be actors..

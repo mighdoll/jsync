@@ -29,7 +29,7 @@ object TestApplication {
       Applications.register {
         case ("test" :: "sync" :: Nil, message, connection) => 
           val app = new TestContext(connection)
-          tests foreach { app.createImplicitServices(_) }
+          tests foreach { app.createImplicitServices(_) } // LATER shouldn't this be automatically called by AppContext?  Lee
           app
       }
       TestSubscriptions.init()
@@ -41,8 +41,6 @@ object TestApplication {
   def registerTestServices(serviceObject:AnyRef) {
     tests += serviceObject    
   }
-  
-  
 }
 
 class TestContext(connection:Connection) extends RichAppContext(connection) {

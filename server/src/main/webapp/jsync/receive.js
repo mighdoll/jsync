@@ -54,7 +54,7 @@ $sync.receive = function(connection) {
     var i, transactionNum, message;
     
     if (received.length === 0) {
-      log.debug("empty message received");
+//      log.debug("empty message received");
       return undefined;
     }
     
@@ -83,7 +83,7 @@ $sync.receive = function(connection) {
     var number;
 
     number = $sync.util.arrayFind(jsonMessage, function(obj) {
-      return obj['#transaction'];   // halts if we found it 
+      return obj['#transaction'];
     });
 
     if (number === undefined)

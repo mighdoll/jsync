@@ -80,7 +80,7 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publishGenerator("modifyReference", {()=>
+    testPartition.publish("modifyReference", {()=>
       val ref = new TestRefObj      
       withForeignChange(ref, "modifyReferenceTest") {modify}
       Some(ref)
@@ -104,7 +104,7 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publishGenerator("duplicatingSet", {()=>
+    testPartition.publish("duplicatingSet", {()=>
       val set = new SyncableSet[Syncable]      
       withForeignChange(set, "duplicatingSetTest") {duplicate(set, _)}
       Some(set)
@@ -127,7 +127,7 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publishGenerator("sequence", {() =>
+    testPartition.publish("sequence", {() =>
       val seq = createNameSequence("a","b","c")
       withForeignChange(seq, "sequenceTest") {modify}
       Some(seq)
@@ -166,7 +166,7 @@ object TestSubscriptions extends LogHelper {
           ref.ref = seq
       }
     }
-    testPartition.publishGenerator("addReferencedSequence", {() =>
+    testPartition.publish("addReferencedSequence", {() =>
       val ref = new TestRefObj    
       withForeignChange(ref, "addReferencedSequence") {modified}
       Some(ref)
@@ -180,7 +180,7 @@ object TestSubscriptions extends LogHelper {
   
   
   private def generateAbc(publicName:String)(modifiedFn:(DataChange)=>Unit) {
-    testPartition.publishGenerator(publicName, {() =>
+    testPartition.publish(publicName, {() =>
       val seq = createNameSequence("a","b","c")
       withForeignChange(seq, publicName) {modifiedFn}
       Some(seq)

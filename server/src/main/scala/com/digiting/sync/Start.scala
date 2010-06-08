@@ -15,6 +15,7 @@
 package com.digiting.sync
 import com.digiting.util.Configuration
 import com.digiting.sync.testServer.ClientTestApp
+import com.liquidj.site.Demos
 
 object Start {
   def start() {
@@ -22,6 +23,7 @@ object Start {
     Configuration.getString("testServer") foreach {_=>
       ClientTestApp.init()          
     }
-
+    
+    Demos.init  // TODO move this to a separate project
   }
 }
