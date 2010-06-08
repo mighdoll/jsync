@@ -41,10 +41,10 @@ class PropertyAccessor(val name:String, getter:Method, setter:Method) extends Lo
   
   assert (name == Properties.propertySetterName(setter.getName).getOrElse(""))
   assert (setter.getParameterTypes.length == 1)
-  val propertyClass:Class[_] = setter.getParameterTypes()(0)  // first parameter of setter is property type
+  val clazz:Class[_] = setter.getParameterTypes()(0)  // first parameter of setter is property type
 
   def set(target: AnyRef, value:AnyRef) = {
-    log.trace("set()  (%s).%s[%s] = %s", target, name, propertyClass.getSimpleName, value)
+    log.trace("set()  (%s).%s[%s] = %s", target, name, clazz.getSimpleName, value)
     setter.invoke(target, value)
   }
   
@@ -60,8 +60,10 @@ class PropertyAccessor(val name:String, getter:Method, setter:Method) extends Lo
  */
 class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) extends LogHelper {
   protected lazy val log = logger("ClassAccessor")
+  
   val propertyAccessors:mutable.Map[String, PropertyAccessor] = mutable.Map()
   val referenceProperties:mutable.Set[PropertyAccessor] = mutable.Set()  
+  
   def set(target:AnyRef, property:String, value:AnyRef) = {
     propertyAccessors get property match {
       case Some(accessor) => accessor.set(target, value)
@@ -118,7 +120,7 @@ class ClassAccessor(val clazz:Class[_], ignoreMethods:String=>Boolean) extends L
   syncableProperties foreach { case(propertyName, getter, setter) => 
     val accessor = new PropertyAccessor(propertyName, getter, setter)
     propertyAccessors + (propertyName -> accessor)
-    if (classOf[Syncable].isAssignableFrom(accessor.propertyClass))
+    if (classOf[Syncable].isAssignableFrom(accessor.clazz))
       referenceProperties + accessor    
     accessor
   }

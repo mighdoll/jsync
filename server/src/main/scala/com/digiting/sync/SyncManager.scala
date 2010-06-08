@@ -279,9 +279,33 @@ object SyncManager extends LogHelper {
   def copyFields(srcFields:Iterable[(String, AnyRef)], target:Syncable) = {    
     val classAccessor = SyncableAccessor.get(target.getClass)
     for ((propName, value) <- srcFields) {
-      classAccessor.set(target, propName, value)
+      
+      val adaptedValue = convertJsType(value, classAccessor.propertyAccessors(propName))
+      classAccessor.set(target, propName, adaptedValue)
     }
   }
+  
+  /** convert javascript doubles to local numeric types */
+  private def convertJsType(jsValue:AnyRef, property:PropertyAccessor):AnyRef = {
+    if (jsValue.getClass == property.clazz) {
+      jsValue
+    } else {
+      jsValue match {
+        case d:java.lang.Double if (property.clazz == classOf[Int]) =>
+          java.lang.Integer.valueOf(d.intValue)          
+        case d:java.lang.Double if (property.clazz == classOf[Float]) =>
+          java.lang.Float.valueOf(d.floatValue)
+        case d:java.lang.Double if (property.clazz == classOf[Byte]) =>
+          java.lang.Float.valueOf(d.byteValue)
+        case x =>
+          log.fatal("unmatched value type %s for property %s", jsValue.getClass, property)
+          x
+      }
+    }
+    
+    // LATER, DRY with SyncableSerialize 
+  }
+  
   
      
   /** create the identity for a new object */
