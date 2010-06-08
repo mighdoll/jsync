@@ -94,7 +94,7 @@ object SyncableSerialize extends LogHelper {
   }
   
   private def parsePropertyValue(access:PropertyAccessor, valueString:String):AnyRef = {
-    val propClass:java.lang.Class[_] = access.propertyClass 
+    val propClass:java.lang.Class[_] = access.clazz 
     val boolClass = classOf[Boolean]
     val byteClass = classOf[Byte]
     val shortClass = classOf[Short]

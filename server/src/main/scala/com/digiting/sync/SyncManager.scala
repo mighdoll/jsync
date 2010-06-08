@@ -276,7 +276,7 @@ object SyncManager extends LogHelper {
   }
   
   /** copy a set of properities to a target syncable instance */
-  def copyFields(srcFields:Iterable[(String, AnyRef)], target:Syncable) = {    
+  def copyFields(srcFields:Iterable[(String, Any)], target:Syncable) = {    
     val classAccessor = SyncableAccessor.get(target.getClass)
     for ((propName, value) <- srcFields) {
       
@@ -286,23 +286,30 @@ object SyncManager extends LogHelper {
   }
   
   /** convert javascript doubles to local numeric types */
-  private def convertJsType(jsValue:AnyRef, property:PropertyAccessor):AnyRef = {
-    if (jsValue.getClass == property.clazz) {
-      jsValue
-    } else {
-      jsValue match {
-        case d:java.lang.Double if (property.clazz == classOf[Int]) =>
-          java.lang.Integer.valueOf(d.intValue)          
-        case d:java.lang.Double if (property.clazz == classOf[Float]) =>
-          java.lang.Float.valueOf(d.floatValue)
-        case d:java.lang.Double if (property.clazz == classOf[Byte]) =>
-          java.lang.Float.valueOf(d.byteValue)
-        case x =>
-          log.fatal("unmatched value type %s for property %s", jsValue.getClass, property)
-          x
-      }
-    }
-    
+  private def convertJsType(jsValue:Any, property:PropertyAccessor):AnyRef = {
+    jsValue match {
+      case null => null
+      case v:AnyRef if (v.getClass == property.clazz) => v
+      case d:java.lang.Double if (property.clazz == classOf[Byte]) =>
+        java.lang.Byte.valueOf(d.byteValue)
+      case d:java.lang.Double if (property.clazz == classOf[Short]) =>
+        java.lang.Short.valueOf(d.shortValue)
+      case d:java.lang.Double if (property.clazz == classOf[Int]) =>
+        java.lang.Integer.valueOf(d.intValue)          
+      case d:java.lang.Double if (property.clazz == classOf[Long]) =>
+        java.lang.Long.valueOf(d.longValue)          
+      case d:java.lang.Double if (property.clazz == classOf[Float]) =>
+        java.lang.Float.valueOf(d.floatValue)
+      case d:java.lang.Double if (property.clazz == classOf[Double]) =>
+        d
+      case b:java.lang.Boolean if (property.clazz == classOf[Boolean]) =>
+        b
+      case s:String if (property.clazz == classOf[Char]) =>
+        java.lang.Character.valueOf(s(0))
+      case x:AnyRef =>
+        log.fatal("unmatched value type %s for property %s:%s", x.getClass, property.name, property.clazz)
+        x
+    }    
     // LATER, DRY with SyncableSerialize 
   }
   

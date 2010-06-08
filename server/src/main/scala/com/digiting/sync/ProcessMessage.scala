@@ -236,7 +236,7 @@ object ProcessMessage extends LogHelper {
     val setProperties = remote filter {
       case(name,value) => !SyncableInfo.isReserved(name)
     }
-    val sanitized:Iterable[(String,AnyRef)] = 
+    val sanitized:Iterable[(String,Any)] = 
       for ((name, value) <- setProperties)
         yield (name, valueFromJson(local, name, value))
 

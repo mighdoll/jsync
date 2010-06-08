@@ -17,6 +17,7 @@ import com.digiting.sync.syncable._
 import com.digiting.util._
 import com.digiting.util.Matching._
 import com.digiting.sync.SyncManager.withGetId
+import com.digiting.sync.syncable.TestPrimitiveProperties
 
 /**
  * Setup a special partition that supports client tests.  The test partition includes
@@ -39,6 +40,7 @@ object TestSubscriptions extends LogHelper {
       moveSequence()
       removeSequence()
       addReferencedSequence()
+      primitivesRoundTrip()
     }
   }
   /** client views a single object */
@@ -172,8 +174,35 @@ object TestSubscriptions extends LogHelper {
       Some(ref)
     })                                   
   }
+
+  /** round trip modification of primitive field types */
+  def primitivesRoundTrip() {
+    
+    testPartition.publish("primitivesRoundTrip", {() =>
+    	val prims = new TestPrimitiveProperties
+      var once = false
+      withForeignChange(prims, "primitivesRoundTrip") {change =>        
+        partialMatch(change) {
+          case p:PropertyChange => 
+            if (!once) {
+              once = true
+              val prims:TestPrimitiveProperties = expectSome(p.target.target)
+              prims.t = !prims.t
+              prims.b = (prims.b + 1).toByte
+              prims.s = (prims.s + 1).toShort
+              prims.c = (prims.c + 1).toChar
+              prims.l = prims.l + 1
+              prims.i = prims.i + 1
+              prims.f = prims.f + 1
+              prims.d = prims.d + 1
+            }
+         }
+      }
+      Some(prims)
+    })
+  }
   
-  
+  /** a test on the sequence "a","b","c" */
   private def abcMatch[R](publicName:String)(pf:PartialFunction[DataChange,R]) {    
     generateAbc(publicName) {partialMatch(_)(pf)}
   }
@@ -187,7 +216,8 @@ object TestSubscriptions extends LogHelper {
     })        
   }
   
-  /* CONSIDER move this to util?  */
+  /** cast an option expected to be of a certain type and non-empty
+   * CONSIDER move this to util?  */
   def expectSome[T](opt:Option[_]):T = {
     opt match {
       case Some(t) => 

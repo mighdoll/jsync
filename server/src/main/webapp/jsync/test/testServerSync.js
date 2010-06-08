@@ -234,7 +234,7 @@ function sendRawTest(msgOrObj, connected, failed) {
 }
 
 test("sync.oldToken", function() {
-  expect(1);
+  expect(1);  
 
   var message = [
    {'#transaction':1}, 
@@ -254,4 +254,37 @@ test("sync.oldToken", function() {
     start();
   }  
 });
+
+test("sync.primitivesRoundTrip", function() {
+  expect(8);
+
+  withTestSubscription("primitivesRoundTrip", startValues, verify);
+  
+  function startValues(prim) {
+    prim.t_(true);
+    prim.b_(1);
+    prim.s_(2);
+    prim.c_('3');
+    prim.i_(4);
+    prim.l_(5);
+    prim.f_(6.0);
+    prim.d_(7.0);
+  }  
+  
+  function verify(change) {
+    var prim = change.target;
+    ok(prim.t === false);
+    ok(prim.b === 2);
+    ok(prim.s === 3);
+    ok(prim.c === '4');
+    ok(prim.i === 5);
+    ok(prim.l === 6);
+    ok(prim.f === 7.0);
+    ok(prim.d === 8.0);
+  }
+    
+});
+
+
+
 

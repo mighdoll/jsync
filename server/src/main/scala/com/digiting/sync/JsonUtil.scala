@@ -42,7 +42,7 @@ object ImmutableJsonMap {
  * 
  */
 object JsonUtil {  
-  val log = Logger("JsonUtil")
+  private val log = Logger("JsonUtil")
   /** utility function for type casting a parsed json object from JSONParser.parse.
    * the top level object is either List or a Map depending on whether the
    * json was a javascript object or an array.  
@@ -139,12 +139,21 @@ object JsonUtil {
       }
       case jsonMap:Map[_,_] => toJson(jsonMap.asInstanceOf[JsonMap])  // LATER - consider making jsonmap a class?
       case bool:Boolean => bool.toString
+      case byte:Byte => byte.toString
+      case short:Short => short.toString
+      case char:Char => quote(char.toString)
       case int:Integer => int.toString
+      case long:Long => long.toString
+      case float:Float => float.toString
       case double:Double => double.toString
       case string:String => quote(StringEscapeUtils.escapeJava(string))
       case null => "null"
       case none:net.liftweb.common.EmptyBox[_] => "null"	
-      case other => quote(other.toString)  		// unfortunately, type erasure prevents matching on refs vs. vals here
+      case partId:PartitionId => 
+        quote(partId.id)
+      case other => 
+        log.error("unexpected value type as json value: %s", other)
+        quote(other.toString)  		// unfortunately, type erasure prevents matching on refs vs. vals here
     }
   }
   
@@ -153,12 +162,14 @@ object JsonUtil {
 
 /** translate primitive value objects parsed from json into reference objects (subclasses of AnyRef) */
 object PrimitiveJsonValue {
-  def unapply(any:Any):Option[AnyRef] = {
+  def unapply(any:Any):Option[Any] = {
     any match {
       case Empty => Some(null)     // null is parsed as Empty
-      case d:Double => Some(new java.lang.Double(d))
+      case d:Double => Some(d)
+      case b:Boolean => Some(b)
       case s:String => Some(s)
-      case _ => None
+      case _ => 
+        None
     }    
   }
 

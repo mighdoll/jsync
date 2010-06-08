@@ -22,7 +22,7 @@ import com.digiting.util.TryCast.matchOptString
 
 /** Routines for parsing the json jsync protocol out of JsonMap objects */
 object JsonMapParser {
-  
+  val log = Logger("JsonMapParser")
   object EditRemoveAt {
     def unapply(edit:JsonMap):Option[Int] = {
       for {
@@ -60,6 +60,7 @@ object JsonMapParser {
   }
   
   object EditClear {
+    val log = Logger("EditClear")
     def unapply(edit:JsonMap):Option[Boolean] = {
       edit get "clear" match {
         case Some(true) => Some(true)
@@ -208,7 +209,7 @@ object JsonMapParser {
     }
   }
   
-  def valueFromJson(syncable:Syncable, field:String, value:Any):AnyRef = {
+  def valueFromJson(syncable:Syncable, field:String, value:Any):Any = {
     value match {
       case Reference(ids) => 
         ReferencePatches.addReference(syncable, field, ids)
