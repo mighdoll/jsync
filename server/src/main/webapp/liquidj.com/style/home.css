@@ -11,3 +11,5 @@ body {font-family:"Lucida Grande","Lucida Sans Unicode","Lucida Sans",Helvetica,
 .advantages > .title { }
 ul {padding: 0}
 li {margin: 0 4em .5em 2em }
+
+.advantages .explanation { display:none }

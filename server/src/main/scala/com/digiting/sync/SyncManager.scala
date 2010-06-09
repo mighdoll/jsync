@@ -302,6 +302,9 @@ object SyncManager extends LogHelper {
         java.lang.Float.valueOf(d.floatValue)
       case d:java.lang.Double if (property.clazz == classOf[Double]) =>
         d
+      case d:java.lang.Double if (property.clazz == classOf[String]) =>
+        log.warning("autoConverting double to string for %d into field: %s", d, property.name)
+        d.toString
       case b:java.lang.Boolean if (property.clazz == classOf[Boolean]) =>
         b
       case s:String if (property.clazz == classOf[Char]) =>

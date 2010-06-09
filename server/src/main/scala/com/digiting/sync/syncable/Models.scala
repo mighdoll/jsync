@@ -31,9 +31,9 @@ class SyncableJson extends Syncable with LocalOnly {
   var kind = "syncableJson-overrideMe"	
 }
 
-class StringParameter extends Syncable {
-  val kind = "$sync.stringParameter"
-  var string:String = _
+class SyncString(var string:String) extends Syncable {
+  def this() = this("")
+  val kind = "$sync.syncString"
 }
 
 class ServiceCall[T <: Syncable] extends Syncable {
@@ -47,7 +47,7 @@ class ServiceCall[T <: Syncable] extends Syncable {
   
   private def parameterFromMessage(param:Syncable):AnyRef = {
     param match {
-      case s:StringParameter =>
+      case s:SyncString =>
         s.string
       case _ =>
         param;

@@ -3,10 +3,16 @@
                "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-  <meta http-equiv="pragma" content="no-cache"/>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="description" content="LiquidJ "/>
+  <meta name="keywords" content="LiquidJ,scala,jquery,javascript"/>
+  <meta name="author" content="LiquidJ"/>
+
   <script type="text/javascript" src="/jslib/jquery-1.4.2.js"></script>
-  <script type="text/javascript" src="/jslib/qunit-2010-06-01/qunit.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.core.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.widget.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.mouse.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.sortable.js"></script>
   <script type="text/javascript" src="/util/log.js"></script>
   <script type="text/javascript" src="/jsync/debug.js"></script>
   <script type="text/javascript" src="/jsync/util.js"></script>
@@ -19,24 +25,14 @@
   <script type="text/javascript" src="/jsync/protocolVersion.js"></script>
   <script type="text/javascript" src="/jsync/connection.js"></script>
   <script type="text/javascript" src="/jsync/receive.js"></script>
-  <script type="text/javascript" src="subscriptionFixture.js"></script>
-  <script type="text/javascript" src="testAppVersion.js"></script>
-  <script type="text/javascript" src="testModels.js"></script>
-  <script type="text/javascript" src="testObserve.js"></script>
-  <script type="text/javascript" src="testSyncCollections.js"></script>
-  <script type="text/javascript" src="testSync.js"></script>
-  <script type="text/javascript" src="testServerSync.js"></script>
-  <script type="text/javascript" src="testServerCollections.js"></script>
-
-  <link rel="stylesheet" href="/jslib/qunit-2010-06-01/qunit.css" type="text/css" media="screen" />
-  <title>Tests</title>
-
+  
+  <script type="text/javascript" src="js/demoResults.js"></script>
+  
+  <title>LiquidJ Demo Results </title>
 </head>
-
 <body>
-  <h1 id="qunit-header">LiquidJ Tests</h1>
-  <h2 id="qunit-banner"></h2>
-  <h2 id="qunit-userAgent"></h2>
-  <ol id="qunit-tests"></ol>
+  <div>Demo for: <span id="firstName">unsetName</span></div>
+  <div id="reminders">unsetReminders</div>
+  <span class="currentDemo"></span>
 </body>
 </html>

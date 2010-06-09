@@ -6,7 +6,11 @@ var LiquidDemo = LiquidDemo || {};
 var scopeWrapper = function() {
   var demoWindow;
 
-  LiquidDemo.showDemoWindow = function(target) {
+  LiquidDemo.showDemoWindow = function() {
+    showSideWindow("demoResults.html");
+  };
+  
+  function showSideWindow(target) {
     /** position the demo results window to the right of the main window.  LATER, test this under IE */
     function placeDemoWindow() {
       var x = window.screenX != undefined ? window.screenX : window.screenLeft;
@@ -25,10 +29,7 @@ var scopeWrapper = function() {
       if (demoWindow == null) {
         $log.warn("pop-up blocked");
       }
-    }
-    
-    if (demoWindow && !demoWindow.closed) {    
-      demoWindow.focus();
+    } else {
       demoWindow.location = target;
     }
   };

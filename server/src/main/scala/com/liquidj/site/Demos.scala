@@ -19,6 +19,8 @@ import com.digiting.sync.RichAppContext
 import com.digiting.sync.Syncable
 import com.digiting.sync.RamPartition
 import com.digiting.sync.SyncManager
+import com.digiting.sync.SyncableSeq
+import com.digiting.sync.syncable.SyncString
 
   
 object Demos {
@@ -28,7 +30,7 @@ object Demos {
     case("demo" :: "sync" :: Nil, message, connection) =>
       new DemoContext(connection)
   }
-  SyncManager.registerKindsInPackage(classOf[DemoData])
+  SyncManager.registerKindsInPackage(classOf[Settings])
 }
 
 class DemoContext(connection:Connection) extends RichAppContext(connection) {
@@ -37,19 +39,33 @@ class DemoContext(connection:Connection) extends RichAppContext(connection) {
   val demos = new RamPartition("demos")
   demos.publish("settings", 
     SyncManager.withPartition(demos) {
-      val settings = new DemoData
-      settings.fieldDemo = new FieldDemo
+      val settings = new Settings
+      settings.user = new User
+      settings.currentDemo = new SyncString("none")
+      settings.reminders = new SyncableSeq[Reminder]
       settings
     }
   )
 }
 
-class DemoData extends Syncable {
-  def kind = "com.liquidj.site.DemoData"
-  var fieldDemo:FieldDemo = _
+class Settings extends Syncable {
+  def kind = "com.liquidj.site.settings"
+  var user:User = _
+  var reminders:SyncableSeq[Reminder] = _
+  var currentDemo:SyncString = _
 }
 
-class FieldDemo extends Syncable {
-  def kind = "com.liquidj.site.FieldDemo"
-  var number:Int = _
+class Reminder extends Syncable {
+  def kind = "com.liquidj.site.Reminder"
+  var note = ""
+  var done = false
 }
+
+
+class User extends Syncable {
+  def kind = "com.liquidj.site.user"
+  var firstName = ""
+  var lastName = ""
+  var email = ""
+}
+

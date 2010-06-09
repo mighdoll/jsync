@@ -9,6 +9,10 @@
   <meta name="author" content="LiquidJ"/>
 
   <script type="text/javascript" src="/jslib/jquery-1.4.2.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.core.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.widget.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.mouse.js"></script>
+  <script type="text/javascript" src="/jslib/jquery.ui-1.8.2/jquery.ui.sortable.js"></script>
   <script type="text/javascript" src="/util/log.js"></script>
   <script type="text/javascript" src="/jsync/debug.js"></script>
   <script type="text/javascript" src="/jsync/util.js"></script>
@@ -25,7 +29,7 @@
   <script type="text/javascript" src="js/demoWindow.js"></script>
   <script type="text/javascript" src="js/main.js"></script>
 
-  <link href="style/style.css" rel="stylesheet" type="text/css"/>
+  <link href="style/home.css" rel="stylesheet" type="text/css"/>
     
   <title>LiquidJ - Better than Ajax </title>
 
@@ -33,50 +37,74 @@
 <body>
   <div class="home">
     <div class="central">
-      <div class="title"> <h2 class="logo"> LiquidJ </h2> <span class="subtitle"> Beyond ajax --  
-      shared objects for javascript. </span>  </div>
+      <div class="title"> <h2 class="logo"> LiquidJ </h2> <span class="subtitle"> Move beyond ajax to
+      shared object spaces </span>  </div>
       <p> 
-       LiquidJ provides transparent replication of object state between browser and server.  
-      </p>
-       
-      <p> 
-       Modify an object in the browser and it's sent to the server automatically.  Modify an object 
-       in the server and it's transparently sent to the browser.  
-      </p>
-       
+       Liquid objects are automatically mirrored between the browser and the server.  Shared data 
+       is simple to understand and quite powerful to use.          
        <span class="advantages title"> You can use LiquidJ to: </span>
+      </p>
        <ul class="advantages">
-         <li> <strong>Easily persist javascript objects to the server</strong>.  
-         You just define the data types you care 
-         about, and LiquidJ does change detection and ajax saving/loading automatically.  
+         <li> <strong>Easily persist data to the server</strong>  
+           <div class="explanation">
+           You just define the data types you care 
+           about, and LiquidJ does change detection and ajax saving/loading automatically.  
+           </div>
           </li>
-         <li> <strong>Drop in persistent UI widgets. </strong> LiquidJ enhanced Javascript UI widgets 
-         save themselves automatically, and update live via Comet.  LiquidJ enhancements to jQuery.UI 
-         widgets are included, and it's easy to data enhance your favorite widget too.
+         <li> <strong>Drop in data bound UI widgets </strong> 
+           <div class="explanation">
+           LiquidJ enhanced Javascript UI widgets 
+           save themselves automatically, and update live via Comet.  LiquidJ enhancements to jQuery.UI 
+           widgets are included, and it's easy to data enhance your favorite widget too.
+           </div>
          </li>
-         <li> <strong>Create richer javascript apps by separating data from markup.</strong> LiquidJ helps enable
-         a programming style that moves dynamic view logic out of the server and into the browser.  
-         By avoiding server round trips by rendering changes locally, you can build richer and faster interactivity.
-         Complex data structures are 
+         <li> <strong>Create richer javascript apps by separating data from markup</strong> 
+           <div class="explanation">
+	         LiquidJ helps enable
+	         a programming style that moves dynamic view logic out of the server and into the browser.  
+	         By avoiding server round trips by rendering changes locally, you can build richer and faster interactivity.
+	         Complex data structures 
+	       </div>
          </li>
-         <li> <strong>Use Comet (server push).</strong>  LiquidJ automatically pushes object changes in 
-         both directions - Comet is built in.  So when fresh data is available, the user can
-         see it immediately.  Similarly, multiple browser windows are kept up to date automatically.
+         <li> <strong>Take advantage of server push</strong>  
+	         <div class="explanation"> LiquidJ automatically pushes object changes in 
+	         both directions - Comet is built in.  No need to for your users to wonder if their screen is showing
+	         stale data.  And you can build new applications that take advantage of multiple windows, or 
+	         even multiple users. 
+	         </div>
          </li>
        </ul>
 
-      <div class="example">
-      <code>
-      <pre>
-      // open a liquid connection
-      connect();
-
-      // Change a bit of data.   
-      settings.fieldDemo.number_(7);
-      </pre>
-      </code>
+      <div class="demos">
+        <div class="intro">
+          <p>
+          First, open this second window to see windows in action: <button id="showDemoWindow">Show Window</button>
+          </p>
+          Second, try some of these demos.
+        </div>
+        <div class="examples">
+          
+          <code><pre>
+  // Change a liquid data field   
+  settings.fieldDemo.number_(7);
+          </pre></code>
+          <button id="fieldDemo">Set Field</button>
+        </div>
+        <div class="example">
+          <code><pre>
+  // Bind a textfield to an liquid object   
+  $("#userName").dataTextField(settings.user.firstName);
+          </pre></code>
+          What's your name? <textfield id="userName">guest</textfield>
+        </div>
+        <div class="example">
+          <code><pre>
+  // Bind a sortable list to a liquid collection
+  $('#reminders').dataSortable({model: settings.reminders, render: drawReminder});
+          </pre></code>
+          Remember to: <div id="reminders"></div>
+        </div>
       </div>
-      <button id="tryIt">Try it</button>
     </div>
   </div>
 </body>

@@ -95,7 +95,7 @@ $sync.serviceForm = function(responseFn) {
 
   /**
    * convert a form to ServiceCall message.  The method parameters are identified by
-   * form fields with names param-0, param-1, etc. 
+   * form fields with names 'param-0', 'param-1', and so on. 
    * returns the ServiceCall object
    */
   function formToServiceCall(form) {    
@@ -108,7 +108,7 @@ $sync.serviceForm = function(responseFn) {
     do {
       formElem = form['param-' + paramDex];
       if (formElem) {
-        paramString = $sync.manager.withTransientPartition($sync.stringParameter);
+        paramString = $sync.manager.withTransientPartition($sync.syncString);
         paramString.string_(formElem.value);
         params.append(paramString);
         foundParam = true;
