@@ -313,7 +313,7 @@ $sync.connect = function(feedUrl, params) {
     }
     
     var xactStr = JSON.stringify(xact);
-//    log.log("sending xact to server: ", xactStr);
+//    log.trace("sending xact to server: ", xactStr);
     requestsActive += 1;
     $.ajax({
       url: feedUrl,
@@ -326,17 +326,23 @@ $sync.connect = function(feedUrl, params) {
       timeout: params.requestTimeout || 20000
     });
     
-    function success() {
-      consecutiveTimeouts = 0;
-      requestsActive -= 1;
-      successFn.apply(this, arguments);
-      longPoll();     
+    function success(data, textStatus, xmlHttpRequest) {
+      if (xmlHttpRequest.status != 200) {
+        log.warn("sendNow() success, but bad status", xmlHttpRequest.status);
+        failed(xmlHttpRequest, textStatus);
+      } else {
+//        log.trace("sendNow() success", arguments);
+        consecutiveTimeouts = 0;
+        requestsActive -= 1;
+        successFn.apply(this, arguments);
+        longPoll();     
+      }
     }
     
     /** called if there's a an error with the http request 
      * (also called, I think, if there's an error with json format in the result */
     function failed(xmlHttpRequest, textStatus, errorThrown) {
-      log.warn("$sync protocol request failed: ", xmlHttpRequest);      
+      log.warn("$sync protocol request failed: ", arguments);      
       if (textStatus === "timeout") {
         consecutiveTimeouts += 1;
         requestsActive -= 1;

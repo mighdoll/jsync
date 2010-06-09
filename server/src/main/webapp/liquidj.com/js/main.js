@@ -13,11 +13,11 @@ $(function() {
   function registerButtons() {
     $('#tryIt').click(function() {
       LiquidDemo.showDemoWindow("fieldExample.html");
-      $log.log("try modifyObject!");      
       modifyObject();
       return false;
     });
   }
+  
   function modifyObject() {
     settings.fieldDemo.number_(7);
   }
