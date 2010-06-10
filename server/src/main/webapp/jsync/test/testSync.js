@@ -28,7 +28,7 @@ test("createSyncable", function() {
   $sync.manager.reset();
 });
 
-test("$sync.manager.update", function() {
+test("$sync.update.updateInstance", function() {
   $sync.manager.setDefaultPartition("test");
   var obj;
   
@@ -44,7 +44,7 @@ test("$sync.manager.update", function() {
   ok(obj.name === "bar");
   
   $sync.observation.withMutator("server", function() {
-    $sync.manager.update({
+    $sync.update.updateInstance ({
       $id: obj.$id,
       $partition: "test",
       name: "foo"

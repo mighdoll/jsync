@@ -16,7 +16,7 @@
     put: function(elem) {
       $debug.assert($sync.manager.isSyncable(elem), "set.put: elem isn't syncable: " + elem);
       if (!this.contains(elem)) {
-        this._elems[elem.$id] = elem; // TODO: include partition in index
+        this._elems[$sync.manager.instanceKey(elem)] = elem; 
         this._size += 1;
         $sync.observation.notify(this, "edit", {
           put: elem
@@ -47,7 +47,7 @@
     /** remove a syncable element from the syncable set */
     remove: function(elem) {
       if (this.contains(elem)) {
-        delete this._elems[elem.$id];
+        delete this._elems[$sync.manager.instanceKey(elem)];
         this._size -= 1;
         $sync.observation.notify(this, "edit", {
           remove: elem
@@ -56,7 +56,7 @@
     },
     
     contains: function(elem) {
-      return this._elems.hasOwnProperty(elem.$id);
+      return this._elems.hasOwnProperty($sync.manager.instanceKey(elem));
     },
     
     size: function() {

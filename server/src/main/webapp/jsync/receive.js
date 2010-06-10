@@ -153,13 +153,13 @@ $sync.receive = function(connection) {
     // update objects by copying received data
     for (i = 0; i < toUpdate.length; i++) {
       obj = toUpdate[i];
-      $sync.manager.update(obj);
+      $sync.update.updateInstance(obj);
     }
     
     // preform fancier updates e.g. collection membership changes
     for (i = 0; i < toEdit.length; i++) {
       obj = toEdit[i];
-      $sync.manager.collectionEdit(obj);
+      $sync.update.updateCollection(obj);
     }
     
     // transaction is complete:  tell everyone what we've done
