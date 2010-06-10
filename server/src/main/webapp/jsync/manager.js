@@ -141,10 +141,10 @@ $sync.manager = function() {
     constructors[kind] = constructor = providedConstructor || constructor;
     constructor.kindPrototype = proto;
     $.extend(constructor, {
-      defineClassMethods: function(methods) {
+      classMethods: function(methods) {
         $.extend(constructor, methods);
       },
-      defineInstanceMethods: function(methods) {
+      instanceMethods: function(methods) {
         $.extend(proto, methods);
       }
     });
@@ -176,19 +176,15 @@ $sync.manager = function() {
   self.createSyncable = function(kind, instanceData) {
     var kindProto, obj;
 
-    // get kind for new object
-    if (!kind) { // use the provided kind	(SOON get rid of !kind cases, -lee)
-      $debug.fail("specify a kind in createSyncable()");
-    }
-
     // create a javascript object instance with appropriate prototype for this kind
     kindProto = kindPrototype(kind);
     obj = $sync.util.createObject(kindProto);
     
     // setup identity for this object
-    if (nextIdentity) {
+    if (nextIdentity) { // identity is preset, probably arriving over the network
       obj.$partition = nextIdentity.partition;
       obj.$id = nextIdentity.$id;
+      nextIdentity = undefined;
     } else {
       obj.$partition = defaultPartition;
       obj.$id = clientId + nextId++;
@@ -200,8 +196,8 @@ $sync.manager = function() {
   	$.extend(obj, instanceData);
 
     // user defined initialization
-    if (typeof obj.jsyncInit === 'function') {
-      obj.jsyncInit();
+    if (typeof obj._init === 'function') {
+      obj._init();
     }
 
     // install in map and let people know.  we've made a new syncable!

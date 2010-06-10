@@ -1,6 +1,3 @@
-var $sync = $sync || {};
-$sync.test = $sync.test || {};
-
 
 /** connects to the server */
 test("sync.connect", function() {

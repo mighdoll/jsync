@@ -3,7 +3,7 @@ var LiquidDemo = LiquidDemo || {};
 
 /** Open a separate browser window to show the demo results.  
  * (Reuses the window if it's already been opened.)  */
-var scopeWrapper = function() {
+(function() {
   var demoWindow;
 
   LiquidDemo.showDemoWindow = function() {
@@ -34,4 +34,4 @@ var scopeWrapper = function() {
     }
   };
 
-}();
+})();

@@ -1,13 +1,10 @@
-
 $(function() {
   $('#showDemoWindow').click(LiquidDemo.showDemoWindow);
-});
-
-$(function() {
+  
   subscribe(function(settings) {
 
     $('#fieldDemo').click(function() {
-      settings.currentDemo.string_(7);
+      settings.currentDemo.string_("none");
       return false;
     });    
     
@@ -18,11 +15,3 @@ $(function() {
   });
 });
 
-function subscribe(settingsFn) {
-  var connection = $sync.connect("http://localhost:8080/demo/sync", 
-      {authorization:"guest", connected:subscribe});
-
-  function subscribe() {
-    connection.subscribe("settings", "demos", settingsFn);
-  }
-}
