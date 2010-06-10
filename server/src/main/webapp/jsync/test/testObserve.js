@@ -149,4 +149,16 @@ test("observe.set.watchEvery", function() {
   ok(results[2].changes.put === elem);
 });
 
+test("observe.property", function() {  
+  expect(1);
+  var nameObj = $sync.manager.withPartition("test", function() {
+    return $sync.test.nameObj({name:"fred"});
+  });
+  nameObj.nameChanged(function(change) {
+    ok(nameObj.name === "barney");
+  });
+  nameObj.name_("barney");
+  
+});
+
 

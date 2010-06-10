@@ -483,7 +483,7 @@ $sync.manager = function() {
    */
   function addAccessor(obj, prop) {
     var setter = prop + "_";
-
+    
     if (obj.prop) {
       $debug.assert(typeof obj[prop] !== 'function');
       $debug.assert(typeof obj[setter] === 'function');
@@ -502,6 +502,13 @@ $sync.manager = function() {
         // support fluid style, e.g. obj.foo_().bar_()
         return this;
       };
+            
+      // register a change function to watch a property
+      obj[prop+"Changed"] = function(fn) {
+        var fns = this["$" + prop+"ChangeFns"] = this["$" + prop+"ChangeFns"] || [];
+        fns.push(fn);
+      };
+      
 
 	  // (Users should use "obj.prop_(val)"
       // not "obj.prop = val".  the latter form would be nice, but we can't override
