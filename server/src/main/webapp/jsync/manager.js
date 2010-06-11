@@ -52,7 +52,12 @@ $sync.manager = function() {
   var nextIdentity;		// set the next instance ids to the contained {partition:, $id:} pair
   var autoCommit;		// automatically commit changes to the server if this is set
   var dirty;			// set to true when local objects have been changed and need to be sent to the server
-  var commitTimers;    // pending commit() timers from object dirty notification
+  var commitTimers;     // pending commit() timers from object dirty notification
+  var noticeDisabled;   // property setting temporarily disabled
+  var directSetOK;      // temporarily turn off warnings on direct set of property value
+  var debugMode;        // true to generate assertions for inappropriate use of accessors (works on firefox)
+  var debugModeAccessor;// func that generates asserting accessors, or noop if !debugMode
+  
 
   /** reset to initial state (useful for testing!) */
   self.reset = function() {
@@ -70,6 +75,7 @@ $sync.manager = function() {
     self.transientPartition = undefined;
     autoCommit = true;
     cancelCommitTimers();
+    self.debugMode(true); 
     $sync.observation.reset();
     $sync.observation.watchEvery(syncableChanged, "$sync.manager");
   };
@@ -158,7 +164,6 @@ $sync.manager = function() {
 	 */
     function constructor(instanceData) {
       var object = $sync.manager.createSyncable(kind, instanceData);
-      $.extend(object, instanceData);
       return object;
     }
   };
@@ -193,7 +198,7 @@ $sync.manager = function() {
     $debug.assert(obj.$partition !== "partition-unset");
 
   	// populate with instance data
-  	$.extend(obj, instanceData);
+  	instanceData && self.quietCopy(obj, instanceData);
 
     // user defined initialization
     if (typeof obj._init === 'function') {
@@ -246,8 +251,8 @@ $sync.manager = function() {
    * @param obj object to add
    */
   self.put = function(obj) {
-//  	log.detail("$sync.manager.put: ", obj);
-  	var key = self.instanceKey(obj.$partition, obj.$id);
+  	log.info("$sync.manager.put: ", obj);
+  	var key = compositeKey(obj.$partition, obj.$id);
     if (!ids[key]) {
 	  ids[key] = obj;
 	} else {
@@ -258,17 +263,12 @@ $sync.manager = function() {
 
   /** return the javascript object tracked by this id pair */
   self.get = function(partitionId, instanceId) {
-    return ids[self.instanceKey(partitionId, instanceId)];
+    return ids[compositeKey(partitionId, instanceId)];
   };
-
-  /** return the javascript object tracked by this key (which embeds the id pair) */
-  self.getByInstanceKey = function(key) {
-  	return ids[key];
-  };
-
+  
   /** report whether an object is tracked by the syncable map */
   self.contains = function(partitionId, instanceId) {
-    return ids.hasOwnProperty(self.instanceKey(partitionId, instanceId));
+    return ids.hasOwnProperty(compositeKey(partitionId, instanceId));
   };
 
   /** create a new object of the id and kind described in a template object.
@@ -315,8 +315,12 @@ $sync.manager = function() {
   };
 
   /** report the full instance key for a given object.  
-   * LATER move this to syncable prototype e.g. obj._id() */
-  self.instanceKey = function(partitionId, instanceId) {
+   * LATER move this to syncable prototype e.g. obj._id() */  
+  self.instanceKey = function(obj) {
+    return compositeKey(obj.$partition, obj.$id);
+  };
+  
+  function compositeKey(partitionId, instanceId) {
   	return partitionId + "/" + instanceId;
   };
 
@@ -353,6 +357,17 @@ $sync.manager = function() {
   self.withTransientPartition = function(fn) {
 //  log.detail("transientPartition: " + self.transientPartition);
   	return self.withPartition(self.transientPartition, fn);
+  };
+  
+  /**
+   * 
+   */
+  self.withNoNotice = function(fn) {
+    var oldNoticeDisabled = noticeDisabled;
+    noticeDisabled = true;
+    var result = fn();
+    noticeDisabled = oldNoticeDisabled;
+    return result;
   };
   
   /**
@@ -393,8 +408,6 @@ $sync.manager = function() {
     commitTimers = [];
   }
 
-  
-
   /** called when any object changes.  update the change set for
    * future commits() */
   function syncableChanged(change) {
@@ -429,7 +442,7 @@ $sync.manager = function() {
   var kindBasePrototype = {
     toString: function() {
       var kindStr = this.$kind ? " (" + this.$kind + ")" : "";
-      var idStr = self.instanceKey(this.$partition, this.$id);
+      var idStr = compositeKey(this.$partition, this.$id);
       return idStr + kindStr;
     },
 
@@ -472,7 +485,28 @@ $sync.manager = function() {
     // CONSIDER allowing functions in the model.  they become methods on this kind
   }
 
-
+  /** Set a property w/o using the setter function, and thus not triggering property change dection. */
+  self.quietSetProperty = function(obj, prop, value) {
+    var oldDirectSet = directSetOK;
+    directSetOK = true;
+    obj[prop] = value;
+    directSetOK = oldDirectSet;
+  };
+  
+  /** copy fields w/o triggering change notification.  */
+  self.quietCopy = function(target, src) {
+    $.each(src, function(prop, value) {
+      self.quietSetProperty(target, prop, value);
+    });
+  };
+  
+  /** copy fields with change notification */
+  self.copyProperties = function(target, src) {
+    $.each(src, function(prop, value) {
+      target.setProperty(prop, value);
+    });
+  };
+  
   /** add a property setter to an observable object.  The
    * setter is the property name with an underscore appended.
    *
@@ -491,36 +525,61 @@ $sync.manager = function() {
       // generic setter function for a property
       obj[setter] = function(value) {
         var oldValue = this[prop];
-        this[prop] = value;
+        self.quietSetProperty(this, prop, value);
 
         // notify
-        $sync.observation.notify(this, "property", {
-          property: prop,
-          oldValue: oldValue
-        });
-
+        if (!noticeDisabled) {
+          $sync.observation.notify(this, "property", {
+            property: prop,
+            oldValue: oldValue
+          });
+        }
+        
         // support fluid style, e.g. obj.foo_().bar_()
         return this;
       };
-            
+      
+      debugModeAccessor(obj, prop);
+      
       // register a change function to watch a property
       obj[prop+"Changed"] = function(fn) {
-        var fns = this["$" + prop+"ChangeFns"] = this["$" + prop+"ChangeFns"] || [];
-        fns.push(fn);
+        var fnsName = changeFnsProperty(prop);
+        this[fnsName] = this[fnsName] || [];
+        this[fnsName].push(fn);
       };
-      
-
-	  // (Users should use "obj.prop_(val)"
-      // not "obj.prop = val".  the latter form would be nice, but we can't override
-      // setters on older IE browsers.)
-	    //
-      // LATER in browsers which support getter/setter (e.g. firefox, IE8) create a
-      // setter function which fires and an assertion.
-      //
-      // (LATER consider using eval to create a custom function with the property
-      //  inserted for speed)
     }
   }
+
+  function changeFnsProperty(propertyName) {
+    return "$" + propertyName + "ChangeFns";
+  }
+  
+  self.propertyWatchers = function(obj, property) {
+    return obj[changeFnsProperty(property)] || [];
+  };
+  
+  /** set debug mode, which warns if raw property setters are used on a syncable. */
+  self.debugMode = function(mode) {
+    debugMode = mode === undefined ? true : mode;
+    if (debugMode && $.isFunction(Object.__defineSetter__)) {
+      debugModeAccessor = defineDebugAccessor;
+    } else {
+      debugModeAccessor = function() {};
+    }
+    
+    function defineDebugAccessor(obj, prop) {
+      obj.__defineSetter__(prop, function(value) {
+        if (directSetOK) {
+          this['_' + prop] = value;
+        } else {
+          log.fail("Use obj.prop_(value) for changing property values", obj, prop, value);
+        }
+      });
+      obj.__defineGetter__(prop, function() {
+        return this['_'+prop];
+      });
+    }  // LATER use defineProperty if available
+  };
 
   self.reset();
 

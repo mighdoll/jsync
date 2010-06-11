@@ -159,11 +159,11 @@ $sync.connect = function(feedUrl, params) {
    */
   function outgoingSyncable(syncable) {
     // add $kind as local property, stringify will skip it if it's just in the prototype
-    var toSend = {$kind: syncable.$kind };
+    var toSend = {};
     var value;
     
     for (var property in syncable) {
-      if (syncable.hasOwnProperty(property) && property[0] != '_') {
+      if (property[0] != '_') {
         value = syncable[property];
         if (typeof value !== 'function' &&
             value !== null &&
@@ -208,13 +208,10 @@ $sync.connect = function(feedUrl, params) {
    * @return a subscription object: {name: "string", root: rootObject}
    */
   self.subscribe = function(name, partition, watchFunc) {
-    var sub;
-    $sync.manager.withPartition(self.connectionToken, function() {
-      sub = $sync.subscription();
+    var sub = $sync.manager.withPartition(self.connectionToken, function() {
+      return $sync.subscription({name:name, inPartition:partition});
     });
     
-    sub.name = name;
-    sub.inPartition = partition;
     subscriptions.put(sub);
     if (watchFunc) {
       $sync.observation.watch(sub, function(changes) {

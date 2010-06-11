@@ -52,8 +52,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
       case PutChange(_, newSubId, versions) => 
         for {
           newSub <- SyncManager.get(newSubId)
-          sub <- matchSubscription(newSub) orElse
-            err("unexpected object put into subscriptions set: %s", newSub)          
+          sub <- expectSubscription(newSub) 
         } {
           log.trace("#%s subscription found: %s", app.connection.debugId, sub)
           active.subscribe(sub)
@@ -65,9 +64,28 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
     }
   }
   
-  private def matchSubscription(any:Any):Option[Subscription] = any match {
-    case sub:Subscription => Some(sub)
-    case _ => None
+  private def expectSubscription(any:Any):Option[Subscription] = {
+    def invalid() = {
+      log.warning("invalid subscription: %s", any)
+      None
+    }
+    def isEmpty(str:String) = {
+      str match {
+        case null => true
+        case _ if str.length < 1 => true
+        case _ => false
+      }
+    }
+    
+    any match {
+      case sub:Subscription if isEmpty(sub.name) => invalid
+      case sub:Subscription if isEmpty(sub.inPartition) => invalid
+      case sub:Subscription => Some(sub)
+      case x => 
+        log.warning("unexpected object put into subscriptions set: %s", x)
+        None
+    }
+    
   }
-  
-}
+}  
+ 

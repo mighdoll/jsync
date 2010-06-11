@@ -135,113 +135,108 @@ $sync.observation = function() {
 
     /** notify watchers that an object or collection has been changed */
     notify : function(target, changeType, changeParams) {
-      // log.debug("notify(): ", target, changeType, changeParams);
-    if (!enabled)
-      return;
-    var notify, notifyAll;
-    var callBacks = watchers[target.$id];
-    var change = $sync.changeDescription(changeType, target, changeParams);
-    var propChangeFns;
-
-    if (callBacks) {
-      // notify all watchers registered in the appropriate watchDB
-    notifyAll = function() {
-      $.each(callBacks, function(index, entry) {
-        // $log.debug("notify: " + target + " changes:" + change);
-          entry.func(change);
+        // log.debug("notify(): ", target, changeType, changeParams);
+      if (!enabled)
+        return;
+      var callBacks = watchers[target.$id];
+      var change = $sync.changeDescription(changeType, target, changeParams);
+      var propChangeFns;
+  
+      if (callBacks) {
+        // notify all watchers registered in the appropriate watchDB
+        $.each(callBacks, function(index, entry) {
+          notifyCall(entry.func);
         });
-    };
-
-    if (defer) {
-      deferred.push(notifyAll);
-    } else {
-      notifyAll();
-    }
-  }
-
-  if (everyWatchers) {
-    $.each(everyWatchers, function(index, watcher) {
-      notify = (function() {
-        watcher.call(change);
-      });
-      if (defer) {
-        deferred.push(notify);
-      } else {
-        notify();
       }
-    });
-  }
-
-  if (change.changeType === 'property') {
-    propChangeFns = target["$" + change.property + "ChangeFns"];
-    if (propChangeFns) {
-      $.each(propChangeFns, function() {
-        this(change);
-      });
-    }
-  }
-},
-
-/** defer all change notifications until endPause() is called */
-pause : function() {
-  defer = true;
-},
-
-/**
- * fire off all pending change notifications and deliver subsequent
- * notifications immediately
- */
-endPause : function() {
-  var deferDex;
-  var toCall = deferred.concat();
-
-  defer = false;
-  deferred = [];
-
-  if (toCall.length) {
-    for (deferDex = 0; deferDex < toCall.length; deferDex++) {
-      toCall[deferDex]();
-    }
-  }
-},
-
-/** execute fn() without sending any notifications */
-withoutNotifications : function(fn) {
-  var savedEnabled = enabled;
-  try {
-    enabled = false;
-    return fn();
-  } finally {
-    enabled = savedEnabled;
-  }
-},
-
-debugPrint : function() {
-  var str = "watchers: \n";
-
-  function collectWatchers(watchDB) {
-    var id, entryDex, entry, entries, func;
-
-    for (id in watchDB) {
-      entries = watchDB[id];
-      for (entryDex = 0; entryDex < entries.length; entryDex++) {
-        entry = entries[entryDex];
-        func = entry.func ? "func()" : "?";
-        str += "\t#" + id + " - " + entry.owner + ":" + func + "\n";
+      
+      if (everyWatchers) {
+        $.each(everyWatchers, function(index, watcher) {
+          notifyCall(watcher.call);
+        });
       }
+    
+      if (change.changeType === 'property') {
+        $.each($sync.manager.propertyWatchers(change.target, change.property), function() {
+          notifyCall(this);
+        });
+      }
+
+      /** call fn right away, or queue fn if notification is globally stopped */
+      function notifyCall(fn) {        
+        function call() {
+          log.debug("notifying: ", change);
+          fn(change);
+        }
+        
+        if (defer) {
+          deferred.push(call);
+        } else {
+          call();
+        }
+      }
+      
+    },
+  
+    /** defer all change notifications until endPause() is called */
+    pause : function() {
+      defer = true;
+    },
+    
+    /**
+     * fire off all pending change notifications and deliver subsequent
+     * notifications immediately
+     */
+    endPause : function() {
+      var deferDex;
+      var toCall = deferred.concat();
+    
+      defer = false;
+      deferred = [];
+    
+      if (toCall.length) {
+        for (deferDex = 0; deferDex < toCall.length; deferDex++) {
+          toCall[deferDex]();
+        }
+      }
+    },
+    
+    /** execute fn() without sending any notifications */
+    withoutNotifications : function(fn) {
+      var savedEnabled = enabled;
+      try {
+        enabled = false;
+        return fn();
+      } finally {
+        enabled = savedEnabled;
+      }
+    },
+    
+    debugPrint : function() {
+      var str = "watchers: \n";
+    
+      function collectWatchers(watchDB) {
+        var id, entryDex, entry, entries, func;
+    
+        for (id in watchDB) {
+          entries = watchDB[id];
+          for (entryDex = 0; entryDex < entries.length; entryDex++) {
+            entry = entries[entryDex];
+            func = entry.func ? "func()" : "?";
+            str += "\t#" + id + " - " + entry.owner + ":" + func + "\n";
+          }
+        }
+      }
+      collectWatchers(watchers);
+      str += "collectionWatchers: \n";
+      collectWatchers(collectionWatchers);
+    
+      str += "watchEvery: \n";
+      $.each(everyWatchers, function(index, watcher) {
+        str += "\t" + watcher.owner + ":" + watcher.call + "\n";
+      });
+    
+      $log.log(str);
     }
-  }
-  collectWatchers(watchers);
-  str += "collectionWatchers: \n";
-  collectWatchers(collectionWatchers);
-
-  str += "watchEvery: \n";
-  $.each(everyWatchers, function(index, watcher) {
-    str += "\t" + watcher.owner + ":" + watcher.call + "\n";
-  });
-
-  $log.log(str);
-}
   };
 
   function watchOne(obj, fn, owner) {

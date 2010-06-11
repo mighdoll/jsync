@@ -59,7 +59,7 @@ test("$sync.update.updateInstance", function() {
 
 test("json-sync.$sync.set", function() {
   $sync.manager.setDefaultPartition("test");
-  var sub, connection, count = 0;
+  var sub, connection;
   
   function init() {
     expect(6);
@@ -112,6 +112,7 @@ test("json-sync.$sync.set", function() {
   };
   
   function verifySet(set) {
+    var count = 0;
     // verify sync.set
     ok(set.$kind === "$sync.set");
     ok(typeof set.put === "function");
@@ -241,7 +242,6 @@ test("json-sync.send-obj", function() {
   out = connection.testOutput();
   ok(out[0]['#transaction'] === 0);
   
-  var leonardo;
   $.each(out, function(index, elem) {
     if (elem.$id === obj.$id) {
       leonardo = elem;
