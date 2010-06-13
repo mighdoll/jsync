@@ -251,7 +251,7 @@ $sync.manager = function() {
    * @param obj object to add
    */
   self.put = function(obj) {
-  	log.info("$sync.manager.put: ", obj);
+//  	log.trace("$sync.manager.put: ", obj);
   	var key = compositeKey(obj.$partition, obj.$id);
     if (!ids[key]) {
 	  ids[key] = obj;

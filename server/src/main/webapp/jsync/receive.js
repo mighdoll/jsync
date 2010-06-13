@@ -73,7 +73,7 @@ $sync.receive = function(connection) {
       log.error("waited too long for message: " + (receivedTransaction + 1));
     } else {
       // LATER set a timer to reset the connection in case it's never received
-      log.debug("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
+//      log.trace("connection.takeNextMessage() waiting for out of order transaction: " + (receivedTransaction + 1));
     }
     return undefined;
   }
