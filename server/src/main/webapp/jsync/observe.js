@@ -163,15 +163,15 @@ $sync.observation = function() {
       /** publish property change to the changes stream */
       function notifyProperty(changes) {
         $.each(changes._watchers, function() {
-          notifyCall(this, change.target[change.property]);
+          notifyCall(this);
         });
       }
 
       /** call fn right away, or queue fn if notification is globally stopped */
-      function notifyCall(fn, arg) {        
+      function notifyCall(fn) {        
         function call() {
 //          log.trace("notifying: ", change);
-          fn(change, arg);
+          fn(change);
         }
         
         if (defer) {

@@ -2,18 +2,19 @@
 test("propertyToHTML", function() {
   nameRenderTest(function(performer) {
     $("#dataContents").html(performer.name);
-    return performer.nameChanges().watch(function(change, newValue) {
+    return performer.nameChanges().watch(function(change) {
       $("#dataContents").html(performer.name);
     });
   }).destroy();
 });
 
 // render via dataContents plugin, watching a property
-//test("dataContents.property", function() {
-//  nameRenderTest(function(performer) {
-//    return $("#dataContents").dataContents(performer.nameChanged);
-//  }).destroy();
-//});
+test("dataContents.property", function() {
+  nameRenderTest(function(performer) {
+    $("#dataContents").dataContents({data:performer.nameChanges()});
+  });
+  $("#dataContents").dataContents('destroy');
+});
 
 // //render via dataContents plugin and toHTML() in the model object
 // test("dataContents.toHtml", function() {

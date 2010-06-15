@@ -150,18 +150,22 @@ test("observe.set.watchEvery", function() {
 });
 
 test("observe.property", function() {  
-  expect(2);
+  expect(4);
   var nameObj = $sync.manager.withPartition("test", function() {
     return $sync.test.nameObj({name:"fred"});
   });
-  nameObj.nameChanges().watch(function(change) {
-    ok(nameObj.name === "barney");
-  });
-  nameObj.$allChanges().watch(function(change) {
-    ok(nameObj.name === "barney");
-  });
+  nameObj.nameChanges().watch(verify);
+  nameObj.$allChanges().watch(verify);
   nameObj.name_("barney");
   
+  function verify(change) {
+    if (change.changeType === 'initial') {
+      ok(nameObj.name === 'fred');
+    }
+    if (change.changeType == 'property') {
+      ok(nameObj.name === "barney");
+    }
+  }
 });
 
 

@@ -20,6 +20,7 @@ var $sync = $sync || {};
  * @param {Object} changeType
  * @param {Object} target
  * @param {Object} params
+ *
  */
 $sync.changeDescription = function(changeType, target, params) {
   var self = {  
@@ -31,26 +32,27 @@ $sync.changeDescription = function(changeType, target, params) {
        return ($sync.util.fieldsToString(self));
     }    
   };
+  $.extend(self, params);
   
-  function setParams() {
+  validateParams();
+//  $log.log("created: " + self);
+  return self;
+  
+  
+  function validateParams() {
     if (self.changeType === 'property') {
       $debug.assert(params.hasOwnProperty('oldValue'));
-      $debug.assert(params.hasOwnProperty('property'));
-      self.property = params.property;
-      self.oldValue = params.oldValue;
+      $debug.assert(params.property);
     } else if (self.changeType == 'edit') {
       // LATER validate these parameters too
-      $sync.util.extend(self, params);
     } else if (self.changeType == 'create') {
-	  // (no additional params to add)
+    } else if (self.changeType == 'initial') {
+      $debug.assert(params.property);
     } else {
       $debug.fail("unexpected change type: " + self.changeType);
     }
   }
-  
-  setParams();
-//  $log.log("created: " + self);
-  return self;
+
 };
 
 /* Here are some examples of the change description object that's passed

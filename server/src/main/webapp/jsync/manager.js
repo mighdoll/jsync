@@ -161,11 +161,11 @@ $sync.manager = function() {
 	 *
 	 * @param {Object} instanceData - hash of {property:value} initial values
 	 * for the new instance
-	 * @param {String} ?partition - partition in which to create the new object
+	 * @param {String} ?options- {partition:string} in which to create the new object
 	 */
-    function constructor(instanceData, partition) {
-      if (partition) {
-        return $sync.manager.withPartition(partition, function() {
+    function constructor(instanceData, options) {
+      if (options && options.partition) {
+        return $sync.manager.withPartition(options.partition, function() {
           return $sync.manager.createSyncable(kind, instanceData);
         });
       } else {
@@ -566,7 +566,7 @@ $sync.manager = function() {
    * Creates the Changes object if necessery. */
   function propertyChanges(obj, prop) {
     var changesProp = changesProperty(prop);
-    var changes = obj[changesProp] = obj[changesProp] || $sync.changes();    
+    var changes = obj[changesProp] = obj[changesProp] || $sync.propertyChanges(obj, prop);    
     return changes;
   }
   

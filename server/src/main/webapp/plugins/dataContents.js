@@ -1,4 +1,29 @@
+
 (function($) {
+  var log = $log.logger("dataContents");
+  $.widget("lq.dataContents", {
+    options:{
+      data:null,             // required, Changes object that tracks changes
+      render:defaultRender  // optional fn to array
+    },
+    _create:function() {
+      this.options.data || log.error("option.data is required");
+     },
+    _init:function() {       
+       var $elem = this.element;
+       var options = this.options;
+       var render = options.render;
+       options.data.watch(replaceContents);
+       
+       function replaceContents(change) {
+         $elem.html(render(change.target, change));
+       }        
+    }
+  });
+  
+  function defaultRender(obj, change) {    
+    return obj[change.property];
+  }
   /**
    * Models are converted to html via a user supplied rendering function:
    * renderFn(model). renderFn should return html content.
@@ -19,7 +44,7 @@
    * be replaced with a rendered version of the data object.  The DOM element
    * will be redrawn whenever the data object is changed.
    */
-  $.fn.dataContents = function(model, options) {
+  $.fn.dataContentsOld = function(model, options) {
     var settings = $sync.widget.settings(model, $.fn.dataContents.defaults, options);
     var render = $sync.widget.findRenderFn(model, settings);
 
