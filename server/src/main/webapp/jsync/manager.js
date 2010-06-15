@@ -161,10 +161,16 @@ $sync.manager = function() {
 	 *
 	 * @param {Object} instanceData - hash of {property:value} initial values
 	 * for the new instance
+	 * @param {String} ?partition - partition in which to create the new object
 	 */
-    function constructor(instanceData) {
-      var object = $sync.manager.createSyncable(kind, instanceData);
-      return object;
+    function constructor(instanceData, partition) {
+      if (partition) {
+        return $sync.manager.withPartition(partition, function() {
+          return $sync.manager.createSyncable(kind, instanceData);
+        });
+      } else {
+        return $sync.manager.createSyncable(kind, instanceData);
+      }
     }
   };
 
@@ -482,6 +488,12 @@ $sync.manager = function() {
         addAccessor(kindProto, prop);
       }
     }
+    
+    // property that returns a Changes object that generates events when any property changes
+    kindProto.$allChanges = function() {
+      return propertyChanges(this, '$all');
+    };
+
     // CONSIDER allowing functions in the model.  they become methods on this kind
   }
 
@@ -541,21 +553,39 @@ $sync.manager = function() {
       
       debugModeAccessor(obj, prop);
       
-      // register a change function to watch a property
-      obj[prop+"Changed"] = function(fn) {
-        var fnsName = changeFnsProperty(prop);
-        this[fnsName] = this[fnsName] || [];
-        this[fnsName].push(fn);
+      // return a Changes object that generates events when a given property changes
+      obj[prop+"Changes"] = function() {
+        return propertyChanges(this, prop);
       };
+      
     }
   }
-
-  function changeFnsProperty(propertyName) {
-    return "$" + propertyName + "ChangeFns";
+  
+  /** return a Changes object so that callers can watch() it for changes 
+   * to the underlying property.
+   * Creates the Changes object if necessery. */
+  function propertyChanges(obj, prop) {
+    var changesProp = changesProperty(prop);
+    var changes = obj[changesProp] = obj[changesProp] || $sync.changes();    
+    return changes;
   }
   
-  self.propertyWatchers = function(obj, property) {
-    return obj[changeFnsProperty(property)] || [];
+
+  /** return the name of the property for watching changes */
+  function changesProperty(propertyName) {
+    return "$" + propertyName + "Changes";
+  }
+  
+  /** 
+   * Return a readonly Changes object. It hashas the registered watchers
+   * for the given property.  Use the property '$all' to watch all properties.
+   * 
+   * (if there are no watchers, it returns a read 
+   * only blank rather than creating a new Changes object) 
+   */
+  self.propertyChangesReadOnly = function(obj, propertyName) {
+    var changesProp = changesProperty(propertyName);
+    return obj[changesProp] || $sync.changes.blank();
   };
   
   /** set debug mode, which warns if raw property setters are used on a syncable. */

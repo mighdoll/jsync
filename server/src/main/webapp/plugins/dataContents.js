@@ -15,7 +15,7 @@
    */
 
   /**
-   * Bind liquid data to a DOM element. The contents of the DOM element will
+   * Bind liquid data to a DOM element, or property The contents of the DOM element will
    * be replaced with a rendered version of the data object.  The DOM element
    * will be redrawn whenever the data object is changed.
    */

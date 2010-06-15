@@ -156,16 +156,22 @@ $sync.observation = function() {
       }
     
       if (change.changeType === 'property') {
-        $.each($sync.manager.propertyWatchers(change.target, change.property), function() {
-          notifyCall(this);
+        notifyProperty($sync.manager.propertyChangesReadOnly(change.target, change.property));
+        notifyProperty($sync.manager.propertyChangesReadOnly(change.target, '$all'));
+      }
+      
+      /** publish property change to the changes stream */
+      function notifyProperty(changes) {
+        $.each(changes._watchers, function() {
+          notifyCall(this, change.target[change.property]);
         });
       }
 
       /** call fn right away, or queue fn if notification is globally stopped */
-      function notifyCall(fn) {        
+      function notifyCall(fn, arg) {        
         function call() {
 //          log.trace("notifying: ", change);
-          fn(change);
+          fn(change, arg);
         }
         
         if (defer) {
