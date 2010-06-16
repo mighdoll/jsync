@@ -1,5 +1,5 @@
 $(function() {
   subscribe(function(settings) {
-    $("#currentDemo").dataContents(settings.currentDemo);
+    $("#currentDemo").dataContents({data:settings.currentDemoChanges()});
   });
 });
