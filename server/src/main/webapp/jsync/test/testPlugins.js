@@ -16,18 +16,44 @@ test("dataContents.property", function() {
   $("#dataContents").dataContents('destroy');
 });
 
-// render via dataContents plugin, via custom render fn
-test("dataContents.renderFn", function() {
+function renderInDiv(performer) {
+  return '<div>' + performer.name + '</div>';
+}
+
+// render via dataContents plugin, via custom renderFn
+test("dataContents.renderFn", function() {  
   nameRenderTest(function(performer) {
     $("#dataContents").dataContents( {
       data : performer.nameChanges(),
-      render : function(obj, change) {
-        return '<div>' + obj[change.property] + '</div>';
-      }
+      render : renderInDiv
     });
   }, "<div>Goofy</div>", "<div>Donald</div>");
   $("#dataContents").dataContents('destroy');
 });
+
+// render via dataContents plugin, via renderFn map
+test("dataContents.renderFnMap", function() {
+  nameRenderTest(function(performer) {
+    var renderMap = {string:renderInDiv};
+    $("#dataContents").dataContents( {
+      data : performer.nameChanges(),
+      render : renderMap
+    });
+  }, "<div>Goofy</div>", "<div>Donald</div>");
+  $("#dataContents").dataContents('destroy');
+});
+
+//render via dataContents plugin, via renderFn map
+test("dataContents.$all", function() {
+  nameRenderTest(function(performer) {
+    $("#dataContents").dataContents( {
+      data : performer.$allChanges(),
+      render : renderInDiv
+    });
+  }, "<div>Goofy</div>", "<div>Donald</div>");
+  $("#dataContents").dataContents('destroy');
+});
+
 
 // //render via dataContents plugin and toHTML() in the model object
 // test("dataContents.toHtml", function() {
