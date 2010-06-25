@@ -13,6 +13,7 @@
        var $elem = this.element;
        var options = this.options;
        var render = options.render;
+       $debug.assert(typeof options.data !== 'function');
        options.data.watch(replaceContents);
        
        function replaceContents(change) {
@@ -21,9 +22,12 @@
     }
   });
   
+  // by default we just render the property into html directly
   function defaultRender(obj, change) {    
     return obj[change.property];
   }
+  
+  
   /**
    * Models are converted to html via a user supplied rendering function:
    * renderFn(model). renderFn should return html content.
