@@ -49,7 +49,7 @@ $sync.update = $sync.update || {};
     var editRef = edit["#edit"];
     var collection = $sync.manager.get(editRef.$partition, editRef.$id);
     if (typeof(collection) === 'undefined') {
-      log.fail("target of collection edit not found: ", edit);
+      log.error("target of collection edit not found: ", edit);
     } else if (collection.$kind === "$sync.set") {
       editSet(collection, edit);
     } else if (collection.$kind === "$sync.sequence") {
