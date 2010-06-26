@@ -41,7 +41,7 @@ class DemoContext(connection:Connection) extends RichAppContext(connection) {
     SyncManager.withPartition(demos) {
       val settings = new Settings
       settings.user = new User
-      settings.currentDemo = new SyncString("none")
+      settings.currentDemo = "none"
       settings.reminders = new SyncableSeq[Reminder]
       settings
     }
@@ -52,7 +52,7 @@ class Settings extends Syncable {
   def kind = "com.liquidj.site.settings"
   var user:User = _
   var reminders:SyncableSeq[Reminder] = _
-  var currentDemo:SyncString = _
+  var currentDemo:String = ""
 }
 
 class Reminder extends Syncable {

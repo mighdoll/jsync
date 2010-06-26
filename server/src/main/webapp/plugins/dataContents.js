@@ -77,6 +77,6 @@
       }
       return value.$kind;
     }
-  }  
+  }
 })(jQuery);
 
