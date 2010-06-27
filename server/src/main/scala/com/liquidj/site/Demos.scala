@@ -26,26 +26,30 @@ import com.digiting.sync.syncable.SyncString
 object Demos {
   def init() {}
   
+  val demos = new RamPartition("demos")
+  demos.publish("settings", 
+		SyncManager.withPartition(demos) {
+      blankSettings
+    }
+  )  
+  
   Applications.register {
     case("demo" :: "sync" :: Nil, message, connection) =>
       new DemoContext(connection)
   }
   SyncManager.registerKindsInPackage(classOf[Settings])
+  
+  def blankSettings = {
+    val settings = new Settings
+    settings.user = new User
+    settings.currentDemo = "none"
+    settings.reminders = new SyncableSeq[Reminder]
+    settings    
+  }
 }
 
 class DemoContext(connection:Connection) extends RichAppContext(connection) {
-  val appName = "Demos"
-  
-  val demos = new RamPartition("demos")
-  demos.publish("settings", 
-    SyncManager.withPartition(demos) {
-      val settings = new Settings
-      settings.user = new User
-      settings.currentDemo = "none"
-      settings.reminders = new SyncableSeq[Reminder]
-      settings
-    }
-  )
+  val appName = "Demos"  
 }
 
 class Settings extends Syncable {
