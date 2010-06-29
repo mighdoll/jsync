@@ -80,7 +80,7 @@ class PublishedRoots(partition:Partition) {
   /** find an advertised subscription in the persistent data pool */
   private def findPersistent(name:String):Option[Syncable] = {
     val normalName = normalize(name)
-    partition get nameToId(name) map {found:Syncable => 
+    partition get InstanceId(nameToId(name)) map {found:Syncable => 
       found match { 
         case root:PublishedRoot => 
           assert (normalize(name) == root.name)

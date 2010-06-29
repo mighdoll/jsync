@@ -28,23 +28,13 @@ object Partition extends LogHelper {
   class InvalidTransaction(message:String) extends Exception(message) {
     def this() = this("")
   }
-
-  /**
-   * Utility to create a partition by class name.
-   */
-  def create(partitionType:String, name:String):Partition = {
-    partitionType match {
-      case "RamPartition" =>
-        new RamPartition(name)
-      case "InfinispanPartition" =>
-        new InfinispanPartition(name)
-      case x =>
-        abort("unexptected partition type: ", x)
-    }
-  }
 }
 
 case class PartitionId(val id:String) {
+  override def toString:String = id
+}
+
+case class InstanceId(val id:String) {
   override def toString:String = id
 }
 
@@ -77,16 +67,16 @@ abstract class Partition(val id:String) extends LogHelper {
   def commit(transaction:Transaction)
   
   /** fetch an object or a collection */
-  def get(instanceId:String):Option[Syncable] = {
+  def get(id:InstanceId):Option[Syncable] = {
     withForcedTransaction {
       val syncable = 
         inTransaction {tx => 
           for {
-            pickled <- get(instanceId, tx)
+            pickled <- get(id, tx)
             syncable:Syncable = pickled.unpickle // loads referenced objects too
           } yield syncable
         }
-      log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
+      log.trace("#%s get(%s) = %s", partitionId, id, syncable)
       syncable
     }
   }
@@ -102,7 +92,7 @@ abstract class Partition(val id:String) extends LogHelper {
   
   /* subclasses should implement these */
   private[sync] def modify(change:DataChange, tx:Transaction):Unit  
-  private[sync] def get(instanceId:String, tx:Transaction):Option[Pickled]
+  private[sync] def get(id:InstanceId, tx:Transaction):Option[Pickled]
 
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
@@ -166,7 +156,7 @@ abstract class Partition(val id:String) extends LogHelper {
 object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
-  def get(instanceId:String, tx:Transaction):Option[Pickled] = None
+  def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = None
   def modify(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def deleteContents() {}

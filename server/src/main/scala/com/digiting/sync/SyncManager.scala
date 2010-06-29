@@ -150,7 +150,7 @@ object SyncManager extends LogHelper {
   }
   
   def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
-    val ident = SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId.id))
+    val ident = SyncableIdentity(id.instanceId.id, Partitions.getMust(id.partitionId.id))
     quietCreate.withValue(true) {
       newSyncable(kind, id).asInstanceOf[T]
     }
@@ -175,7 +175,7 @@ object SyncManager extends LogHelper {
   def get(partitionId:String, syncableId:String):Option[Syncable] = {    
     instanceCache get(partitionId, syncableId) orElse {
       val foundOpt = Partitions.get(partitionId) match {
-        case Some(partition) => partition.get(syncableId) 
+        case Some(partition) => partition.get(InstanceId(syncableId)) 
         case _ =>
           log.error("unexpected partition in Syncables.get: " + partitionId)
           None        
@@ -189,7 +189,7 @@ object SyncManager extends LogHelper {
     * instance cache.  */
   def get(ids:SyncableIdentity):Option[Syncable] = {
     instanceCache get(ids.partition.partitionId.id, ids.instanceId) orElse {
-      ids.partition get ids.instanceId map {found =>
+      ids.partition get InstanceId(ids.instanceId) map {found =>
         instanceCache put found
         found
       }
@@ -199,7 +199,7 @@ object SyncManager extends LogHelper {
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(ids:SyncableId):Option[Syncable] = {
-    instanceCache get(ids.partitionId.id, ids.instanceId) orElse {
+    instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
       Partitions.get(ids.partitionId.id) orElse {
         err("no partition found for: %s", ids.toString)
       } flatMap {partition =>
@@ -322,7 +322,7 @@ object SyncManager extends LogHelper {
   def creating(syncable:Syncable):SyncableIdentity = {    
     val identity = setNextId.take() match {
       case Some(id) => 
-        SyncableIdentity(id.instanceId, Partitions.getMust(id.partitionId.id))
+        SyncableIdentity(id.instanceId.id, Partitions.getMust(id.partitionId.id))
       case None =>
         SyncableIdentity(newSyncableId(), currentPartition.value)
     }

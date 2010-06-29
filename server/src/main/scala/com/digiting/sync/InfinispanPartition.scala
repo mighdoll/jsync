@@ -17,7 +17,7 @@ import com.digiting.util._
 
 class InfinispanPartition(partId:String) extends RamPartition(partId) with LogHelper {
   override protected lazy val log = logger("InfinispanPartition")
-  override protected val store = new InifinispanCache[String, Pickled]
+  override protected val store = new InifinispanCache[InstanceId, Pickled]
   debug("creating %s", partId)
   
 }

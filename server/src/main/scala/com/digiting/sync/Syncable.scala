@@ -124,21 +124,23 @@ object SyncableId {
       case _ => None
     }
   }
-  def apply(partitionId:PartitionId, instanceId:String) = 
+  def apply(partitionId:PartitionId, instanceIdString:String) = 
+    new SyncableId(partitionId, InstanceId(instanceIdString))
+  def apply(partitionId:PartitionId, instanceId:InstanceId) = 
     new SyncableId(partitionId, instanceId)
 }
 
-class SyncableId(val partitionId:PartitionId, val instanceId:String) {  
-  def toJsonMap = immutable.Map("$id" -> instanceId, "$partition" -> partitionId.id)
+class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {  
+  def toJsonMap = immutable.Map("$id" -> instanceId.id, "$partition" -> partitionId.id)
   def toJson = JsonUtil.toJson(toJsonMap)
-  def toCompositeIdString = partitionId.id + "/" + instanceId
+  def toCompositeIdString = partitionId.id + "/" + instanceId.id
   override def toString = toCompositeIdString
   def target = SyncManager.get(this)
 }
 
 object SyncableReference {
   def apply(partitionId:String, instanceId:String, kind:SyncManager.Kind) = {
-    val id = SyncableId(PartitionId(partitionId), instanceId)
+    val id = SyncableId(PartitionId(partitionId), InstanceId(instanceId))
     new SyncableReference(id, kind)    
   }
   

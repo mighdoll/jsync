@@ -87,7 +87,7 @@ object ProtocolFixture extends LogHelper {
         var resultMaps = 
           for {
             syncObjMap <- syncJsonMaps
-            id <- syncObjMap get("$id") if id == resultId.instanceId
+            id <- syncObjMap get("$id") if id == resultId.instanceId.id
           } yield {
             log.trace("found result: %s", syncObjMap)            
             syncObjMap

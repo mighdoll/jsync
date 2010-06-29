@@ -27,7 +27,7 @@ import com.digiting.sync.syncable.TestPrimitiveProperties
 object TestSubscriptions extends LogHelper {
   lazy val log = logger("TestSubscriptions")
   private val partitionType = Configuration.getString("testPartition-type") getOrElse "RamPartition"
-  private val testPartition = Partition.create(partitionType, "test");
+  private val testPartition = createPartition(partitionType, "test");
                                        
   def init() {
     SyncManager.withPartition(testPartition) {
@@ -246,5 +246,20 @@ object TestSubscriptions extends LogHelper {
       }
     })
   }
+  
+    /**
+   * Utility to create a partition by class name.
+   */
+  private def createPartition(partitionType:String, name:String):Partition = {
+    partitionType match {
+      case "RamPartition" =>
+        new RamPartition(name)
+      case "InfinispanPartition" =>
+        new InfinispanPartition(name)
+      case x =>
+        abort("unexptected partition type: ", x)
+    }
+  }
+
   
 }

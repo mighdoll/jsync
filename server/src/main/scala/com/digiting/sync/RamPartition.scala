@@ -28,11 +28,11 @@ import Partition._
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected override lazy val log = logger("RamPartition")
 
-  protected val store:collection.mutable.Map[String,Pickled] = new HashMap[String, Pickled] 
+  protected val store:collection.mutable.Map[InstanceId,Pickled] = new HashMap[InstanceId, Pickled] 
   
   def commit(tx:Transaction) {}
   
-  def get(instanceId:String, tx:Transaction):Option[Pickled] = synchronized {    
+  def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     
     log.trace("get %s, found: %s", instanceId, result getOrElse "")
     result
