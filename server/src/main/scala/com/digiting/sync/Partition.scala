@@ -76,9 +76,6 @@ abstract class Partition(val id:String) extends LogHelper {
   /** commit pending updates */
   def commit(transaction:Transaction)
   
-  /** toss pending changes */
-  def rollback(transaction:Transaction)
-  
   /** fetch an object or a collection */
   def get(instanceId:String):Option[Syncable] = {
     withForcedTransaction {
@@ -101,7 +98,6 @@ abstract class Partition(val id:String) extends LogHelper {
       trace("#%s update(%s)", partitionId, change)
       modify(change, tx)
     }    
-    // SOON, rename this method since the 'update' method is magic in scala syntax
   }
   
   /* subclasses should implement these */
@@ -173,7 +169,6 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:String, tx:Transaction):Option[Pickled] = None
   def modify(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
-  def rollback(tx:Transaction) {}
   def deleteContents() {}
 }
 

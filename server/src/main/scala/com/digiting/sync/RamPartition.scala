@@ -31,7 +31,6 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected val store:collection.mutable.Map[String,Pickled] = new HashMap[String, Pickled] 
   
   def commit(tx:Transaction) {}
-  def rollback(tx:Transaction) {}
   
   def get(instanceId:String, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     
