@@ -34,7 +34,7 @@ class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
         old.ref = new TestNameObj("wheel")
         val oldAttributes = syncableAttributes(old)
         
-        val created = createFromAttributes(old.id, old.partition, oldAttributes)
+        val created = createFromAttributes(old.id.instanceId.id, old.partition, oldAttributes)
         created match {
           case Some(migration:Migration[_]) =>
             migration.migrate match {

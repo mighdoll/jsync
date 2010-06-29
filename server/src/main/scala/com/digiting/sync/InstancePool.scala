@@ -103,7 +103,7 @@ class WatchedPool(name:String) {
   /** index by key and partition id */    // TODO DRY with Syncable.compositeId 
   private def key(partition:String, id:String):String = partition + "/" + id
   /** index by key and partition id */
-  private def key(syncable:Syncable):String = key(syncable.partition.partitionId.id, syncable.id)
+  private def key(syncable:Syncable):String = key(syncable.id.partitionId.id, syncable.id.instanceId.id)
 }
 
 

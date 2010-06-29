@@ -29,17 +29,14 @@ import com.digiting.util.Configuration
 @RunWith(classOf[JUnitRunner])
 class SyncableTest extends Spec with ShouldMatchers with SyncFixture {
   describe("Syncable") {
-    it("should initialize configuration") {
-      Configuration.initFromVariable("jsyncServerConfig")      
-    }
     it("should allow setting an id") {
       withTestFixture {
         val obj = 
-          SyncManager.withNextNewId(SyncableId(SyncManager.currentPartition.value.partitionId, "foo")) {
+          SyncManager.withNextNewId(SyncableId(SyncManager.currentPartition.value.id, "foo")) {
             new SyncableSet
           }
-        obj.id should be ("foo")
-        SyncManager.get(SyncManager.currentPartition.value.partitionId.id, "foo") should be (Some(obj))
+        obj.id.instanceId.id should be ("foo")
+        SyncManager.get(SyncManager.currentPartition.value.id.id, "foo") should be (Some(obj))
       } 
     }        
   }

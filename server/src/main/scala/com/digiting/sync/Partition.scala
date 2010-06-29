@@ -47,9 +47,9 @@ case class InstanceId(val id:String) {
  * put() is called, the data is lost.
  */
 import Partition._
-abstract class Partition(val id:String) extends LogHelper {  
+abstract class Partition(val partitionId:String) extends LogHelper {  
   protected lazy val log = logger("Partition")
-  val partitionId = PartitionId(id)
+  val id = PartitionId(partitionId)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   private[sync] val published = new PublishedRoots(this)
   
@@ -67,16 +67,16 @@ abstract class Partition(val id:String) extends LogHelper {
   def commit(transaction:Transaction)
   
   /** fetch an object or a collection */
-  def get(id:InstanceId):Option[Syncable] = {
+  def get(instanceId:InstanceId):Option[Syncable] = {
     withForcedTransaction {
       val syncable = 
         inTransaction {tx => 
           for {
-            pickled <- get(id, tx)
+            pickled <- get(instanceId, tx)
             syncable:Syncable = pickled.unpickle // loads referenced objects too
           } yield syncable
         }
-      log.trace("#%s get(%s) = %s", partitionId, id, syncable)
+      log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
       syncable
     }
   }
@@ -139,7 +139,7 @@ abstract class Partition(val id:String) extends LogHelper {
   
   /** destroy this partition and its contents */
   def deletePartition() {
-    Partitions.remove(partitionId.id)
+    Partitions.remove(id.id)
     deleteContents()
   }
   
@@ -163,11 +163,13 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
 }
 
 import collection.mutable.HashMap
+
+// TODO change get(), remove() to use PartitionId
 object Partitions extends LogHelper {
   val log = logger("Partitions")
   val localPartitions = new HashMap[String, Partition]    // Synchronize?
   def get(name:String):Option[Partition] = localPartitions get name
-  def add(partition:Partition) = localPartitions += (partition.partitionId.id -> partition)
+  def add(partition:Partition) = localPartitions += (partition.id.id -> partition)
   
   def getMust(name:String):Partition = {
     get(name) getOrElse {

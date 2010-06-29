@@ -44,7 +44,7 @@ class PublishedRoots(partition:Partition) {
    * clients can subscribe.  Any existing subscription at the same name will be
    * replaced */
   def create(name:String, root:Syncable) {    
-    val ids = SyncableId(partition.partitionId, nameToId(name))
+    val ids = SyncableId(partition.id, nameToId(name))
     val published = 
       SyncManager.withNextNewId(ids) {
         SyncManager.currentPartition.withValue(partition) {

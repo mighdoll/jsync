@@ -153,18 +153,18 @@ object JsonMapParser {
         case Some(instanceId) => {
           matchOptString (json get "$partition") match {
             case Some(partitionId) if (partitionId == ".transient") => 
-              Some(SyncableId(App.current.value.get.transientPartition.partitionId, instanceId))
+              Some(SyncableId(App.current.value.get.transientPartition.id, instanceId))
             case Some(partitionId) if (partitionId == ".implicit") => 
-              Some(SyncableId(App.current.value.get.implicitPartition.partitionId, instanceId))
+              Some(SyncableId(App.current.value.get.implicitPartition.id, instanceId))
             case Some(partitionId) =>               
               Partitions get partitionId match {
-                case Some(partition) => Some(SyncableId(partition.partitionId, instanceId))
+                case Some(partition) => Some(SyncableId(partition.id, instanceId))
                 case None => 
                   err("partition %s not found", partitionId)
               } 
             case None => 
               log.warning("no partition specified in: %s", toJson(json))
-              Some(SyncableId(App.current.value.get.defaultPartition.partitionId, instanceId))
+              Some(SyncableId(App.current.value.get.defaultPartition.id, instanceId))
           }         
         }
         case None => err("id not found: %s", json.toString)

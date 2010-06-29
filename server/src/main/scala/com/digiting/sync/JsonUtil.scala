@@ -149,8 +149,10 @@ object JsonUtil {
       case string:String => quote(StringEscapeUtils.escapeJava(string))
       case null => "null"
       case none:net.liftweb.common.EmptyBox[_] => "null"	
-      case partId:PartitionId => 
-        quote(partId.id)
+      case partitionId:PartitionId => 
+        quote(partitionId.id)
+      case instanceId:InstanceId => 
+        quote(instanceId.id)
       case other => 
         log.error("unexpected value type as json value: %s", other)
         quote(other.toString)  		// unfortunately, type erasure prevents matching on refs vs. vals here

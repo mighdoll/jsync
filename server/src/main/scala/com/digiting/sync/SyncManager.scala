@@ -185,16 +185,16 @@ object SyncManager extends LogHelper {
     }   
   }
   
-  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-    * instance cache.  */
-  def get(ids:SyncableIdentity):Option[Syncable] = {
-    instanceCache get(ids.partition.partitionId.id, ids.instanceId) orElse {
-      ids.partition get InstanceId(ids.instanceId) map {found =>
-        instanceCache put found
-        found
-      }
-    }
-  }
+//  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
+//    * instance cache.  */
+//  def get(ids:SyncableIdentity):Option[Syncable] = {
+//    instanceCache get(ids.partition.partitionId.id, ids.instanceId) orElse {
+//      ids.partition get InstanceId(ids.instanceId) map {found =>
+//        instanceCache put found
+//        found
+//      }
+//    }
+//  }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
@@ -262,7 +262,7 @@ object SyncManager extends LogHelper {
   /** handy routine for making a temporary object, that will not be saved in a persistent partition */
   def withFakeObject[T](fn: => T):T = {
     creatingFake.withValue(true) {
-      withNextNewId(SyncableId(fakePartition.partitionId, "fake")) {
+      withNextNewId(SyncableId(fakePartition.id, "fake")) {
         fn
       }
     }
@@ -319,12 +319,12 @@ object SyncManager extends LogHelper {
   
      
   /** create the identity for a new object */
-  def creating(syncable:Syncable):SyncableIdentity = {    
+  def creating(syncable:Syncable):SyncableId = {    
     val identity = setNextId.take() match {
       case Some(id) => 
-        SyncableIdentity(id.instanceId.id, Partitions.getMust(id.partitionId.id))
+        id
       case None =>
-        SyncableIdentity(newSyncableId(), currentPartition.value)
+        SyncableId(currentPartition.value.id, randomInstanceId())
     }
     log.trace("creating(): %s", identity)
     identity
@@ -353,7 +353,7 @@ object SyncManager extends LogHelper {
   }
   
   /** create a unique id for a new syncable */
-  private def newSyncableId():String = {
+  private def randomInstanceId():String = {
     "s_" + RandomIds.randomUriString(32);
   }  
   
