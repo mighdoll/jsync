@@ -39,7 +39,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     result
   }
   
-  def update(change:DataChange, tx:Transaction) = synchronized {
+  def modify(change:DataChange, tx:Transaction) = synchronized {
     val instanceId = change.target.instanceId
     
     change match {

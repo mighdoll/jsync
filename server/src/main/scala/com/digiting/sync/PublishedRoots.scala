@@ -55,7 +55,7 @@ class PublishedRoots(partition:Partition) {
     // TODO fix this when we make the SyncManager pools per connection (and per partition?)
     val change = new CreatedChange(SyncableReference(published),
       Pickled(published), VersionChange(published.version, published.version))
-    partition.withTransaction {partition.update(change)} 
+    partition.withTransaction {partition.modify(change)} 
   }
     
   /** create a dynamic subscription, that calls a function to produce */

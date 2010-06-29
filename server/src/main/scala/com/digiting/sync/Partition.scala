@@ -28,7 +28,10 @@ object Partition extends LogHelper {
   class InvalidTransaction(message:String) extends Exception(message) {
     def this() = this("")
   }
-  
+
+  /**
+   * Utility to create a partition by class name.
+   */
   def create(partitionType:String, name:String):Partition = {
     partitionType match {
       case "RamPartition" =>
@@ -58,6 +61,7 @@ abstract class Partition(val id:String) extends LogHelper {
   protected lazy val log = logger("Partition")
   val partitionId = PartitionId(id)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
+  private[sync] val published = new PublishedRoots(this)
   
   /** all CRUD operations should be called within a transaction */
   def withTransaction[T](fn: =>T):T = {
@@ -91,17 +95,17 @@ abstract class Partition(val id:String) extends LogHelper {
   }
   
   
-  /** create, update or delete an object or a collection*/
-  def update(change:DataChange) { 
+  /** create, update or delete an object or a collection */
+  def modify(change:DataChange) { 
     inTransaction {tx => 
       trace("#%s update(%s)", partitionId, change)
-      update(change, tx)
+      modify(change, tx)
     }    
     // SOON, rename this method since the 'update' method is magic in scala syntax
   }
   
   /* subclasses should implement these */
-  private[sync] def update(change:DataChange, tx:Transaction):Unit  
+  private[sync] def modify(change:DataChange, tx:Transaction):Unit  
   private[sync] def get(instanceId:String, tx:Transaction):Option[Pickled]
 
   /** verify that we're currently in a valid transaction*/
@@ -128,12 +132,13 @@ abstract class Partition(val id:String) extends LogHelper {
   
   /** name to object mapping of for well known objects in the partition.  The published
    * roots are persistent, so clients of the partition can use well known names to get
-   * started with the partition data, w/o having to resort to querying, etc.
+   * started with the partition data, w/o having to resort to preserving object ids, 
+   * or querying, etc.
    * 
-   * objects in the partition that are not referenced directly or indirectly by one
-   * of these roots may be garbage collected by the partition.
+   * Eventually, objects in the partition that are not referenced directly or 
+   * indirectly by one of these roots may be garbage collected by the partition.  
+   * (This is NYI)
    */
-  private[sync] val published = new PublishedRoots(this)
   
   def publish(publicName:String, root:Syncable) {
     published.create(publicName, root)
@@ -166,7 +171,7 @@ object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:String, tx:Transaction):Option[Pickled] = None
-  def update(change:DataChange, tx:Transaction):Unit  = {}
+  def modify(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) {}
   def rollback(tx:Transaction) {}
   def deleteContents() {}

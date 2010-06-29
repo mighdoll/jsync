@@ -92,7 +92,7 @@ object SyncManager extends LogHelper {
       partition.withTransaction {
         dataChanges foreach {change =>
           log.trace("commitTo updating: %s", change)
-          partition.update(change)
+          partition.modify(change)
         }
       }
     }
