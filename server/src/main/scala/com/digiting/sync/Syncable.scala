@@ -36,10 +36,11 @@ import SyncManager.NextVersion
  * with conflict detection..)
  */
 trait Syncable extends Observable {
+  val id = SyncManager.creating(this) // ask the sync manager for an identity for this new object
+  
   def kind:String		 // the public name for this type of Syncable, shared with javascript
   def kindVersion = "0"  // 'schema' version of this kind, (used to support data migration)
-  val id = SyncManager.creating(this)	// ask the sync manager for an identity for this new object
-  def partition = Partitions.getMust(id.partitionId.id)	// partition this object call's home
+  def partition = Partitions.getMust(id.partitionId.id)	// partition this object calls home
   var version = "initial"           // instance version of this object
   private val _log = Logger("Syncable")
 
@@ -67,7 +68,7 @@ trait Syncable extends Observable {
     Message.toJsonMap(this)
   }
   
-  def fullId = id
+  def fullId = id   // TODO get rid of this
         
   /** for pretty printing, get the the trailing part of com.foo.trailing */
   private def dotTail(str:String) = {

@@ -31,8 +31,7 @@ class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {
   def toJsonMap = immutable.Map("$id" -> instanceId.id, "$partition" -> partitionId.id)
   def toJson = JsonUtil.toJson(toJsonMap)
   def toCompositeIdString = partitionId.id + "/" + instanceId.id
-//  override def toString = toCompositeIdString
-  override def toString = "fooie"
+  override def toString = toCompositeIdString
   def target = SyncManager.get(this)
 }
 

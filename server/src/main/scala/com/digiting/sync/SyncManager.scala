@@ -149,8 +149,10 @@ object SyncManager extends LogHelper {
     }
   }
   
+  /** construct a new blank syncable instance.
+   * does not send a creation notification to observers.
+   */
   def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
-    val ident = SyncableIdentity(id.instanceId.id, Partitions.getMust(id.partitionId.id))
     quietCreate.withValue(true) {
       newSyncable(kind, id).asInstanceOf[T]
     }
@@ -359,8 +361,3 @@ object SyncManager extends LogHelper {
   
 }
 
-case class SyncableIdentity(val instanceId:String, val partition:Partition) {
-  override def toString():String = instanceId + "/" + partition.partitionId
-  
-  /** LATER change partition to a partitionId string */
-}

@@ -151,7 +151,7 @@ abstract class Partition(val partitionId:String) extends LogHelper {
 
 /** this is a trick to allow a simulated client to refer to a Partition instance 
   * with the name ".transient".  LATER we should change the SyncableIdentity to use a string
-  * for the partition id, rather than the partition reference.
+  * for the partition id, rather than the partition reference (...SyncableIdentity is gone now.)
   */
 object TransientPartition extends FakePartition(".transient")
 
