@@ -31,29 +31,30 @@ abstract trait PickledCollection extends Pickled {
 
 object PickledSeq {
   def apply(p:Pickled, members:mutable.Buffer[SyncableReference] ) = {
-    new PickledSeq(p.reference, p.version, p.properties, members)
+    new PickledSeq(p.reference, p.version, p.properties, Set.empty, members)
   }
   val emptyMembers = new ArrayBuffer[SyncableReference] 
 }
 
 object PickledSet {
   def apply(p:Pickled, members:Set[SyncableReference]) = {
-    new PickledSet(p.reference, p.version, p.properties, members)
+    new PickledSet(p.reference, p.version, p.properties, Set.empty, members)
   }
   val emptyMembers = new immutable.HashSet[SyncableReference]
 }
 
 object PickledMap {
   def apply(p:Pickled, members:Map[Serializable, SyncableReference]) = {
-    new PickledMap(p.reference, p.version, p.properties, members)
+    new PickledMap(p.reference, p.version, p.properties, Set.empty, members)
   }
   val emptyMembers = new immutable.HashMap[Serializable, SyncableReference] 
 }
 
 @serializable
 class PickledSeq(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:mutable.Buffer[SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection {
+    props:Map[String,SyncableValue], 
+    watches:Set[PickledWatch], val members:mutable.Buffer[SyncableReference]) 
+    extends Pickled(ref,ver,props, watches) with PickledCollection {
       
   override def unpickle:SyncableSeq[Syncable] = {
     val seq = super.unpickle.asInstanceOf[SyncableSeq[Syncable]]
@@ -80,14 +81,14 @@ class PickledSeq(ref:SyncableReference, ver:String,
       case _ =>
         throw new ImplementationError
     }
-    new PickledSeq(reference, change.versionChange.now, properties, revisedMembers)
+    new PickledSeq(reference, change.versionChange.now, properties, watches, revisedMembers)
   }  
 }
     
 @serializable
 class PickledSet(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:Set[SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection {
+    props:Map[String,SyncableValue], watches:Set[PickledWatch], val members:Set[SyncableReference]) 
+    extends Pickled(ref,ver,props,watches) with PickledCollection {
       
   override def unpickle:SyncableSet[Syncable] = {
     val set = super.unpickle.asInstanceOf[SyncableSet[Syncable]]
@@ -111,15 +112,16 @@ class PickledSet(ref:SyncableReference, ver:String,
         case _ =>
           throw new ImplementationError      
       }
-    new PickledSet(reference, change.versionChange.now, properties, revisedMembers)
+    new PickledSet(reference, change.versionChange.now, properties, watches, revisedMembers)
   } 
 
 }
     
 @serializable
 class PickledMap(ref:SyncableReference, ver:String, 
-    props:Map[String,SyncableValue], val members:Map[Serializable, SyncableReference]) 
-    extends Pickled(ref,ver,props) with PickledCollection {
+    props:Map[String,SyncableValue], watches:Set[PickledWatch],
+    val members:Map[Serializable, SyncableReference]) 
+    extends Pickled(ref,ver,props,watches) with PickledCollection {
       
   override def unpickle:SyncableMap[Serializable, Syncable] = {
     val map = super.unpickle.asInstanceOf[SyncableMap[Serializable, Syncable]]
@@ -143,7 +145,7 @@ class PickledMap(ref:SyncableReference, ver:String,
         case _ =>
           throw new ImplementationError      
       }
-    new PickledMap(reference, change.versionChange.now, properties, revisedMembers)
+    new PickledMap(reference, change.versionChange.now, properties, watches, revisedMembers)
   } 
 
 }

@@ -15,10 +15,10 @@
 package com.digiting.sync
 
 import scala.util.DynamicVariable
-import JsonObject._
 import collection.mutable
 import com.digiting.util._
 import java.io.Serializable
+import Observers.DataChangeFn
 
 object Partition extends LogHelper {
   lazy val log = logger("Partition(Obj)")
@@ -53,7 +53,7 @@ abstract class Partition(val partitionId:String) extends LogHelper {
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   private[sync] val published = new PublishedRoots(this)
   
-  /** all CRUD operations should be called within a transaction */
+  /** all get,modify,watch operations should be called within a transaction */
   def withTransaction[T](fn: =>T):T = {
     val tx = new Transaction
     currentTransaction.withValue(Some(tx)) {
@@ -64,9 +64,10 @@ abstract class Partition(val partitionId:String) extends LogHelper {
   }
 
   /** commit pending updates */
-  def commit(transaction:Transaction)
+  protected def commit(transaction:Transaction):Boolean
   
-  /** fetch an object or a collection */
+  /** Fetch an object or a collection.  
+   * (Creates an implicit transaction if none is currently active) */
   def get(instanceId:InstanceId):Option[Syncable] = {
     withForcedTransaction {
       val syncable = 
@@ -88,6 +89,20 @@ abstract class Partition(val partitionId:String) extends LogHelper {
       trace("#%s update(%s)", partitionId, change)
       modify(change, tx)
     }    
+  }
+  
+  /** 
+   * Observe an object for changes.
+   * 
+   * After the specified duration in milliseconds, the watch is discarded.
+   */
+  def watch(id:InstanceId, watch:DataChangeFn, duration:Int) {
+    
+  }
+  
+  /** unregister a previously registered watch */
+  def unwatch(id:InstanceId, watch:DataChangeFn) {
+    
   }
   
   /* subclasses should implement these */
@@ -158,13 +173,13 @@ object TransientPartition extends FakePartition(".transient")
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = None
   def modify(change:DataChange, tx:Transaction):Unit  = {}
-  def commit(tx:Transaction) {}
+  def commit(tx:Transaction) = true
   def deleteContents() {}
 }
 
 import collection.mutable.HashMap
 
-// TODO change get(), remove() to use PartitionId
+// SOON change get(), remove() to use PartitionId
 object Partitions extends LogHelper {
   val log = logger("Partitions")
   val localPartitions = new HashMap[String, Partition]    // Synchronize?

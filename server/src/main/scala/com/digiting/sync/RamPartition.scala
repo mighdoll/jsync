@@ -25,12 +25,17 @@ import com.digiting.util.LogHelper
 import java.io.Serializable
 import Partition._
 
+/**
+ * Simple implemenation of a partition.  
+ * 
+ * (Note that this implemenation does not respect transactions.)
+ */
 class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   protected override lazy val log = logger("RamPartition")
 
   protected val store:collection.mutable.Map[InstanceId,Pickled] = new HashMap[InstanceId, Pickled] 
   
-  def commit(tx:Transaction) {}
+  def commit(tx:Transaction) = true
   
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     

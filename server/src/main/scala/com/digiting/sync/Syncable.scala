@@ -43,6 +43,7 @@ trait Syncable extends Observable {
   def partition = Partitions.getMust(id.partitionId.id)	// partition this object calls home
   var version = "initial"           // instance version of this object
   private val _log = Logger("Syncable")
+  def fullId = id   // TODO get rid of this
 
   SyncManager.created(this)
   
@@ -68,7 +69,6 @@ trait Syncable extends Observable {
     Message.toJsonMap(this)
   }
   
-  def fullId = id   // TODO get rid of this
         
   /** for pretty printing, get the the trailing part of com.foo.trailing */
   private def dotTail(str:String) = {

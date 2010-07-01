@@ -25,7 +25,7 @@ object Pickled {
   val log = Logger("Pickled")
   def apply[T <: Syncable](reference:SyncableReference, version:String,
       properties:Map[String, SyncableValue]) =
-    new Pickled(reference, version, properties)
+    new Pickled(reference, version, properties, Set.empty)
   
   /**
    * Pickle the provided syncable
@@ -63,10 +63,11 @@ object Pickled {
   
 }
 
+class PickledWatch
 
 @serializable
 class Pickled(val reference:SyncableReference, val version:String,
-    val properties:Map[String, SyncableValue]) extends LogHelper {
+    val properties:Map[String, SyncableValue], val watches:Set[PickledWatch]) extends LogHelper {
   protected val log = Logger("Pickled")
   
   def unpickle:Syncable = {
@@ -111,7 +112,7 @@ class Pickled(val reference:SyncableReference, val version:String,
         propChange.versions.old, version, propChange, this)
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
-    new Pickled(reference, propChange.versions.now, updatedProperties)
+    new Pickled(reference, propChange.versions.now, updatedProperties, watches)
   }
   
   override def toString:String = {
