@@ -69,17 +69,15 @@ abstract class Partition(val partitionId:String) extends LogHelper {
   /** Fetch an object or a collection.  
    * (Creates an implicit transaction if none is currently active) */
   def get(instanceId:InstanceId):Option[Syncable] = {
-    withForcedTransaction {
-      val syncable = 
-        inTransaction {tx => 
-          for {
-            pickled <- get(instanceId, tx)
-            syncable:Syncable = pickled.unpickle // loads referenced objects too
-          } yield syncable
-        }
-      log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
-      syncable
-    }
+    val syncable = 
+      autoTransaction { tx =>
+        for {
+          pickled <- get(instanceId, tx)
+          syncable:Syncable = pickled.unpickle // loads referenced objects too
+        } yield syncable
+      }
+    log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
+    syncable
   }
   
   
@@ -120,14 +118,14 @@ abstract class Partition(val partitionId:String) extends LogHelper {
   }
     
   /** create a single operation transaction if necessary */
-  private def withForcedTransaction[T](fn: =>T):T = {
+  private def autoTransaction[T](fn:(Transaction) =>T):T = {
     currentTransaction value match {
-      case Some(_) => 
-        fn
+      case Some(tx) => 
+        fn(tx)
       case None =>
-        currentTransaction.withValue(Some(new Transaction)) {
-          fn
-        }        
+        withTransaction {
+          inTransaction(fn)
+        }
     }
   }
   

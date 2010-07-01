@@ -115,6 +115,16 @@ class Pickled(val reference:SyncableReference, val version:String,
     new Pickled(reference, propChange.versions.now, updatedProperties, watches)
   }
   
+  def watch(watch:PickledWatch):Pickled = {
+    val moreWatches = watches + watch
+    new Pickled(reference, version, properties, moreWatches)    
+  }
+  
+  def unwatch(watch:PickledWatch):Pickled = {
+    val lessWatches = watches - watch
+    new Pickled(reference, version, properties, lessWatches)    
+  }
+  
   override def toString:String = {
     val props = properties map Function.tupled {(k,v) => k + "=" + v.toString}
     
