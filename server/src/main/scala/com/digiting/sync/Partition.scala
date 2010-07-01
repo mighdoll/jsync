@@ -63,8 +63,6 @@ abstract class Partition(val partitionId:String) extends LogHelper {
     }
   }
 
-  /** commit pending updates */
-  protected def commit(transaction:Transaction):Boolean
   
   /** Fetch an object or a collection.  
    * (Creates an implicit transaction if none is currently active) */
@@ -94,18 +92,27 @@ abstract class Partition(val partitionId:String) extends LogHelper {
    * 
    * After the specified duration in milliseconds, the watch is discarded.
    */
-  def watch(id:InstanceId, watch:DataChangeFn, duration:Int) {
-    
+  def watch(id:InstanceId, pickledWatch:PickledWatch) {
+    inTransaction {tx =>
+      watch(id, pickledWatch, tx)
+    }
   }
   
   /** unregister a previously registered watch */
-  def unwatch(id:InstanceId, watch:DataChangeFn) {
-    
+  def unwatch(id:InstanceId, pickledWatch:PickledWatch) {
+    inTransaction {tx =>
+      unwatch(id, pickledWatch, tx)
+    }    
   }
   
   /* subclasses should implement these */
   private[sync] def modify(change:DataChange, tx:Transaction):Unit  
   private[sync] def get(id:InstanceId, tx:Transaction):Option[Pickled]
+  private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit  
+  private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit    
+  /** commit pending updates */
+  protected def commit(transaction:Transaction):Boolean
+
 
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
@@ -172,6 +179,9 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = None
   def modify(change:DataChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) = true
+  private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
+  private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
+  
   def deleteContents() {}
 }
 

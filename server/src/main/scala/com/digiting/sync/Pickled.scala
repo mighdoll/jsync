@@ -63,7 +63,8 @@ object Pickled {
   
 }
 
-class PickledWatch
+class ClientId (val id:String)
+class PickledWatch (val client:ClientId, val expiration:Int)
 
 @serializable
 class Pickled(val reference:SyncableReference, val version:String,
@@ -105,7 +106,7 @@ class Pickled(val reference:SyncableReference, val version:String,
   }
   
   /** return a new Pickled with the change applied */
-  def revise(propChange:PropertyChange):Pickled = {
+  def +(propChange:PropertyChange):Pickled = {
     log.trace("revise() %s", propChange)
     if (propChange.versions.old != version) {
       log.warning("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
@@ -115,12 +116,12 @@ class Pickled(val reference:SyncableReference, val version:String,
     new Pickled(reference, propChange.versions.now, updatedProperties, watches)
   }
   
-  def watch(watch:PickledWatch):Pickled = {
+  def +(watch:PickledWatch):Pickled = {
     val moreWatches = watches + watch
     new Pickled(reference, version, properties, moreWatches)    
   }
   
-  def unwatch(watch:PickledWatch):Pickled = {
+  def -(watch:PickledWatch):Pickled = {
     val lessWatches = watches - watch
     new Pickled(reference, version, properties, lessWatches)    
   }

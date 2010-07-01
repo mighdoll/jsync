@@ -53,7 +53,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         get(instanceId, tx) orElse {  
           err("target of property change not found: %s", prop) 
         } foreach {pickled =>
-          store(instanceId) = pickled.revise(prop)
+          store(instanceId) = pickled + prop
         }
       case deleted:DeletedChange =>
         throw new NotYetImplemented
@@ -67,9 +67,30 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     }
   }
   
+  def watch(instanceId:InstanceId, watch:PickledWatch, tx:Transaction) {
+    withPickled(instanceId, tx) { pickled =>
+      put(pickled + watch)
+    }
+  }
+
+  def unwatch(instanceId:InstanceId, watch:PickledWatch, tx:Transaction) {
+    withPickled(instanceId, tx) { pickled =>
+      put(pickled - watch)
+    }
+  }
+
   private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
     store += (pickled.reference.instanceId -> pickled)
   }
+  
+  private def withPickled[T](instanceId:InstanceId, tx:Transaction)(fn:(Pickled)=>T):T = {
+    get(instanceId, tx) match {
+      case Some(pickled) => 
+        fn(pickled)
+      case _ =>
+        abort("watch() can't find instance %s", instanceId)
+    }
+  }  
   
 
   def deleteContents() = synchronized {
