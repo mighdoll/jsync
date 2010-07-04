@@ -159,18 +159,13 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
         case c:CreatedChange => // can't watch created change
         case _ =>
           val targetId = change.target.instanceId
-          for {
-            pickled <- get(targetId, tx) orElse 
-              err("notify can't find target object for change: %s", change)
-            watches = pickled.watches
-          } {
-            val invalid = watches filter(System.currentTimeMillis > _.expiration)
-            val validWatches = watches -- invalid
-            invalid foreach (unwatch(targetId, _))
-            // call matching functions
-            validWatches filter(_.clientId != change.source) foreach { watch =>
-              notify(watch, change, tx)
-            } 
+          val watches = getWatches(targetId, tx) 
+          val invalid = watches filter(System.currentTimeMillis > _.expiration)
+          val validWatches = watches -- invalid
+          invalid foreach (unwatch(targetId, _))
+          // call matching functions
+          validWatches filter(_.clientId != change.source) foreach { watch =>
+            notify(watch, change, tx)
           }
         }
       }      

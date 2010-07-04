@@ -17,13 +17,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
 import com.digiting.util._
 import collection.mutable.HashMap
-import collection.mutable.HashSet
-import collection.mutable.Set
-import scala.collection.mutable.MultiMap
-import net.lag.logging.Logger
 import com.digiting.util.LogHelper
 import java.io.Serializable
 import Partition._
+import collection.immutable
 
 /**
  * Simple implemenation of a partition.  
@@ -42,6 +39,16 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     log.trace("get %s, found: %s", instanceId, result getOrElse "")
     result
   }
+
+  def getWatches(instanceId:InstanceId, tx:Transaction):immutable.Set[PickledWatch] = {
+    get(instanceId, tx) match {
+      case Some(pickled) => pickled.watches
+      case _ =>
+        err("getWatches can't find instanceId: %s", instanceId)
+        immutable.Set.empty
+    }
+  }
+
   
   def modify(change:DataChange, tx:Transaction) = synchronized {
     val instanceId = change.target.instanceId
