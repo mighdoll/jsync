@@ -21,7 +21,7 @@ import RandomIds.randomUriString
 
 object Partition extends LogHelper {
   lazy val log = logger("Partition(Obj)")
-  class Transaction { // SOON move this so each partition subclass can implement their own
+  class Transaction { // LATER move this so each partition subclass can implement their own
     val id = randomUriString(8)
     val changes = new mutable.ListBuffer[DataChange]
   }
@@ -39,12 +39,7 @@ case class InstanceId(val id:String) {
   override def toString:String = id
 }
 
-trait PartitionNotification extends Partition {
-  def notify(watch: PickledWatch)
-}
-
 import Partition._
-
 /** A storage segment of syncable objects 
  * 
  * Put() and update() operations are asynchronous and eventually consistent.  
@@ -53,7 +48,7 @@ import Partition._
  * The current implementation does not guarantee durability.  If the server crashes right after
  * put() is called, the data is lost.
  */
-abstract class Partition(val partitionId:String) extends LogHelper {  
+abstract class Partition(val partitionId:String) extends ConcretePartition with LogHelper {  
   protected lazy val log = logger("Partition")
   val id = PartitionId(partitionId)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
@@ -69,34 +64,6 @@ abstract class Partition(val partitionId:String) extends LogHelper {
     }
   }
 
-  private def notifyChanges(tx:Transaction) {
-    if (hasStorage) {
-      tx.changes foreach {change => change match {
-        case c:CreatedChange => // can't watch created change
-        case _ =>
-          val targetId = change.target.instanceId
-          for {
-            pickled <- get(targetId, tx) orElse {
-              Console print "foo"
-              err("notify can't find target object for change: %s", change)
-              Thread.sleep(10000)
-              None
-            }
-            watches = pickled.watches
-          } {
-            val invalid = watches filter(System.currentTimeMillis > _.expiration)
-            val validWatches = watches -- invalid
-            invalid foreach (unwatch(targetId, _))
-            // call matching functions
-            validWatches filter(_.clientId != change.source) foreach { watch =>
-            	notify(watch, change, tx)
-            } 
-          }
-        }
-      }      
-    }
-  }
-  
   /** Fetch an object or a collection.  
    * (Creates an implicit transaction if none is currently active) */
   def get(instanceId:InstanceId):Option[Syncable] = {
@@ -139,15 +106,30 @@ abstract class Partition(val partitionId:String) extends LogHelper {
     }    
   }
   
-  /* subclasses should implement these */
-  private[sync] def modify(change:DataChange, tx:Transaction):Unit 
-  private[sync] def get(id:InstanceId, tx:Transaction):Option[Pickled]
-  private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit  
-  private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit    
-  private[sync] def commit(tx:Transaction):Boolean 
-  private[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {}
-
-
+  /** name to object mapping of for well known objects in the partition.  The published
+   * roots are persistent, so clients of the partition can use well known names to get
+   * started with the partition data, w/o having to resort to preserving object ids, 
+   * or querying, etc.
+   * 
+   * Eventually, objects in the partition that are not referenced directly or 
+   * indirectly by one of these roots may be garbage collected by the partition.  
+   * (garbage collection is NYI)
+   */  
+  def publish(publicName:String, root:Syncable) {
+    published.create(publicName, root)
+  }
+  
+  /** map a name to a function that produces an object for that name dynamically. */  
+  def publish(publicName:String, generator: ()=>Option[Syncable]) {
+    published.createGenerated(publicName, generator)
+  }
+    
+  /** destroy this partition and its contents */
+  def deletePartition() {
+    Partitions.remove(id.id)
+    deleteContents()
+  }
+  
   /** verify that we're currently in a valid transaction*/
   private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
     currentTransaction value match {
@@ -169,58 +151,41 @@ abstract class Partition(val partitionId:String) extends LogHelper {
         }
     }
   }
-  
-  /** name to object mapping of for well known objects in the partition.  The published
-   * roots are persistent, so clients of the partition can use well known names to get
-   * started with the partition data, w/o having to resort to preserving object ids, 
-   * or querying, etc.
-   * 
-   * Eventually, objects in the partition that are not referenced directly or 
-   * indirectly by one of these roots may be garbage collected by the partition.  
-   * (This is NYI)
-   */
-  
-  def publish(publicName:String, root:Syncable) {
-    published.create(publicName, root)
+    
+    /** notify watchers of changes */
+  private def notifyChanges(tx:Transaction) {
+    if (hasStorage) {
+      tx.changes foreach {change => change match {
+        case c:CreatedChange => // can't watch created change
+        case _ =>
+          val targetId = change.target.instanceId
+          for {
+            pickled <- get(targetId, tx) orElse {
+              Console print "foo"
+              err("notify can't find target object for change: %s", change)
+              Thread.sleep(10000)
+              None
+            }
+            watches = pickled.watches
+          } {
+            val invalid = watches filter(System.currentTimeMillis > _.expiration)
+            val validWatches = watches -- invalid
+            invalid foreach (unwatch(targetId, _))
+            // call matching functions
+            validWatches filter(_.clientId != change.source) foreach { watch =>
+              notify(watch, change, tx)
+            } 
+          }
+        }
+      }      
+    }
   }
   
-  def publish(publicName:String, generator: ()=>Option[Syncable]) {
-    published.createGenerated(publicName, generator)
-  }
-  
-  /** debug utility, prints contents to log */
-  def debugPrint() {}
-  
-  /** destroy this partition and its contents */
-  def deletePartition() {
-    Partitions.remove(id.id)
-    deleteContents()
-  }
-  
-  /** erase all of the data in the partition, including the PublishedRoots */
-  def deleteContents():Unit
-  
-  /** true if this partition actually stores objects (false for .transient) */
-  def hasStorage = true
-  
+
+    
   Partitions.add(this)  // tell the manager about us
 }
 
-/** this is a trick to allow a simulated client to refer to a Partition instance 
-  * with the name ".transient".  LATER we should change the SyncableIdentity to use a string
-  * for the partition id, rather than the partition reference (...SyncableIdentity is gone now.)
-  */
-object TransientPartition extends FakePartition(".transient")
-
-class FakePartition(partitionId:String) extends Partition(partitionId) {
-  def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = None
-  def modify(change:DataChange, tx:Transaction):Unit  = {}
-  def commit(tx:Transaction) = true
-  private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
-  private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
-  override def hasStorage = false
-  def deleteContents() {}
-}
 
 import collection.mutable.HashMap
 
