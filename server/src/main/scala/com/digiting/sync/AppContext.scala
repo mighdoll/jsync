@@ -108,8 +108,6 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       }
     }
   }
-  
-
 
   def commit() {
     val changes = instanceCache.drainChanges()
@@ -138,7 +136,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  /** Run the provided function in the context of this applicationm and commit the results */
+  /** Run the provided function in the context of this application and commit the results */
   def withApp[T](fn: =>T):T = {
     App.current.withValue(Some(this)) {
       Observers.currentMutator.withValue(appName) {

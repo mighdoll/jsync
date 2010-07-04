@@ -28,8 +28,8 @@ import com.digiting.util._
  * CONSIDER replace with synchronized{} blocks - it should be simpler (see scala synchronized map, scala collections jcl)
  */
 object ActiveConnections extends Actor {
-  case class Get(connectionId:String)	// request message to get an existing connection
-  case class Create()					// request message to create a new connection
+  private case class Get(connectionId:String)	// request message to get an existing connection
+  private case class Create()					// request message to create a new connection
   var createdCount = 0;
   val log = Logger("ActiveConnections")
   

@@ -134,7 +134,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
     result.asInstanceOf[Seq[ChangeDescription]]
   }
 
-  case class TakePending()
+  private case class TakePending()
   
   def act = {	
     loop {

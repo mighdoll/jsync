@@ -36,7 +36,6 @@ object Applications extends LogHelper {
              syncPath.mkString("/") +  "  message empty:" + message.isEmpty + ": " + messageBody)
           if (!message.isEmpty)     
             app receiveMessage(message)
-          app
           false // continue delivering messages in this message set
         case Left(err) => 
           foundError = Some(err)
