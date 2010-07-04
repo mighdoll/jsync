@@ -20,7 +20,7 @@ import com.digiting.util.TryCast.tryCast
 /** An AppService publishes a message queue that the client into which the client can drop
  * syncable objects.  Subclasses of AppService are responsible for handling the received objects
  */
-class AppService3[T <: Syncable](val serviceName:String, app:AppContext, debugId:String, messageClass:Class[T],
+class AppService[T <: Syncable](val serviceName:String, app:AppContext, debugId:String, messageClass:Class[T],
                                  val queue:SyncableSeq[T], handler:(T)=>Unit) extends LogHelper {
   val log = Logger("AppService")
   

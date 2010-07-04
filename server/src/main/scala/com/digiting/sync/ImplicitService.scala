@@ -29,7 +29,7 @@ trait ImplicitServices extends AppContext {
   import com.digiting.sync.syncable.ServiceCall
   
   def createImplicitService[T <: Syncable](serviceName:String, messageClass:Class[T], 
-                                           fn:(T)=>Unit):AppService3[T] = {
+                                           fn:(T)=>Unit):AppService[T] = {
     withApp {
       log1.trace("createImplicitService: %s(%s)", serviceName, messageClass.getName)
       val ids = new SyncableId(implicitPartition.id, InstanceId(serviceName))  // SOON shouldn't this be a published object rather than abusing the id?
@@ -37,7 +37,7 @@ trait ImplicitServices extends AppContext {
         new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
       }
       
-      new AppService3(serviceName, this, connection.connectionId, messageClass, messageQueue, fn)
+      new AppService(serviceName, this, connection.connectionId, messageClass, messageQueue, fn)
     }
   }
   
@@ -86,6 +86,7 @@ trait ImplicitServices extends AppContext {
       }
   }
   
+  /** debug printout */
   private def methodSignature(method:java.lang.reflect.Method):String = {
     String.format("%s(%s):%s", method.getName, 
       method.getParameterTypes map {_.getName} mkString(","), 
