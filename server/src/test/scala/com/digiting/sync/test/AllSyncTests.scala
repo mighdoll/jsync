@@ -32,7 +32,8 @@ class AllSyncTests extends SuperSuite (
     new InstanceVersionTest,
     new PickleTest,
     new RamPartitionTest,
-    new RamWatchesTest
+    new RamWatchesTest,
+    new AppWatchTest
     )
   ) 
 

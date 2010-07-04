@@ -15,31 +15,9 @@
 package com.digiting.sync
 
 import scala.util.DynamicVariable
-import collection.mutable
 import com.digiting.util._
-import RandomIds.randomUriString
-
-object Partition extends LogHelper {
-  lazy val log = logger("Partition(Obj)")
-  class Transaction { // LATER move this so each partition subclass can implement their own
-    val id = randomUriString(8)
-    val changes = new mutable.ListBuffer[DataChange]
-  }
-  
-  class InvalidTransaction(message:String) extends Exception(message) {
-    def this() = this("")
-  }
-}
-
-case class PartitionId(val id:String) {
-  override def toString:String = id
-}
-
-case class InstanceId(val id:String) {
-  override def toString:String = id
-}
-
 import Partition._
+
 /** A storage segment of syncable objects 
  * 
  * Put() and update() operations are asynchronous and eventually consistent.  
@@ -115,8 +93,9 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
    * indirectly by one of these roots may be garbage collected by the partition.  
    * (garbage collection is NYI)
    */  
-  def publish(publicName:String, root:Syncable) {
+  def publish[T<:Syncable](publicName:String, root:T):T = {
     published.create(publicName, root)
+    root
   }
   
   /** map a name to a function that produces an object for that name dynamically. */  
@@ -174,27 +153,4 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
   
     
   Partitions.add(this)  // tell the manager about us
-}
-
-
-import collection.mutable.HashMap
-
-// SOON change get(), remove() to use PartitionId
-object Partitions extends LogHelper {
-  val log = logger("Partitions")
-  val localPartitions = new HashMap[String, Partition]    // Synchronize?
-  def get(name:String):Option[Partition] = localPartitions get name
-  def add(partition:Partition) = localPartitions += (partition.id.id -> partition)
-  
-  def getMust(name:String):Partition = {
-    get(name) getOrElse {
-      abort("user Partition %s not found", name)
-    }
-  }
-  
-  def remove(name:String) = {
-    localPartitions -= name
-  }
-    
-  // LATER, create strategy for handling remote partitions
 }

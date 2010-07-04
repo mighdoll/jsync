@@ -151,7 +151,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  /** Run the provided function in the context of this applicationm, don't commit (used for testing) */
+  /** Run the provided function in the context of this application, don't commit (used for testing) */
   def withAppNoCommit[T](fn: =>T):T = {
     App.current.withValue(Some(this)) {
       Observers.currentMutator.withValue(appName) {
@@ -162,7 +162,8 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       }
     }
   }
-    
+  
+  /** utility for fetching an object and running a function with the fetched object */
   private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
     get(id) map fn match {
       case Some(result) => result
@@ -172,8 +173,6 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }      
   }
    
-
-  
 
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
