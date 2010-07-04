@@ -93,8 +93,13 @@ object Configuration extends LogHelper {
     } 
   }
   
+  /** Get a configured value as an int */
+  def getInt(key:String):Option[Int] = {
+    getString("ProtocolFixture-timeout") map {_.toInt}
+  }
+  
   /** Get a configured value as an int, or a default value of config is missing*/
-  def defaultedInt(key:String, default:Int):Int = {
+  def getInt(key:String, default:Int):Int = {
 		getString("ProtocolFixture-timeout") match {
       case Some(str) => str.toInt
       case _ => default

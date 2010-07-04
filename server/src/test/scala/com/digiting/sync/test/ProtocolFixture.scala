@@ -144,7 +144,7 @@ object ProtocolFixture extends LogHelper {
   }
   
   private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T] = {
-    val timeout = Configuration.defaultedInt("ProtocolFixture-timeout", 200) 
+    val timeout = Configuration.getInt("ProtocolFixture-timeout", 200) 
 
     for {
       responseAny <- connection.responses !?(timeout, AwaitResponse(37)) orElse

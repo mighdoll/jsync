@@ -49,7 +49,7 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
 	}
 
   val maxWaiters = 1
-  val requestTimeout = Configuration.defaultedInt("ResponseManager-timeout", 15000) 
+  val requestTimeout = Configuration.getInt("ResponseManager-timeout", 15000) 
   val waiters = new Queue[AwaitingResponse]()  
   val log = Logger("ResponseManager")
   var waitingForSendBuffer = false
