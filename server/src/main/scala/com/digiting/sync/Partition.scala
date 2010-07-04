@@ -160,12 +160,8 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
         case _ =>
           val targetId = change.target.instanceId
           for {
-            pickled <- get(targetId, tx) orElse {
-              Console print "foo"
+            pickled <- get(targetId, tx) orElse 
               err("notify can't find target object for change: %s", change)
-              Thread.sleep(10000)
-              None
-            }
             watches = pickled.watches
           } {
             val invalid = watches filter(System.currentTimeMillis > _.expiration)
@@ -181,7 +177,6 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
     }
   }
   
-
     
   Partitions.add(this)  // tell the manager about us
 }
