@@ -19,7 +19,6 @@ import com.digiting.util._
 import com.digiting.sync.aspects.Observable
 import Observers._
 import SyncableAccessor.observableReferences
-import SyncManager.withGetId
 
 object DeepWatchDebug {
   var nextId = -1
@@ -39,7 +38,7 @@ object DeepWatchDebug {
  * connected set.  Changes are reported to client watchers and used internally to update 
  * reference counts.  
  */
-class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeFn, val watchClass:Any) extends LogHelper {
+class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val watchFn:WatchChangeFn, val watchClass:Any) extends LogHelper {
   val log = Logger("DeepWatch")
   private val connectedSet = mutable.Map[Syncable, Int]()  // tracked syncables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()
@@ -88,11 +87,11 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
       case m:MoveChange =>
       case put:PutMapChange =>
         put.oldValue map {
-          withGetId(_) {removedRef}
+          app.withGetId(_) {removedRef}
         }
-        withGetId(put.newValue) {addedRef}
+        app.withGetId(put.newValue) {addedRef}
       case remove:RemoveMapChange =>
-        withGetId(remove.oldValue) {removedRef}
+        app.withGetId(remove.oldValue) {removedRef}
       case deleted:DeletedChange =>
         NYI()
       case created:CreatedChange =>        
@@ -110,14 +109,14 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
 	// update ref counts for old value
     propChange.oldValue.value match {
       case old:SyncableId => 
-        withGetId(old) {removedRef}
+        app.withGetId(old) {removedRef}
       case _ =>
     }
 
 	// update ref count for new value
     propChange.newValue.value match {
       case newBranch:SyncableId => 
-        withGetId(newBranch) {addedRef}
+        app.withGetId(newBranch) {addedRef}
       case _ =>
     }
   }
@@ -134,7 +133,7 @@ class DeepWatch(val root:Syncable, val fn:DataChangeFn, val watchFn:WatchChangeF
   
   /** update references in response to clearing collection membership */
   private def handleClearChange(clearChange:ClearChange) {
-    clearChange.members foreach {withGetId(_){removedRef}}
+    clearChange.members foreach {app.withGetId(_){removedRef}}
   }
   
   /** decrement reference counter for this object and every Observable it 

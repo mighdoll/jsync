@@ -36,7 +36,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     
-    log.trace("get %s, found: %s", instanceId, result getOrElse "")
+    log.trace("get #%s %s, found: %s", partId, instanceId, result getOrElse "")
     result
   }
 

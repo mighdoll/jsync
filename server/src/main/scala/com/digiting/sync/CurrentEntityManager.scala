@@ -48,8 +48,6 @@ object UserEntityManagerFactory {
 /** when mixed into an AppContext, this trait instantiates a JPA entity manager for 
  * each incoming transaction */
 trait HasUserEntityManager extends AppContext {
-  private val log = Logger("HasUserEntityManager")  
-  
   /** provide a JPA entity manager for the function running in this application's context.
     * close the entity manager when the function completes. */
   override def withApp[T](fn: =>T):T = {

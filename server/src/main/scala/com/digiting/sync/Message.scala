@@ -22,7 +22,6 @@ import JsonUtil._
 import JsonObject._
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import SyncManager.withGetId
 
 
 /** A JsonSync protocol message in a form that's easy to convert to/from json strings */
@@ -91,7 +90,7 @@ object Message extends LogHelper {
         case propChange:PropertyChange => 
           syncs + propertyChange(propChange)
         case watch:BeginWatch=> 
-          withGetId(watch.newValue) { target =>
+          App.app.withGetId(watch.newValue) { target =>
             syncs + toJsonMap(target)
           }
         case base:BaseMembership =>

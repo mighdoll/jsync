@@ -36,7 +36,7 @@ class SyncableTest extends Spec with ShouldMatchers with SyncFixture {
             new SyncableSet
           }
         obj.id.instanceId.id should be ("foo")
-        SyncManager.get(SyncManager.currentPartition.value.id.id, "foo") should be (Some(obj))
+        App.app.get(SyncManager.currentPartition.value.id.id, "foo") should be (Some(obj))
       } 
     }        
   }

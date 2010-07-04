@@ -80,7 +80,7 @@ class Pickled(val reference:SyncableReference, val version:String,
         classAccessor.set(syncable, propName, unpickleValue(value.value))
       }
     }
-    SyncManager.instanceCache put syncable
+    App.app.instanceCache put syncable  // CONSIDER should this be done here?
     
     syncable
   }
@@ -98,7 +98,7 @@ class Pickled(val reference:SyncableReference, val version:String,
   private def unpickleValue(value:Any):AnyRef = {
     value match {
       case ref:SyncableReference =>
-        SyncManager.get(ref) getOrElse {
+        App.app.get(ref) getOrElse {
           err("unpickleValue can't find referenced object: ", ref)
           throw new ImplementationError
         }          

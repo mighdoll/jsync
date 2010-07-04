@@ -20,7 +20,7 @@ import com.digiting.util.TryCast.tryCast
 /** An AppService publishes a message queue that the client into which the client can drop
  * syncable objects.  Subclasses of AppService are responsible for handling the received objects
  */
-class AppService3[T <: Syncable](val serviceName:String, debugId:String, messageClass:Class[T],
+class AppService3[T <: Syncable](val serviceName:String, app:AppContext, debugId:String, messageClass:Class[T],
                                  val queue:SyncableSeq[T], handler:(T)=>Unit) extends LogHelper {
   val log = Logger("AppService")
   
@@ -34,7 +34,7 @@ class AppService3[T <: Syncable](val serviceName:String, debugId:String, message
         err("unexpected change %s in queue", change.toString)
       (queueId, messageId, at, versions) <- InsertAtChange.unapply(insertAt) orElse
         err("can't unapply InsertAtChange !?", insertAt.toString)
-      messageObj <- SyncManager.get(messageId) orElse 
+      messageObj <- app.get(messageId) orElse 
         err("can't find message target: %s", messageId)
       message <- tryCast(messageObj, messageClass) orElse 
         err("unexpected type of message received: %s", messageObj.toString)        

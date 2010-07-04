@@ -53,8 +53,8 @@ object ProcessMessage extends LogHelper {
       	    // first release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
             Observers.releasePaused {_.isInstanceOf[DeepWatch]}
             
-            // second release notifications to the SyncManager watch pool (mutator doesn't matter for this)
-            Observers.releasePaused {_ == SyncManager.instanceCache}
+            // second release notifications to the app watch pool (mutator doesn't matter for this)
+            Observers.releasePaused {_ == app.instanceCache}
           }          
         }          
         ; // third, release notifications to the app.  Responses are processed in app context 
@@ -69,7 +69,7 @@ object ProcessMessage extends LogHelper {
     for {
       patch <- references
       access = SyncManager.propertyAccessor(patch.referer)
-      target <- SyncManager.get(patch.targetId)
+      target <- App.app.get(patch.targetId)
     } {
       log.trace("patching reference: %s.%s = %s", patch.referer, patch.field, target)
       access.set(patch.referer, patch.field, target)
@@ -94,7 +94,7 @@ object ProcessMessage extends LogHelper {
       target match {
         case map:Map[_,_] => 
           findLocalSyncable(map.asInstanceOf[JsonMap]) orElse 
-            err("can't find local instance for: %s", map.toString) 
+            abort("can't find local instance for: %s", map.toString) 
         case _ => None
       }
     }
@@ -214,7 +214,7 @@ object ProcessMessage extends LogHelper {
           case Some(kind) =>
             Some(SyncManager.newSyncable(kind, ids))          
           case None =>
-            SyncManager.get(ids)
+            App.app.get(ids)
         }    
       case _ => None
     }
@@ -224,7 +224,7 @@ object ProcessMessage extends LogHelper {
   private def findLocalSyncable(json:JsonMap):Option[Syncable] = {
     for {
       ids <- JsonSyncableId.unapply(json) 
-      syncable <- SyncManager.get(ids)
+      syncable <- App.app.get(ids)
     } yield {
         verifyKindsMatch(syncable, json)
         syncable 

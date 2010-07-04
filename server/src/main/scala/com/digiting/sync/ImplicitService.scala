@@ -30,13 +30,15 @@ trait ImplicitServices extends AppContext {
   
   def createImplicitService[T <: Syncable](serviceName:String, messageClass:Class[T], 
                                            fn:(T)=>Unit):AppService3[T] = {
-    log1.trace("createImplicitService: %s(%s)", serviceName, messageClass.getName)
-    val ids = new SyncableId(implicitPartition.id, InstanceId(serviceName))  // SOON shouldn't this be a published object rather than abusing the id?
-    val messageQueue = SyncManager.withNextNewId(ids) {
-      new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
+    withApp {
+      log1.trace("createImplicitService: %s(%s)", serviceName, messageClass.getName)
+      val ids = new SyncableId(implicitPartition.id, InstanceId(serviceName))  // SOON shouldn't this be a published object rather than abusing the id?
+      val messageQueue = SyncManager.withNextNewId(ids) {
+        new SyncableSeq[T]  // LATER make this a server-dropbox, client/server don't need to save messages after they're sent
+      }
+      
+      new AppService3(serviceName, this, connection.connectionId, messageClass, messageQueue, fn)
     }
-    
-    new AppService3(serviceName, connection.connectionId, messageClass, messageQueue, fn)
   }
   
   def createImplicitServices(services:AnyRef) {

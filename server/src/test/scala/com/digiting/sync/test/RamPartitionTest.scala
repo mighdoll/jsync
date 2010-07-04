@@ -27,7 +27,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
     val s = new SyncableSeq[TestNameObj]
     s += new TestNameObj("Gavin")
     s += new TestNameObj("Quinn")
-    SyncManager.instanceCache.commit()
+    App.app.commit()
     s
   }
   
@@ -35,7 +35,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
     val map = new SyncableMap[String,TestNameObj]
     map("e") = new TestNameObj("Elle")
     map("j") = new TestNameObj("Janet")
-    SyncManager.instanceCache.commit()
+    App.app.commit()
     map
   }
                                   
@@ -43,9 +43,9 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
     it("should store and modify a simple object") {
       withTestFixture {
         val s = new TestNameObj("Oleg")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         s.name = "Huck"
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:TestNameObj) =>
@@ -74,7 +74,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
       withTestFixture {
         val s = commitTestSeq()
         s.move(0, 1)
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableSeq[_]) =>
@@ -91,7 +91,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
       withTestFixture {
         val s = commitTestSeq()
         s.remove(0)
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableSeq[_]) =>
@@ -109,7 +109,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         val s = new SyncableSet[TestNameObj]
         s += new TestNameObj("Elle")
         s += new TestNameObj("Janet")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableSet[_]) =>
@@ -134,9 +134,9 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
       withTestFixture {
         val s = new SyncableSet[TestNameObj]
         val beth = new TestNameObj("Beth")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         s -= beth
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableSet[_]) =>
@@ -151,7 +151,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
     it("should store and retrieve a map") {
       withTestFixture {
         val s = commitTestMap()
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableMap[_,_]) =>
@@ -167,9 +167,9 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
     it("should remove an element from a map") {
       withTestFixture {
         val s = commitTestMap()
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         s -= ("e")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         cleanup() // reset the local instance pool
         testPartition.get(s.fullId.instanceId) match {
           case Some(found:SyncableMap[_,_]) =>

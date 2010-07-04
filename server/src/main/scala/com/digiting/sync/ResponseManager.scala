@@ -20,6 +20,7 @@ import net.lag.logging.Logger
 import scala.collection.mutable.Queue
 import scala.actors.OutputChannel  
 import TakeSendBuffer._
+import com.digiting.util.Configuration
 
 object ResponseManager {
   /** sends a string containing the response to the sender */
@@ -48,7 +49,7 @@ class ResponseManager(takeSendBuffer:TakeSendBuffer) extends Actor {
 	}
 
   val maxWaiters = 1
-  val requestTimeout = 15000 
+  val requestTimeout = Configuration.defaultedInt("ResponseManager-timeout", 15000) 
   val waiters = new Queue[AwaitingResponse]()  
   val log = Logger("ResponseManager")
   var waitingForSendBuffer = false

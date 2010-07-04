@@ -73,17 +73,8 @@ class WatchedPool(name:String) {
       log.ifTrace("  " + local)
     }
   }
-      
-  /** commit current set of changes */
-  def commit() = {
-    val changesCopy = drainChanges()
-    log.ifTrace{changesCopy map {"commit()ing: " + _.toString} mkString("\n")}
-    for (watcher <- commitWatchers) {
-      watcher(changesCopy)
-    }
-  }
 
-  private def drainChanges():Seq[ChangeDescription] = {
+  def drainChanges():Seq[ChangeDescription] = {
     val drained = new ListBuffer[ChangeDescription]()
     synchronized {
       var taken = changes.poll
@@ -92,6 +83,7 @@ class WatchedPool(name:String) {
         taken = changes.poll
       }
     }
+    log.ifTrace{drained map {"commit()ing: " + _.toString} mkString("\n")}
     drained
   }
     

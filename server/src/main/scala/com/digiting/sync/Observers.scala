@@ -80,21 +80,25 @@ object Observers extends LogHelper {
     
   /** notify observers of the change */
   def notify(change:DataChange):Unit = {
-    SyncManager.get(change.target) orElse {
-      err("can't find target of change: %s", change.toString) 
-    } foreach { target =>      
-      holdNotify.value match {
-        case Some(paused) => 
-          watchers.foreachValue(target) {watch =>  
-            val notify = Notification(watch, change)
-            log.trace("notify() queueing: %s", notify)
-            paused += notify
-          }
-        case _ =>
-    	    watchers.foreachValue(target) {watch =>  
-            log.trace("notify() to: %s %s", watch.watchClass, change)
-    	      watch.changed(change)
-          }        
+    for {
+      app <- App.current.value orElse warn("notify() dropped can't find current app for %s", change)
+    } {
+      app get(change.target) orElse {
+        err("can't find target of change: %s", change.toString) 
+      } foreach { target =>      
+        holdNotify.value match {
+          case Some(paused) => 
+            watchers.foreachValue(target) {watch =>  
+              val notify = Notification(watch, change)
+              log.trace("notify() queueing: %s", notify)
+              paused += notify
+            }
+          case _ =>
+      	    watchers.foreachValue(target) {watch =>  
+              log.trace("notify() to: %s %s", watch.watchClass, change)
+      	      watch.changed(change)
+            }        
+        }
       }
     }
   }
@@ -124,7 +128,7 @@ object Observers extends LogHelper {
    * @param watchClass  names this watch, which enables removing the watch by name
    */
   def watchDeep(root:Syncable, fn:DataChangeFn, watchFn:WatchChangeFn, watchClass:Any):DeepWatch = {
-    val deepWatch = new DeepWatch(root, fn, watchFn, watchClass)
+    val deepWatch = new DeepWatch(root, App.app, fn, watchFn, watchClass)
     deepWatches + (root, deepWatch)
     deepWatch
   }

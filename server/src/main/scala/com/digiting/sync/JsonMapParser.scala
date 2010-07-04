@@ -99,7 +99,7 @@ object JsonMapParser {
           elemMap <- toJsonMap(elem)
           ids <- JsonSyncableId.unapply(elemMap) orElse
             err("ids not found")          
-          syncable <- SyncManager.get(ids) orElse
+          syncable <- App.app.get(ids) orElse
             err("syncable not found")          
         } yield {
           log.trace("insert %s at: %s", syncable, atInt)

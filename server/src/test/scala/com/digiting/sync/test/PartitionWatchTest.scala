@@ -11,7 +11,7 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
     it("should observe a change via watch()") {
       withTestFixture {
         val nameObj = new TestNameObj("jerome")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         var found = false
         import testPartition._
         withTransaction {
@@ -29,16 +29,16 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
             }, 100000)
           }
         }
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         nameObj.name = "murph"
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         found should be (true)
       }
     }
     it("should expire a change") {
       withTestFixture {
         val nameObj = new TestNameObj("jerome")
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         import testPartition._
         var found = false
         withTransaction {
@@ -48,14 +48,14 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
             1)
           }
         }
-        SyncManager.instanceCache.commit()
+        App.app.commit()
         withTempTx {tx =>
           val pickled = get(nameObj.id.instanceId, tx) getOrElse fail 
           pickled.watches.size should be (1)
         }
         Thread.sleep(2)
         nameObj.name = "murph"
-        SyncManager.instanceCache.commit() 
+        App.app.commit()
         
         // expired watch should be cleaned out
         withTempTx {tx =>
@@ -63,7 +63,7 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
           pickled.watches.size should be (0)
         }
         found should be (false)
-        SyncManager.instanceCache.commit() 
+        App.app.commit()
       }
     }
   }

@@ -36,8 +36,6 @@ object SyncManager extends LogHelper {
   
   val log = Logger("SyncManager")
   
-  // global instance cache.  SOON this should be per-connection
-  val instanceCache = new WatchedPool("SyncManager")
   
   // prebuilt reflection tools, one for each $kind of Syncable
   val metaAccessors = mutable.Map.empty[Kind, ClassAccessor]
@@ -65,45 +63,7 @@ object SyncManager extends LogHelper {
   
   reset()
 
-  // watch for changes, and commit them to the partitions.  This should be per-connection
-  instanceCache.watchCommit(commitToPartitions)
-
-  /** write pending changes to persistent storage */
-  private def commitToPartitions(changes:Seq[ChangeDescription]) {
-    val dataChanges = 
-      for {
-        change <- changes
-        dataChange <- matchDataChange(change)
-        partition <- Partitions.get(change.target.partitionId.id) orElse 
-          err("partition not found for change: %s", change.toString)
-      } yield {
-        (dataChange, partition)
-      }
-    
-    // sort changes by partition
-    val partitions = new MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
-    dataChanges foreach { case (dataChange, partition) => 
-      partitions append(partition, dataChange) 
-    }
-
   
-    // transaction boundary within each partition
-    partitions foreach { case (partition, dataChanges) =>
-      partition.withTransaction {
-        dataChanges foreach {change =>
-          log.trace("commitToPartitions modify: %s", change)
-          partition.modify(change)
-        }
-      }
-    }
-  }
-  
-  private def matchDataChange(change:ChangeDescription):Option[DataChange] = {
-    change match {
-      case dataChange:DataChange => Some(dataChange)
-      case _ => None
-    }
-  }
   
   /** For testing, reset as if we'd just rebooted.  */
   def reset() {
@@ -171,47 +131,6 @@ object SyncManager extends LogHelper {
     }
   }
 
-  
-  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-    * instance cache.  */
-  def get(partitionId:String, syncableId:String):Option[Syncable] = {    
-    instanceCache get(partitionId, syncableId) orElse {
-      val foundOpt = Partitions.get(partitionId) match {
-        case Some(partition) => partition.get(InstanceId(syncableId)) 
-        case _ =>
-          log.error("unexpected partition in Syncables.get: " + partitionId)
-          None        
-      }
-      foundOpt map (instanceCache put _)	
-      foundOpt
-    }   
-  }
-  
-//  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-//    * instance cache.  */
-//  def get(ids:SyncableIdentity):Option[Syncable] = {
-//    instanceCache get(ids.partition.partitionId.id, ids.instanceId) orElse {
-//      ids.partition get InstanceId(ids.instanceId) map {found =>
-//        instanceCache put found
-//        found
-//      }
-//    }
-//  }
-  
-  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-    * instance cache.  */
-  def get(ids:SyncableId):Option[Syncable] = {
-    instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
-      Partitions.get(ids.partitionId.id) orElse {
-        err("no partition found for: %s", ids.toString)
-      } flatMap {partition =>
-        partition get ids.instanceId map {found =>
-          instanceCache put found
-          found
-        }
-      }
-    }
-  }
 
   /** build a syncable with a specified Id */
   private def constructSyncable[T <: Syncable](clazz:Class[T], ids:SyncableId):T = {
@@ -332,24 +251,19 @@ object SyncManager extends LogHelper {
     identity
   }
   
-  private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
-    SyncManager.get(id) map fn match {
-      case Some(result) => result
-      case None =>
-        err("withGetId can't find: " + id) 
-        throw new ImplementationError
-    }      
-  }
-   
 
   /** called when a new instance is created */
   def created(syncable:Syncable) {
-    log.trace("created(): %s", syncable)
+    trace("created(): %s", syncable)
     assert(syncable.partition != null)
     creatingFake.take orElse {
-      instanceCache put syncable
-      if (!quietCreate.value)
-        instanceCache created syncable
+      App.current.value map {app =>
+      	app.instanceCache put syncable
+        if (!quietCreate.value)
+          app.instanceCache created syncable
+      } orElse {
+        warn("created %s, but no current App", syncable)
+      }
       None
     }
   }

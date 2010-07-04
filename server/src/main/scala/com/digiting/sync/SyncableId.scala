@@ -1,5 +1,4 @@
 package com.digiting.sync
-import SyncManager.withGetId
 import collection.immutable
 
 
@@ -32,7 +31,7 @@ class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {
   def toJson = JsonUtil.toJson(toJsonMap)
   def toCompositeIdString = partitionId.id + "/" + instanceId.id
   override def toString = toCompositeIdString
-  def target = SyncManager.get(this)
+  def target = App.app.get(this)
   override def equals(other: Any): Boolean = 
     other match {
       case o:SyncableId => 
@@ -52,7 +51,7 @@ object SyncableReference {
   }
   
   def apply(id:SyncableId) = {
-    withGetId(id) {obj => 
+    App.app.withGetId(id) {obj => 
       new SyncableReference(id, obj.kind)
     }
   }

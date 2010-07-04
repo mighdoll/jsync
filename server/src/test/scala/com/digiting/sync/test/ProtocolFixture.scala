@@ -29,6 +29,7 @@ import SyncManager.withPartition
 import com.digiting.sync.syncable._
 import JsonMapParser.Reference
 import com.digiting.sync.testServer.TestApplication
+import com.digiting.util.Configuration
 
 
 object ProtocolFixture extends LogHelper {
@@ -143,8 +144,8 @@ object ProtocolFixture extends LogHelper {
   }
   
   private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T] = {
-    val timeout = 200
-//    val timeout = 200000  // set larger to use the debugger, so this request doesn't timeout
+    val timeout = Configuration.defaultedInt("ProtocolFixture-timeout", 200) 
+
     for {
       responseAny <- connection.responses !?(timeout, AwaitResponse(37)) orElse
         err("unexpected None from AwaitResponse")

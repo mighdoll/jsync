@@ -154,7 +154,7 @@ object SyncableSerialize extends LogHelper {
   }
   
   private def getOrLoad(ref:Reference):Syncable = {
-    SyncManager.get(ref.partition, ref.id) getOrElse {
+    App.app.get(ref.partition, ref.id) getOrElse {
       log.error("getOrLoad can't find reference: %s", ref)
       null
     }

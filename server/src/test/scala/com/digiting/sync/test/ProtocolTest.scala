@@ -25,13 +25,10 @@ import net.liftweb.json.JsonDSL._
 import com.digiting.sync.testServer.TestApplication
 
 @RunWith(classOf[JUnitRunner])
-class ProtocolTest extends Spec with ShouldMatchers {
+class ProtocolTest extends Spec with ShouldMatchers with SyncFixture {
   describe("JsonSync") {    
 	val log = Logger("ProtocolTest")
-  it("should initialize configuration") {
-    Configuration.initFromVariable("jsyncServerConfig")      
-  }
-  it("should support subscribe on a simple object") {    
+  it("should support subscribe on a simple object") {
     val jsonMsg = """[
       {"#transaction":0},
       {"#start":
@@ -64,10 +61,12 @@ class ProtocolTest extends Spec with ShouldMatchers {
       else
         None
     }
-      
-    val result = ProtocolFixture.sendTestMessage(jsonMsg, checkResponse)
-      
-    result should be (Some(true))
+        
+    withTestFixture {
+      val result = ProtocolFixture.sendTestMessage(jsonMsg, checkResponse)
+        
+      result should be (Some(true))
+      }
     }
   }
 }

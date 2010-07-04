@@ -21,17 +21,22 @@ import com.digiting.sync.RamPartition
 import com.digiting.sync.SyncManager
 import com.digiting.sync.SyncableSeq
 import com.digiting.sync.syncable.SyncString
+import SyncManager.withPartition
+import com.digiting.sync.TempAppContext
 
   
 object Demos {
   def init() {}
   
   val demos = new RamPartition("demos")
-  demos.publish("settings", 
-		SyncManager.withPartition(demos) {
-      blankSettings
-    }
-  )  
+
+  TempAppContext("InitDemo").withApp {
+    demos.publish("settings",       
+  		withPartition(demos) {
+        blankSettings
+      }
+    )
+  }
   
   Applications.register {
     case("demo" :: "sync" :: Nil, message, connection) =>

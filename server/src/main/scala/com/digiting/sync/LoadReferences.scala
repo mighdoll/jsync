@@ -25,7 +25,7 @@ object LoadReferences extends LogHelper {
       refs:Iterable[SyncableReference]):Iterable[Syncable] = {    
     for {
       ref <- refs
-      syncable <- SyncManager.get(ref.id) orElse
+      syncable <- App.app.get(ref.id) orElse
         err("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield 
       syncable
@@ -35,7 +35,7 @@ object LoadReferences extends LogHelper {
       refs:Map[T,SyncableReference]):Iterable[(T,Syncable)] = {
     for {
       (key, ref) <- refs
-      syncable <- SyncManager.get(ref) orElse 
+      syncable <- App.app.get(ref) orElse 
         err("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield {
       (key, syncable)

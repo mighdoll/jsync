@@ -40,8 +40,10 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
   
   private def setup() {
     val ids = new SyncableId(app.implicitPartition.id, InstanceId("subscriptions"))
-    subscriptions = SyncManager.withNextNewId(ids) {
-      new SyncableSet[Syncable]
+    app.withAppNoCommit {
+      subscriptions = SyncManager.withNextNewId(ids) {
+        new SyncableSet[Syncable]
+      }
     }
     
     Observers.watch(subscriptions, serviceName, subscriptionsChanged)
@@ -51,7 +53,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
     change match {
       case PutChange(_, newSubId, versions) => 
         for {
-          newSub <- SyncManager.get(newSubId)
+          newSub <- App.app.get(newSubId)
           sub <- expectSubscription(newSub) 
         } {
           log.trace("#%s subscription found: %s", app.connection.debugId, sub)

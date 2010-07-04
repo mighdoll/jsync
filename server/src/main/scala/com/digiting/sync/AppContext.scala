@@ -13,13 +13,14 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import net.lag.logging.Logger
 import scala.util.DynamicVariable
 import Receiver.ReceiveMessage
 import com.digiting.util._
+import scala.collection.mutable
 
 /** thread local access to the currently running app context */
-object App {
+object App extends LogHelper {
+  val log = logger("App(Obj)")
   val current = new DynamicVariable[Option[AppContext]](None)
   def currentAppName:String = current.value match {
     case Some(app) => app.appName
@@ -33,9 +34,10 @@ object App {
         throw new ImplementationError()
     }  
   }
+  def app:AppContext = current.value getOrElse {abort("App.app() - no current app")}
 }
 
-trait HasTransientPartition {
+trait HasTransientPartition { 
   val transientPartition:Partition
 
   def withTransientPartition[T] (fn: =>T):T = {
@@ -50,37 +52,72 @@ class GenericAppContext(connection:Connection) extends AppContext(connection) {
   val appName = "generic-app-context"
 }
 
+object TempAppContext {
+  def apply(name:String):AppContext = {
+		new {val appName = name} with AppContext(new Connection(name + "-connection"))
+  }
+}
+
 /** App with the ability to connect syncable message queues to annotated service endpoints.  */
 abstract class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
 
 // CONSIDER -- the apps should probably be actors..
 // for now, we assume that each app context has one and only one connection
-abstract class AppContext(val connection:Connection) extends HasTransientPartition {
-  private val log = Logger("AppContext")
-  val appName:String
+abstract class AppContext(val connection:Connection) extends HasTransientPartition with LogHelper {
+  override val log = logger("AppContext")
+  def appName:String
   override val transientPartition = new RamPartition(connection.connectionId)
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
   
-  /** provides a shared*/
+  val instanceCache = new WatchedPool("AppContext")
+  
+  /** allows clients to subscribe to objects deeply (including references) */
   val subscriptionService = new {val app = this} with SubscriptionService
 
-  /** override this the app */
+  /** override this in your app */
   def appVersion = "unspecified"  
+
+    
+  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
+    * instance cache.  */
+  def get(partitionId:String, syncableId:String):Option[Syncable] = {    
+    instanceCache get(partitionId, syncableId) orElse {
+      val foundOpt = Partitions.get(partitionId) match {
+        case Some(partition) => partition.get(InstanceId(syncableId)) 
+        case _ =>
+          log.error("unexpected partition in Syncables.get: " + partitionId)
+          None        
+      }
+      foundOpt map (instanceCache put _)  
+      foundOpt
+    }   
+  }
   
-  // when we commit, send changes to the client too
-  watchCommit(sendPendingChanges)
-      
+  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
+    * instance cache.  */
+  def get(ids:SyncableId):Option[Syncable] = {
+    instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
+      Partitions.get(ids.partitionId.id) orElse {
+        err("no partition found for: %s", ids.toString)
+      } flatMap {partition =>
+        partition get ids.instanceId map {found =>
+          instanceCache put found
+          found
+        }
+      }
+    }
+  }
+  
+
+
   def commit() {
-    SyncManager.instanceCache.commit();
+    val changes = instanceCache.drainChanges()
+    sendPendingChanges()
+    commitToPartitions(changes)
   }
   
       
-  /** LATER move the instance cache out of the manager, and make it per app */
-  def watchCommit(func:(Seq[ChangeDescription])=>Unit) {
-  	SyncManager.instanceCache.watchCommit(func)
-  }
-  
   /** accept a protocol message for this application */
   def receiveMessage(message:Message) {
     connection.receiver ! ReceiveMessage(message)
@@ -90,7 +127,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
    * 
    * (Note that this may be called from an arbitrary thread)
    */
-  private def sendPendingChanges(ignored:Seq[ChangeDescription]) = {
+  private def sendPendingChanges() = {
     val pending = subscriptionService.active.takePending()
     if (!pending.isEmpty) {
       var message = Message.makeMessage(pending)
@@ -101,7 +138,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  /** Run the provided function in the context of this application */
+  /** Run the provided function in the context of this applicationm and commit the results */
   def withApp[T](fn: =>T):T = {
     App.current.withValue(Some(this)) {
       Observers.currentMutator.withValue(appName) {
@@ -114,6 +151,65 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
+  /** Run the provided function in the context of this applicationm, don't commit (used for testing) */
+  def withAppNoCommit[T](fn: =>T):T = {
+    App.current.withValue(Some(this)) {
+      Observers.currentMutator.withValue(appName) {
+        SyncManager.withPartition(transientPartition) { // by default create objects in the transient partition.
+          val result = fn 
+          result
+        }
+      }
+    }
+  }
+    
+  private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
+    get(id) map fn match {
+      case Some(result) => result
+      case None =>
+        err("withGetId can't find: " + id) 
+        throw new ImplementationError
+    }      
+  }
+   
+
+  
+
+  /** write pending changes to persistent storage */
+  private def commitToPartitions(changes:Seq[ChangeDescription]) {
+    val dataChanges = 
+      for {
+        change <- changes
+        dataChange <- matchDataChange(change)
+        partition <- Partitions.get(change.target.partitionId.id) orElse 
+          err("partition not found for change: %s", change.toString)
+      } yield {
+        (dataChange, partition)
+      }
+    
+    // sort changes by partition
+    val partitions = new MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
+    dataChanges foreach { case (dataChange, partition) => 
+      partitions append(partition, dataChange) 
+    }
+
+  
+    // transaction boundary within each partition
+    partitions foreach { case (partition, dataChanges) =>
+      partition.withTransaction {
+        dataChanges foreach {change =>
+          log.trace("commitToPartitions modify: %s", change)
+          partition.modify(change)
+        }
+      }
+    }
+  }
+  private def matchDataChange(change:ChangeDescription):Option[DataChange] = {
+    change match {
+      case dataChange:DataChange => Some(dataChange)
+      case _ => None
+    }
+  }
 
   
 }

@@ -19,7 +19,6 @@ import collection._
 import com.digiting.sync.syncable.Subscription
 import net.lag.logging.Logger
 import com.digiting.util.LogHelper
-import SyncManager.withGetId
 
 /**
  * Maintains a set of observations on the syncable object trees referenced by a given

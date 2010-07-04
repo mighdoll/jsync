@@ -16,7 +16,6 @@ package com.digiting.sync.testServer
 import com.digiting.sync.syncable._
 import com.digiting.util._
 import com.digiting.util.Matching._
-import com.digiting.sync.SyncManager.withGetId
 import com.digiting.sync.syncable.TestPrimitiveProperties
 
 /**
@@ -43,13 +42,14 @@ object TestSubscriptions extends LogHelper {
       primitivesRoundTrip()
     }
   }
+  
   /** client views a single object */
   def oneName() {
     val id = SyncableId(testPartition.id, "#testName1")
     val name = SyncManager.withNextNewId(id) {
       new TestNameObj("emmett")
     }
-    testPartition.publish("oneName", name)        
+    testPartition.publish("oneName", name)
   }
   
   /** client views a single set */
@@ -59,7 +59,7 @@ object TestSubscriptions extends LogHelper {
     testPartition.publish("oneSet", set)
   }
   
-  /** client modifis a simple object */
+  /** client modifies a simple object */
   def modifyOneName() {
     testPartition.publish("modifyOneName", new TestNameObj)
   }
@@ -94,7 +94,7 @@ object TestSubscriptions extends LogHelper {
     def duplicate(set:SyncableSet[Syncable], change:DataChange) {
       partialMatch(change) {
         case put:PutChange =>
-          withGetId(put.newVal) {newName =>
+          App.app.withGetId(put.newVal) {newName =>
             newName match {
               case clientName:TestNameObj =>
                 set += new TestNameObj("server-" + clientName.name)
@@ -260,6 +260,5 @@ object TestSubscriptions extends LogHelper {
         abort("unexptected partition type: ", x)
     }
   }
-
   
 }

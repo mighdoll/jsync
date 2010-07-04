@@ -23,7 +23,7 @@ object TestApplication {
   
   init()
   
-  /** initialize tests.  Idempotent - call early and often.  */
+  /** initialize tests.  Idempotent - safe to call early and often.  */
   def init() {
     if (!registered) {
       Applications.register {
@@ -32,7 +32,9 @@ object TestApplication {
           tests foreach { app.createImplicitServices(_) } // LATER shouldn't this be automatically called by AppContext?  Lee
           app
       }
-      TestSubscriptions.init()
+      TempAppContext("InitTests").withApp {
+        TestSubscriptions.init()
+      }
       registered = true
     }
   }
