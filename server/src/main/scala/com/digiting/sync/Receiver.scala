@@ -57,11 +57,11 @@ class Receiver(connection:Connection) extends Actor {
   private def receiveMessage(message:Message) = {
     log.trace("#%s  receiveMessage: %s", connection.debugId, message.toJson)
     receivedMessages += message
-    processReceived
+    processReceived()
   }
   
   /** see if we have the next protocol message  */
-  private def processReceived:Unit = {
+  private def processReceived():Unit = {
     // get any ready messages
     val msgOpt = receivedMessages find {message => message.xactNumber == receivedXact + 1 }    
     msgOpt match { 

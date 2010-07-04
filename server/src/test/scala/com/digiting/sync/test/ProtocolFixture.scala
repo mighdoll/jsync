@@ -142,9 +142,11 @@ object ProtocolFixture extends LogHelper {
     Partitions.get(partitionName) getOrElse new RamPartition(partitionName)
   }
   
-  private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T]= {
+  private def checkResponse[T](connection:Connection, verifyFn: (String)=>Option[T]):Option[T] = {
+    val timeout = 200
+//    val timeout = 200000  // set larger to use the debugger, so this request doesn't timeout
     for {
-      responseAny <- connection.responses !?(200, AwaitResponse(37)) orElse
+      responseAny <- connection.responses !?(timeout, AwaitResponse(37)) orElse
         err("unexpected None from AwaitResponse")
       response <- matchString(responseAny)
       a = log.trace("gotResponse: %s", response)      

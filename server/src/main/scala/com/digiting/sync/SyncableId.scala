@@ -33,6 +33,15 @@ class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {
   def toCompositeIdString = partitionId.id + "/" + instanceId.id
   override def toString = toCompositeIdString
   def target = SyncManager.get(this)
+  override def equals(other: Any): Boolean = 
+    other match {
+      case o:SyncableId => 
+        (o canEqual this) && 
+          (partitionId == o.partitionId) && (instanceId == o.instanceId) 
+      case _ => false
+  }
+  def canEqual(other:Any):Boolean = other.isInstanceOf[SyncableId]
+  override def hashCode:Int = 41 * (41+partitionId.hashCode) + instanceId.hashCode
 }
 
 /** a persistent reference to a syncable */

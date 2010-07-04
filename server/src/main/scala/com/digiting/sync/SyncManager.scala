@@ -91,7 +91,7 @@ object SyncManager extends LogHelper {
     partitions foreach { case (partition, dataChanges) =>
       partition.withTransaction {
         dataChanges foreach {change =>
-          log.trace("commitTo updating: %s", change)
+          log.trace("commitToPartitions modify: %s", change)
           partition.modify(change)
         }
       }

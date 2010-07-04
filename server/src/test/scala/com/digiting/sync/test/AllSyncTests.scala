@@ -20,8 +20,8 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class AllSyncTests extends SuperSuite (
   List(
-    new ObservationTest, 
     new ConfigurationTest,
+    new ObservationTest,
     new SyncableTest,
     new SyncableAccessorTest, 
     new MultiMapTest,
@@ -29,9 +29,10 @@ class AllSyncTests extends SuperSuite (
     new MigrationTest,
     new ProtocolTest,
     new ProtocolReferenceTest,       
-    new PickleTest,
     new InstanceVersionTest,
-    new RamPartitionTest
+    new PickleTest,
+    new RamPartitionTest,
+    new RamWatchesTest
     )
   ) 
 

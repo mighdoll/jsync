@@ -80,6 +80,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   }
 
   private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
+    trace("put %s ", pickled)
     store += (pickled.reference.instanceId -> pickled)
   }
   

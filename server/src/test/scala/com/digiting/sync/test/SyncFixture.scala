@@ -16,10 +16,19 @@ package com.digiting.sync.test
 import scala.collection.mutable
 import com.digiting.util.Configuration
 
+object SyncFixture {
+  var id:Int = -1
+  def nextId():Int = {
+    id = id + 1
+    id
+  }
+}
+
+import SyncFixture.nextId
 
 trait SyncFixture {  
   val changes = new mutable.ListBuffer[ChangeDescription]()
-  val testPartition = new RamPartition("testPartition2")
+  val testPartition = new RamPartition("testPartition-" + nextId()) with RamWatches
   
   def withTestFixture[T](fn: => T):T = {
     setup()
