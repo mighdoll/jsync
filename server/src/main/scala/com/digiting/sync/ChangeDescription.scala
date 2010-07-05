@@ -29,8 +29,10 @@ case class VersionChange(val old:String, val now:String) {
   override def toString = "old=" + old + " now=" + now
 }
 
+abstract sealed class StorableChange extends ChangeDescription
+
 /** change to a mutable object or collection */
-abstract sealed class DataChange(val versionChange:VersionChange) extends ChangeDescription {
+abstract sealed class DataChange(val versionChange:VersionChange) extends StorableChange {
    override def toString = super.toString + " " + versionChange
 }
 
@@ -106,7 +108,7 @@ case class PutMapChange(val target:SyncableId, key:Serializable, oldValue:Option
 
 //       -----------------  observe changes --------------------  
 
-sealed abstract class ObservingChange extends ChangeDescription
+sealed abstract class ObservingChange extends StorableChange
 case class ObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObservingChange
 case class EndObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObservingChange
 

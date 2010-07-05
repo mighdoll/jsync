@@ -56,7 +56,7 @@ class WatchedPool(name:String) {
   }
 
   /** called when any object in the pool is change */
-  private def changeNoticed(change:ChangeDescription) = {
+  def changeNoticed(change:ChangeDescription) = {
     log.ifTrace {"changeNoticed: " + change}
     changes add change
   }

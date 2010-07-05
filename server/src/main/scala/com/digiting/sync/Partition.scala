@@ -57,8 +57,8 @@ abstract class Partition(val partitionId:String) extends RamWatches
     syncable
   }
   
-    /** create, update or delete an object or a collection */
-  def modify(change:DataChange) { 
+    /** create, update, delete or observer an object or a collection */
+  def modify(change:StorableChange) { 
     inTransaction {tx => 
       trace("#%s update(%s)", partitionId, change)
       modify(change, tx)
@@ -148,8 +148,12 @@ abstract class Partition(val partitionId:String) extends RamWatches
           val validWatches = watches -- invalid
           invalid foreach (unwatch(targetId, _))
           // call matching functions
-          validWatches filter(_.clientId != change.source) foreach { watch =>
-            notify(watch, change, tx)
+          change match { 
+            case dataChange:DataChange =>
+              validWatches filter(_.clientId != dataChange.source) foreach { watch =>
+                notify(watch, dataChange, tx)
+              }
+            case _ =>
           }
         }
       }      

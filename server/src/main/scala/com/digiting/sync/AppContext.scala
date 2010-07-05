@@ -110,8 +110,9 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   }
 
   def commit() {
+    val pending = subscriptionService.active.takePending()
     val changes = instanceCache.drainChanges()
-    sendPendingChanges()
+    sendPendingChanges(pending)
     commitToPartitions(changes)
   }
   
@@ -125,8 +126,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
    * 
    * (Note that this may be called from an arbitrary thread)
    */
-  private def sendPendingChanges() = {
-    val pending = subscriptionService.active.takePending()
+  private def sendPendingChanges(pending:Seq[ChangeDescription]) {
     if (!pending.isEmpty) {
       var message = Message.makeMessage(pending)
       log.trace("sendPendingChanges #%s: queueing Pending Change: %s", connection.debugId, message.toJson)
@@ -174,38 +174,37 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
 
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
-    val dataChanges = 
+    val storableChanges = 
       for {
         change <- changes
-        dataChange <- matchDataChange(change)
+        storableChange <- matchStorableChange(change)
         partition <- Partitions.get(change.target.partitionId.id) orElse 
           err("partition not found for change: %s", change.toString)
       } yield {
-        (dataChange, partition)
+        (storableChange, partition)
       }
     
     // sort changes by partition
-    val partitions = new MultiBuffer[Partition, DataChange, mutable.Buffer[DataChange]] 
-    dataChanges foreach { case (dataChange, partition) => 
-      partitions append(partition, dataChange) 
+    val partitions = new MultiBuffer[Partition, StorableChange, mutable.Buffer[StorableChange]] 
+    storableChanges foreach { case (storableChange, partition) => 
+      partitions append(partition, storableChange) 
     }
 
   
     // transaction boundary within each partition
-    partitions foreach { case (partition, dataChanges) =>
+    partitions foreach { case (partition, changes) =>
       partition.withTransaction {
-        dataChanges foreach {change =>
+        changes foreach {change =>
           log.trace("commitToPartitions modify: %s", change)
           partition.modify(change)
         }
       }
     }
   }
-  private def matchDataChange(change:ChangeDescription):Option[DataChange] = {
-    change match {
-      case dataChange:DataChange => Some(dataChange)
-      case _ => None
-    }
+  
+  import Matching.partialMatch
+  private def matchStorableChange(change:ChangeDescription):Option[StorableChange] = {
+    partialMatch(change) {case storable:StorableChange => storable}
   }
 
   

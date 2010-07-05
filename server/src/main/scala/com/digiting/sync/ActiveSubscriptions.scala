@@ -26,6 +26,8 @@ import com.digiting.util.LogHelper
  * 
  * The changes to subscribed objects are queued.  Clients of this class can retrieve 
  * the queued changes via takePending().
+ * 
+ * CONSIDER should probaby take an AppContext, not a Connection
  */
 class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   val log = Logger("ActiveSubscriptions")
@@ -132,16 +134,23 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
     this ! change
   }
   
-  private val partitionWatchTimeout = 100000
+  /**  Watch for changes to an object made by others in the partition store.
+   * 
+   * TODO move this logic to some other file.  
+   * TODO Add timeout re-registration 
+   */  
   private def queuePartitionWatch(change:ChangeDescription) {
-    val pickledWatchFn = Partitions.getMust(change.target.partitionId.id).
+    val pickledWatchFn = Partitions(change.target).
       pickledWatchFn(partitionChange, partitionWatchTimeout)
     val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
-    queueChange(partitionWatch)
+    App.app.instanceCache.changeNoticed(partitionWatch)
   }
+  private val partitionWatchTimeout = 100000
+  
   
   private def partitionChange(change:DataChange) {
     log.trace("#%s Change received from partition %s", connection.debugId, change)
+    abort("!!")
   }
   
   /** for debugging */

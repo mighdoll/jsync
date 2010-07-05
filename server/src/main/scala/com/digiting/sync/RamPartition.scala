@@ -50,7 +50,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   }
 
   
-  def modify(change:DataChange, tx:Transaction) = synchronized {
+  def modify(change:StorableChange, tx:Transaction) = synchronized {
     val instanceId = change.target.instanceId
     
     change match {
@@ -71,6 +71,10 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
           val pickledCollection = pickled.asInstanceOf[PickledCollection]
           store(instanceId) = pickledCollection.revise(collectionChange)
         }
+      case observe:ObserveChange =>
+      	watch(observe.target.instanceId, observe.watcher, tx)
+      case endObserve:EndObserveChange =>
+        unwatch(endObserve.target.instanceId, endObserve.watcher, tx)        
     }
   }
   

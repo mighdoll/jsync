@@ -17,6 +17,10 @@ object Partitions extends LogHelper {
     }
   }
   
+  def apply(syncableId:SyncableId):Partition = {
+    getMust(syncableId.partitionId.id)
+  }
+  
   def remove(name:String) = {
     localPartitions -= name
   }
@@ -29,7 +33,7 @@ object Partition extends LogHelper {
   lazy val log = logger("Partition(Obj)")
   class Transaction { // LATER move this so each partition subclass can implement their own
     val id = randomUriString(8)
-    val changes = new mutable.ListBuffer[DataChange]
+    val changes = new mutable.ListBuffer[StorableChange]
   }
   
   class InvalidTransaction(message:String) extends Exception(message) {

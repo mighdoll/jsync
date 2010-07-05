@@ -3,7 +3,7 @@ import Partition._
 
 /* Concrete Partition subclasses should implement these functions */
 trait ConcretePartition {
-  private[sync] def modify(change:DataChange, tx:Transaction):Unit 
+  private[sync] def modify(change:StorableChange, tx:Transaction):Unit 
   private[sync] def get(id:InstanceId, tx:Transaction):Option[Pickled]
   private[sync] def commit(tx:Transaction):Boolean 
   
@@ -34,7 +34,7 @@ object TransientPartition extends FakePartition(".transient")
 
 class FakePartition(partitionId:String) extends Partition(partitionId) {
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = None
-  def modify(change:DataChange, tx:Transaction):Unit  = {}
+  def modify(change:StorableChange, tx:Transaction):Unit  = {}
   def commit(tx:Transaction) = true
   private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
   private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction) {}
