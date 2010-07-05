@@ -26,7 +26,8 @@ import Partition._
  * The current implementation does not guarantee durability.  If the server crashes right after
  * put() is called, the data is lost.
  */
-abstract class Partition(val partitionId:String) extends ConcretePartition with LogHelper {  
+abstract class Partition(val partitionId:String) extends RamWatches 
+    with ConcretePartition with LogHelper {  
   protected lazy val log = logger("Partition")
   val id = PartitionId(partitionId)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
@@ -130,7 +131,11 @@ abstract class Partition(val partitionId:String) extends ConcretePartition with 
         }
     }
   }
+  
     
+  /** call the watching client */
+//  protected[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {}
+
     /** notify watchers of changes */
   private def notifyChanges(tx:Transaction) {
     if (hasStorage) {

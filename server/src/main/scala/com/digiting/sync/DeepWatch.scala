@@ -21,7 +21,7 @@ import Observers._
 import SyncableAccessor.observableReferences
 
 object DeepWatchDebug {
-  var nextId = -1
+  var nextId = 99
   def nextDebugId() = {nextId += 1; nextId}
 }
 /** 

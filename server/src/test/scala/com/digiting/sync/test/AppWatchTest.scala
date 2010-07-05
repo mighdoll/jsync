@@ -17,10 +17,12 @@ class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {
       }
       
       val app2 = TempAppContext("app2")
-      val named2:TestNameObj = app2.withApp {
-        shared.published find("name") map {
+      val named2 = app2.withApp {
+        val named2 = shared.published find("name") map {
           _.asInstanceOf[TestNameObj]
         } getOrElse fail
+        app2.subscriptionService.active.subscribeRoot(named2)
+        named2
       }
       
       named2 should not be (named)

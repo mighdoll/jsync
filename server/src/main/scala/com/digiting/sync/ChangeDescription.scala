@@ -18,7 +18,7 @@ import java.io.Serializable
 /** 
  * Subclases describe details of a change to an observable object or collection.
  */
-abstract class ChangeDescription {
+abstract sealed class ChangeDescription {
   val source = Observers.currentMutator.value;
   val target:SyncableId
   
@@ -104,15 +104,22 @@ case class RemoveMapChange(val target:SyncableId, key:Serializable, oldValue:Syn
 case class PutMapChange(val target:SyncableId, key:Serializable, oldValue:Option[SyncableReference], 
     newValue:SyncableReference, versions:VersionChange) extends CollectionChange(versions)
 
+//       -----------------  observe changes --------------------  
+
+sealed abstract class ObservingChange extends ChangeDescription
+case class ObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObservingChange
+case class EndObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObservingChange
+
 //       -----------------  watch set changes --------------------  
 
-abstract class WatchChange(val watcher:DeepWatch) extends ChangeDescription 
+sealed abstract class WatchChange(val watcher:DeepWatch) extends ChangeDescription 
 
 /** added to the DeepWatch  */
 case class BeginWatch(val target:SyncableId, val newValue:SyncableId, 
     val watch:DeepWatch) extends WatchChange(watch) {
-  override def toString = {super.toString + " newWatch: " + newValue + "  watcher: " + watcher}  
+  override def toString = {this.getClass.getSimpleName + " root: " + target + "mutator: " + source + " newWatch: " + newValue + "  watcher: " + watcher}  
 }
+
 /** dropped from the DeepWatch  */
 case class EndWatch(val target:SyncableId, val oldValue:SyncableId,
     val watch:DeepWatch) extends WatchChange(watch) 

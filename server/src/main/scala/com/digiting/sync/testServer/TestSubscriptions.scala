@@ -47,7 +47,7 @@ object TestSubscriptions extends LogHelper {
   def oneName() {
     val id = SyncableId(testPartition.id, "#testName1")
     val name = SyncManager.withNextNewId(id) {
-      new TestNameObj("emmett")
+      TestNameObj("emmett")
     }
     testPartition.publish("oneName", name)
   }

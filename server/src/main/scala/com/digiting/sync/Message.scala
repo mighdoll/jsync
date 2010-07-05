@@ -115,7 +115,17 @@ object Message extends LogHelper {
           edits + clearChange(clear) 
         case move:MoveChange =>
           edits + moveChange(move)
-        case change => log.error("Message.makeMessage() unhandled change: " + change)
+        case x:DeletedChange =>
+          err("not yet implemented")
+        case x:RemoveMapChange =>
+          err("not yet implemented")
+        case x:PutMapChange =>
+          err("not yet implemented")
+        case x:CreatedChange =>
+          err("not yet implemented")
+        case observe:ObserveChange =>
+        case endObserve:EndObserveChange =>
+//        case change => log.error("Message.makeMessage() unhandled change: " + change)
       }
     }
      

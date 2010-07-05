@@ -35,6 +35,7 @@ object Partition extends LogHelper {
   class InvalidTransaction(message:String) extends Exception(message) {
     def this() = this("")
   }
+  
 }
 
 case class PartitionId(val id:String) {

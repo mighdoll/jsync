@@ -15,9 +15,6 @@ trait ConcretePartition {
   
   /** get a registered observation */
   private[sync] def getWatches(id:InstanceId, tx:Transaction):Set[PickledWatch]
-  
-  /** call the watching client */
-  private[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {}
 
   /** debug utility, prints contents to log */
   def debugPrint() {}

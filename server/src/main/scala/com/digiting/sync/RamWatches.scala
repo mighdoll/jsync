@@ -10,23 +10,25 @@ import Partition.Transaction
  * are not persistent, so they're lost if the server is rebooted.
  */
 
-trait RamWatches extends Partition with LogHelper {
+trait RamWatches extends LogHelper {
+  self: Partition =>
+
   val watchFns = new ConcurrentHashMap[RequestId, DataChangeFn]
   
-  def watchFn(fn:DataChangeFn, duration:Int):PickledWatch = {
+  def pickledWatchFn(fn:DataChangeFn, duration:Int):PickledWatch = {
     val requestId = RequestId(randomUriString(8))
     watchFns.put(requestId, fn)
     val clientId = ClientId(Observers.currentMutator.value)
     new PickledWatch(clientId, requestId, System.currentTimeMillis + duration)
   }
   
-  def watch(id:InstanceId, fn:DataChangeFn, duration:Int) {
-    watch(id, watchFn(fn, duration))
+  def watch(id:InstanceId, fn:DataChangeFn, duration:Int):PickledWatch = {
+    val pickledWatch = pickledWatchFn(fn, duration)
+    watch(id, pickledWatch)
+    pickledWatch
   }
   
-  override def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {
-    super.notify(watch, change, tx)
-    
+  protected[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {    
     val fn = watchFns get(watch.requestId) 
     if (fn != null) {
       fn(change)

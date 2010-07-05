@@ -32,7 +32,6 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   val subscriptions = new mutable.HashSet[Syncable] 		 // active subscription roots
   val deepWatches = new mutable.HashSet[DeepWatch] 		 	 // active subscription root deep watches
   val pendingChanges = new mutable.Queue[ChangeDescription]  // model changes waiting for a commit.  
-  val serverOnlyMutator = "ServerOnly-ActiveSubscriptions"
   
   start
   
@@ -74,16 +73,14 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
     }    
   }
   
+  /** watch the given root object */
   def subscribeRoot(root:Syncable) {
-    deepWatches += 
-      Observers.currentMutator.withValue(serverOnlyMutator) {
-        val deep = Observers.watchDeep(root, queueChanges, queueChanges, "ActiveSubscriptions")
-        log.trace("subscribe deepwatch: %s", deep)
-        deep
-      }
+    val deep = Observers.watchDeep(root, treeChanged, treeChanged, this)
+    deepWatches += deep
+    log.trace("#%s, subscribeRoot() subscribed %s deepwatch: %s", connection.debugId, root, deep)
   }
-  
-  /** temporarily subscribe to a root object so that changes to that objects 
+    
+  /** temporarily subscribe to a root object so that changes to that an objects 
    * reference tree will be sent to the client */
   def withTempRootSubscription[T](root:Syncable)(fn: => T) = {
     subscribeRoot(root)
@@ -97,29 +94,55 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
     result
   }
   
+ 
   /** remember a change that we'll later send to the client */
-  private def queueChanges(change:ChangeDescription):Unit = {      
+  private def treeChanged(change:ChangeDescription):Unit = {      
     change match {
       case _ if change.source == connection.connectionId =>
-        log.trace("ActiveSubscriptions #%s not queueing change: originated from client: %s", 
+        log.trace("#%s not queueing change: originated from client: %s", 
     	  connection.debugId, change)
-      case watch:WatchChange if deepWatches.contains(watch.watcher) =>
+      case begin:BeginWatch if begin.watcher.watchClass == this =>  
+      // The trick is that makeMessage converts BeginWatch into a Sync send to
+      // the client, which we don't want to do for the subscription object itself
+      // since it came from the client.  
+      //  (someday SOON we should untwist this mechanism)
+      // The other mystery here is that the code assumes that BeginWatch messages are 
+      // sent to completely other DeepWatch subscribers, and we need to filter them out.
+      // I don't think that's actually the case though, SOON try removing it.       
+        App.app.get(begin.newValue) match {
+          case Some(sub:Subscription) => 
+            queuePartitionWatch(change)
+          case _ =>
+            queueChange(change)
+            queuePartitionWatch(change)
+        }
+      case watch:WatchChange if watch.watcher.watchClass == this =>
         queueChange(change)
+        queuePartitionWatch(change)
       case watch:WatchChange =>
-        log.trace("ActiveSubscriptions #%s not queueing watch change from another deepwatch: %s", 
-                  watch.watcher.debugId, change)
-      case _ if change.source == serverOnlyMutator =>
-        log.warning("ActiveSubscriptions #%s unexpected serverOnly mutator,  shouldn't the deepwatch check above catch this?  change: %s", 
-                    connection.debugId, change)
+        log.trace("#%s not queueing watch change from another watch or deepwatch: #%s.  change: %s", 
+                  connection.debugId, watch.watcher.debugId, change)
       case _ =>  
         queueChange(change)
       }
   }
   
   private def queueChange(change:ChangeDescription) {
-    log.trace("ActiveSubscriptions #%s change queued: %s", connection.debugId, change)
+    log.trace("#%s change queued: %s", connection.debugId, change)
     this ! change
-  }  
+  }
+  
+  private val partitionWatchTimeout = 100000
+  private def queuePartitionWatch(change:ChangeDescription) {
+    val pickledWatchFn = Partitions.getMust(change.target.partitionId.id).
+      pickledWatchFn(partitionChange, partitionWatchTimeout)
+    val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
+    queueChange(partitionWatch)
+  }
+  
+  private def partitionChange(change:DataChange) {
+    log.trace("#%s Change received from partition %s", connection.debugId, change)
+  }
   
   /** for debugging */
   def print {
