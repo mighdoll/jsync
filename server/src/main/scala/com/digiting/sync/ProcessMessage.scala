@@ -21,7 +21,6 @@ import com.digiting.util._
 import collection.mutable.ListBuffer
 import JsonMapParser._
 import com.digiting.sync.JsonObject.JsonMap
-import ReferencePatches.ReferencePatch
 import Function.tupled
 import com.digiting.util.TryCast.matchOptString
 
@@ -44,9 +43,9 @@ object ProcessMessage extends LogHelper {
         // apply modifications in the transaction to all objects as a group, before notifying app
         Observers.pauseNotification {
           Observers.currentMutator.withValue(app.connection.connectionId) {
-            val references = ReferencePatches.collectReferences {
+            val references = ReferencePatching.collectReferences {
               processSyncs(message.syncs) 
-            }            
+            }
             patchReferences(references)
             processEdits(message.edits)
             
@@ -238,7 +237,7 @@ object ProcessMessage extends LogHelper {
     }
     val sanitized:Iterable[(String,Any)] = 
       for ((name, value) <- setProperties)
-        yield (name, valueFromJson(local, name, value))
+        yield (name, ReferencePatching.valueFromJson(local, name, value))
 
     local match {
       case json:SyncableJson => 

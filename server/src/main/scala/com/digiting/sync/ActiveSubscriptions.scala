@@ -140,17 +140,21 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
    * TODO Add timeout re-registration 
    */  
   private def queuePartitionWatch(change:ChangeDescription) {
-    val pickledWatchFn = Partitions(change.target).
-      pickledWatchFn(partitionChange, partitionWatchTimeout)
+    val partition = Partitions(change.target);
+    val pickledWatchFn = partition.pickledWatchFn(
+      {change => partitionChange(partition, change)}, partitionWatchTimeout)
     val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
     App.app.instanceCache.changeNoticed(partitionWatch)
   }
   private val partitionWatchTimeout = 100000
   
   
-  private def partitionChange(change:DataChange) {
+  private def partitionChange(partition:Partition, change:DataChange) {
     log.trace("#%s Change received from partition %s", connection.debugId, change)
-    abort("!!")
+    
+    Observers.withMutator(partition.partitionId) {
+//      UpdateLocalContext.modify(change)
+    }
   }
   
   /** for debugging */
