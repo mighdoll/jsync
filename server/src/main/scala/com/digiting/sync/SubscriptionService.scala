@@ -33,7 +33,7 @@ trait SubscriptionService extends HasTransientPartition with LogHelper {
   lazy val log = Logger(serviceName)
   val app:AppContext
   val transientPartition = app.transientPartition  
-  val active = new ActiveSubscriptions(app.connection)	// data we're tracking for the client
+  val active = new ActiveSubscriptions(app)	            // data we're tracking for the client
   var subscriptions:SyncableSet[Syncable] = _			// set of active client subscriptions, set shared with client  
 
   setup()

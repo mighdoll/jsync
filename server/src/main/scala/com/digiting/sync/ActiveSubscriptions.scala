@@ -26,10 +26,8 @@ import com.digiting.util.LogHelper
  * 
  * The changes to subscribed objects are queued.  Clients of this class can retrieve 
  * the queued changes via takePending().
- * 
- * CONSIDER should probaby take an AppContext, not a Connection
  */
-class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
+class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
   val log = Logger("ActiveSubscriptions")
   val subscriptions = new mutable.HashSet[Syncable] 		 // active subscription roots
   val deepWatches = new mutable.HashSet[DeepWatch] 		 	 // active subscription root deep watches
@@ -37,7 +35,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   
   start
   
-  log.trace("#%s created", connection.debugId)
+  log.trace("#%s created", app.debugId)
   
   /** watch the set of objects referenced in the subscription request.  Modify the client's 
    * subscription request object by seeing its root field.  The change to the request object
@@ -47,7 +45,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
       case Some(partition) =>
         partition.published find sub.name match {
           case Some(root) => 
-            log.trace("#%s subscribe to: %s,  root: %s", connection.debugId, sub.name, root)
+            log.trace("#%s subscribe to: %s,  root: %s", app.debugId, sub.name, root)
             subscriptions += root
             subscribeRoot(sub)
             Observers.currentMutator.withValue("ActiveSubscriptions") {
@@ -79,7 +77,7 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   def subscribeRoot(root:Syncable) {
     val deep = Observers.watchDeep(root, treeChanged, treeChanged, this)
     deepWatches += deep
-    log.trace("#%s, subscribeRoot() subscribed %s deepwatch: %s", connection.debugId, root, deep)
+    log.trace("#%s, subscribeRoot() subscribed %s deepwatch: %s", app.debugId, root, deep)
   }
     
   /** temporarily subscribe to a root object so that changes to that an objects 
@@ -100,62 +98,39 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
   /** remember a change that we'll later send to the client */
   private def treeChanged(change:ChangeDescription):Unit = {      
     change match {
-      case _ if change.source == connection.connectionId =>
+      case _ if change.source == app.connection.connectionId =>
         log.trace("#%s not queueing change: originated from client: %s", 
-    	  connection.debugId, change)
+    	  app.connection.debugId, change)
       case begin:BeginWatch if begin.watcher.watchClass == this =>  
-      // The trick is that makeMessage converts BeginWatch into a Sync send to
+      // The game here is that makeMessage converts BeginWatch into a Sync send to
       // the client, which we don't want to do for the subscription object itself
       // since it came from the client.  
       //  (someday SOON we should untwist this mechanism)
-      // The other mystery here is that the code assumes that BeginWatch messages are 
-      // sent to completely other DeepWatch subscribers, and we need to filter them out.
-      // I don't think that's actually the case though, SOON try removing it.       
         App.app.get(begin.newValue) match {
           case Some(sub:Subscription) => 
-            queuePartitionWatch(change)
+            app.queuePartitionChange(change)
           case _ =>
             queueChange(change)
-            queuePartitionWatch(change)
         }
+      // This code and the test above assumes that BeginWatch messages are 
+      // sent to completely other DeepWatch subscribers, and we need to filter them out.
+      // I don't think that's actually the case though, SOON try removing it.
       case watch:WatchChange if watch.watcher.watchClass == this =>
         queueChange(change)
-        queuePartitionWatch(change)
       case watch:WatchChange =>
         log.trace("#%s not queueing watch change from another watch or deepwatch: #%s.  change: %s", 
-                  connection.debugId, watch.watcher.debugId, change)
+                  app.debugId, watch.watcher.debugId, change)
       case _ =>  
         queueChange(change)
       }
   }
   
   private def queueChange(change:ChangeDescription) {
-    log.trace("#%s change queued: %s", connection.debugId, change)
+    log.trace("#%s change queued: %s", app.debugId, change)
     this ! change
+    app.queuePartitionChange(change)
   }
-  
-  /**  Watch for changes to an object made by others in the partition store.
-   * 
-   * TODO move this logic to some other file.  
-   * TODO Add timeout re-registration 
-   */  
-  private def queuePartitionWatch(change:ChangeDescription) {
-    val partition = Partitions(change.target);
-    val pickledWatchFn = partition.pickledWatchFn(
-      {change => partitionChange(partition, change)}, partitionWatchTimeout)
-    val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
-    App.app.instanceCache.changeNoticed(partitionWatch)
-  }
-  private val partitionWatchTimeout = 100000
-  
-  
-  private def partitionChange(partition:Partition, change:DataChange) {
-    log.trace("#%s Change received from partition %s", connection.debugId, change)
-    
-    Observers.withMutator(partition.partitionId) {
-//      UpdateLocalContext.modify(change)
-    }
-  }
+
   
   /** for debugging */
   def print {
@@ -187,5 +162,9 @@ class ActiveSubscriptions(connection:Connection) extends Actor with LogHelper {
 }
 
 /** 
- * LATER multiple watches on the same objects will queue duplicate changes.  Fix that.
+ * LATER multiple watches on the same objects will queue duplicate changes unnecessarily.  Fix that.
+ * 
+ * CONSIDER breaking this into two classes, one as a trait mixed into AppContext, the other
+ * with an actor
+
  */

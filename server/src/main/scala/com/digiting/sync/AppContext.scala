@@ -62,13 +62,15 @@ object TempAppContext {
 abstract class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
 
 // CONSIDER -- the apps should probably be actors..
-// for now, we assume that each app context has one and only one connection
-abstract class AppContext(val connection:Connection) extends HasTransientPartition with LogHelper {
+// NOTE - for now, we assume that each app context has one and only one connection
+abstract class AppContext(val connection:Connection) extends HasTransientPartition 
+  	with LogHelper {
   override val log = logger("AppContext")
   def appName:String
   override val transientPartition = new RamPartition(connection.connectionId)
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
-  def defaultPartition:Partition = throw new ImplementationError("no partition set") 		
+  def defaultPartition:Partition = throw new ImplementationError("no partition set")
+  def debugId = connection.debugId
   
   val instanceCache = new WatchedPool("AppContext")
   
@@ -161,6 +163,30 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
+    
+    /**  Watch for changes to an object made by others in the partition store.
+   * 
+   * TODO Add timeout re-registration 
+   */  
+  def queuePartitionChange(change:ChangeDescription) {
+    val partition = Partitions(change.target);
+    val pickledWatchFn = partition.pickledWatchFn(
+      {change => partitionChange(partition, change)}, partitionWatchTimeout)
+    val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
+    App.app.instanceCache.changeNoticed(partitionWatch)
+  }
+  private val partitionWatchTimeout = 100000
+  
+  
+  private def partitionChange(partition:Partition, change:DataChange) {
+    log.trace("#%s Change received from partition %s", connection.debugId, change)
+    
+    Observers.withMutator(partition.partitionId) {
+//      UpdateLocalContext.modify(change)
+    }
+  }
+
+  
   /** utility for fetching an object and running a function with the fetched object */
   private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
     get(id) map fn match {
@@ -174,6 +200,11 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
 
   /** write pending changes to persistent storage */
   private def commitToPartitions(changes:Seq[ChangeDescription]) {
+    import Matching.partialMatch
+    def matchStorableChange(change:ChangeDescription):Option[StorableChange] = {
+      partialMatch(change) {case storable:StorableChange => storable}
+    }
+    
     val storableChanges = 
       for {
         change <- changes
@@ -202,10 +233,6 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  import Matching.partialMatch
-  private def matchStorableChange(change:ChangeDescription):Option[StorableChange] = {
-    partialMatch(change) {case storable:StorableChange => storable}
-  }
 
   
 }

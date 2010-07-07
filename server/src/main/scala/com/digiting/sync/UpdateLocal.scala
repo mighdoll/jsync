@@ -3,7 +3,8 @@ import com.digiting.util._
 
 /** apply change descriptions to the local store*/
 object UpdateLocalContext {
-	def modify(app:AppContext, change:DataChange) {
+  
+	private def modify(app:AppContext, change:DataChange) {
     change match {
       case created:CreatedChange => NYI()
       case property:PropertyChange => NYI()
@@ -17,7 +18,7 @@ object UpdateLocalContext {
       case put:PutChange => NYI()
       case remove:RemoveChange => NYI()
       case clear:ClearChange => NYI()
-    } 
+    }
   }
    
 }
