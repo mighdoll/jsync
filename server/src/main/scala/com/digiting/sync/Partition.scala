@@ -135,28 +135,53 @@ abstract class Partition(val partitionId:String) extends RamWatches
     
   /** call the watching client */
 //  protected[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {}
+  private object WatchableChange {
+    def apply(change:StorableChange):Option[DataChange] = {
+      change match {
+        case c:CreatedChange => None
+        case dataChange:DataChange => Some(dataChange)
+        case obs:ObservingChange => None
+      }
+    }
+  }
 
+  
     /** notify watchers of changes */
-  private def notifyChanges(tx:Transaction) {
+  private def notifyChanges(tx:Transaction) {    
     if (hasStorage) {
-      tx.changes foreach {change => change match {
-        case c:CreatedChange => // can't watch created change
-        case _ =>
-          val targetId = change.target.instanceId
-          val watches = getWatches(targetId, tx) 
-          val invalid = watches filter(System.currentTimeMillis > _.expiration)
-          val validWatches = watches -- invalid
+      // collect watchers for each change
+      val watched:Seq[(DataChange,Set[PickledWatch])] = 
+        for {
+          change <- tx.changes
+          watchable <- WatchableChange(change)           
+          targetId = change.target.instanceId
+          watches = getWatches(targetId, tx) 
+          invalid = watches filter(System.currentTimeMillis > _.expiration)
+          validWatches = (watches -- invalid)
+          outgoing = validWatches filter(_.clientId != change.source)          
+        } yield {          
+          // remove invalid watches
           invalid foreach (unwatch(targetId, _))
-          // call matching functions
-          change match { 
-            case dataChange:DataChange =>
-              validWatches filter(_.clientId != dataChange.source) foreach { watch =>
-                notify(watch, dataChange, tx)
-              }
-            case _ =>
-          }
+ 
+          // return watches that need notification
+          (watchable, outgoing) 
         }
-      }      
+
+     // collate changes by watcher
+      import collection.mutable.ListBuffer
+      val byWatch = new MultiBuffer[PickledWatch,DataChange,ListBuffer[DataChange]]
+      for {
+        (change, watches) <- watched
+        watch <- watches 
+      } {    
+        byWatch append(watch, change)
+      }
+     
+      for {
+        (watch, changes) <- byWatch
+      } {
+        notify(watch, changes)
+      }
     }
   }
   

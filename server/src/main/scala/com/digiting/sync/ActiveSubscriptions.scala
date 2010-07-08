@@ -106,9 +106,9 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
       // the client, which we don't want to do for the subscription object itself
       // since it came from the client.  
       //  (someday SOON we should untwist this mechanism)
+      	app.observeInPartition(begin.target)
         App.app.get(begin.newValue) match {
           case Some(sub:Subscription) => 
-            app.queuePartitionChange(change)
           case _ =>
             queueChange(change)
         }
@@ -128,7 +128,6 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
   private def queueChange(change:ChangeDescription) {
     log.trace("#%s change queued: %s", app.debugId, change)
     this ! change
-    app.queuePartitionChange(change)
   }
 
   

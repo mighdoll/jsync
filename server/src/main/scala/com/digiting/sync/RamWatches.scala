@@ -12,28 +12,31 @@ import Partition.Transaction
 
 trait RamWatches extends LogHelper {
   self: Partition =>
-
-  val watchFns = new ConcurrentHashMap[RequestId, DataChangeFn]
   
-  def pickledWatchFn(fn:DataChangeFn, duration:Int):PickledWatch = {
+  type PartitionWatchFn = (Seq[DataChange])=>Unit
+
+  val watchFns = new ConcurrentHashMap[RequestId, PartitionWatchFn]
+  
+  def pickledWatchFn(fn:PartitionWatchFn, duration:Int):PickledWatch = {
     val requestId = RequestId(randomUriString(8))
     watchFns.put(requestId, fn)
     val clientId = ClientId(Observers.currentMutator.value)
     new PickledWatch(clientId, requestId, System.currentTimeMillis + duration)
   }
   
-  def watch(id:InstanceId, fn:DataChangeFn, duration:Int):PickledWatch = {
+  def watch(id:InstanceId, fn:PartitionWatchFn, duration:Int):PickledWatch = {
     val pickledWatch = pickledWatchFn(fn, duration)
     watch(id, pickledWatch)
     pickledWatch
   }
-  
-  protected[sync] def notify(watch:PickledWatch, change:DataChange, tx:Transaction) {    
-    val fn = watchFns get(watch.requestId) 
+    
+  protected[sync] def notify(pickledWatch:PickledWatch, changes:Seq[DataChange]) {
+	  val fn = watchFns get(pickledWatch.requestId)
     if (fn != null) {
-      fn(change)
+      fn(changes)
     } else {
-      err("notify() can't find fn for %s  for change:%s", watch, change)
-    }
-  }  
+      err("notify() can't find fn for %s  for change:%s", pickledWatch, changes)
+    }   
+  }
+  
 }

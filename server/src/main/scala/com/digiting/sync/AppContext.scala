@@ -64,7 +64,7 @@ abstract class RichAppContext(connection:Connection) extends AppContext(connecti
 // CONSIDER -- the apps should probably be actors..
 // NOTE - for now, we assume that each app context has one and only one connection
 abstract class AppContext(val connection:Connection) extends HasTransientPartition 
-  	with LogHelper {
+  	with ContextPartitionGateway with LogHelper {
   override val log = logger("AppContext")
   def appName:String
   override val transientPartition = new RamPartition(connection.connectionId)
@@ -163,28 +163,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-    
-    /**  Watch for changes to an object made by others in the partition store.
-   * 
-   * TODO Add timeout re-registration 
-   */  
-  def queuePartitionChange(change:ChangeDescription) {
-    val partition = Partitions(change.target);
-    val pickledWatchFn = partition.pickledWatchFn(
-      {change => partitionChange(partition, change)}, partitionWatchTimeout)
-    val partitionWatch = new ObserveChange(change.target, pickledWatchFn)
-    App.app.instanceCache.changeNoticed(partitionWatch)
-  }
-  private val partitionWatchTimeout = 100000
-  
-  
-  private def partitionChange(partition:Partition, change:DataChange) {
-    log.trace("#%s Change received from partition %s", connection.debugId, change)
-    
-    Observers.withMutator(partition.partitionId) {
-//      UpdateLocalContext.modify(change)
-    }
-  }
+
 
   
   /** utility for fetching an object and running a function with the fetched object */

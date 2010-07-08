@@ -15,19 +15,20 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
         var found = false
         import testPartition._
         withTransaction {
-          Observers.withMutator("testWatch") {
-            watch(nameObj.id.instanceId, {change:DataChange =>
-              change match {
-                case PropertyChange(target, property, newValue, oldValue, versions) =>
-                  found = true
-                  property should be ("name")
-                  oldValue.value should be ("jerome")
-                  newValue.value should be ("murph")
-                  target should be (nameObj.id)
-                case _ =>
-              }
-            }, 100000)
-          }
+          // FIXME
+//          Observers.withMutator("testWatch") {
+//            watch(nameObj.id.instanceId, {change:DataChange =>
+//              change match {
+//                case PropertyChange(target, property, newValue, oldValue, versions) =>
+//                  found = true
+//                  property should be ("name")
+//                  oldValue.value should be ("jerome")
+//                  newValue.value should be ("murph")
+//                  target should be (nameObj.id)
+//                case _ =>
+//              }
+//            }, 100000)
+//          }
         }
         App.app.commit()
         nameObj.name = "murph"

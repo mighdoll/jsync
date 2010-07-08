@@ -65,7 +65,7 @@ object Pickled {
 
 case class ClientId (val id:String)
 case class RequestId (val id:String)
-class PickledWatch (val clientId:ClientId, val requestId:RequestId, val expiration:Long)
+case class PickledWatch (val clientId:ClientId, val requestId:RequestId, val expiration:Long)
 
 @serializable
 class Pickled(val reference:SyncableReference, val version:String,

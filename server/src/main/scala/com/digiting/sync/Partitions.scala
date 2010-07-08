@@ -21,6 +21,10 @@ object Partitions extends LogHelper {
     getMust(syncableId.partitionId.id)
   }
   
+  def apply(partitionId:PartitionId):Partition = {
+    getMust(partitionId.id)
+  }
+  
   def remove(name:String) = {
     localPartitions -= name
   }
