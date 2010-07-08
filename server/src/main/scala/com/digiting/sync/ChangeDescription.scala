@@ -23,6 +23,7 @@ abstract sealed class ChangeDescription {
   val target:SyncableId
   
   override def toString = {this.getClass.getSimpleName + " target: " + target + " mutator: " + source}
+  def references:List[SyncableId] = List(target)
 }
 
 case class VersionChange(val old:String, val now:String) {
@@ -44,6 +45,7 @@ abstract sealed class MembershipChange(val operation:String,
   val newValue:SyncableId, val oldValue:SyncableId, versionChange:VersionChange) 
   extends CollectionChange(versionChange) {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
+  override def references = super.references ++ List(newValue)
 }
 
  
@@ -54,6 +56,7 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
                           val oldValue:SyncableValue, versions:VersionChange) 
       extends DataChange(versions) {
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
+  override def references = super.references ++ newValue.reference.toList
 }  
       
 /** create a new object.  */  
@@ -75,7 +78,10 @@ case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
 
 /** add to a set*/
 case class PutChange(val target:SyncableId, newVal:SyncableReference, versions:VersionChange) 
-  extends MembershipChange("put", newVal, null, versions)  
+  extends MembershipChange("put", newVal, null, versions)  {
+  override def references = newVal.id :: super.references
+}
+  
 /** remove from a set*/  
 case class RemoveChange(val target:SyncableId, oldVal:SyncableReference, versions:VersionChange) 
   extends MembershipChange("remove", null, oldVal, versions) 
@@ -92,6 +98,7 @@ case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:In
   extends MembershipChange("insertAt", newVal, null, versions) {
   
   override def toString = (super.toString + " at:" + at)
+  override def references = newVal.id :: super.references 
 }  
 /** rearrange a seq */
 case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int, 
@@ -104,7 +111,10 @@ case class RemoveMapChange(val target:SyncableId, key:Serializable, oldValue:Syn
     versions:VersionChange) extends CollectionChange(versions)
 /** add/update to a map */
 case class PutMapChange(val target:SyncableId, key:Serializable, oldValue:Option[SyncableReference], 
-    newValue:SyncableReference, versions:VersionChange) extends CollectionChange(versions)
+    newValue:SyncableReference, versions:VersionChange) extends CollectionChange(versions) {
+      
+  override def references = newValue.id :: super.references 
+}
 
 //       -----------------  observe changes --------------------  
 
@@ -120,6 +130,7 @@ sealed abstract class WatchChange(val watcher:DeepWatch) extends ChangeDescripti
 case class BeginWatch(val target:SyncableId, val newValue:SyncableId, 
     val watch:DeepWatch) extends WatchChange(watch) {
   override def toString = {this.getClass.getSimpleName + " root: " + target + "mutator: " + source + " newWatch: " + newValue + "  watcher: " + watcher}  
+  override def references = newValue :: super.references
 }
 
 /** dropped from the DeepWatch  */
@@ -128,5 +139,7 @@ case class EndWatch(val target:SyncableId, val oldValue:SyncableId,
 
 /** initial state of a collection */      
 case class BaseMembership(val target:SyncableId, members:Seq[SyncableId], 
-    val watch:DeepWatch) extends WatchChange(watch) 
+    val watch:DeepWatch) extends WatchChange(watch) {
+  override def references = super.references ++ members   
+}
 

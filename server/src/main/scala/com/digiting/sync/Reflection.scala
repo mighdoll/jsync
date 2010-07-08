@@ -146,6 +146,10 @@ object SyncableAccessor {
     }
   }
   
+  def apply(obj:Syncable):ClassAccessor = {
+    get(obj.getClass)
+  }
+  
   /* retrieve all references from an instance */
   def references(obj:AnyRef):Iterable[AnyRef] = {
     val accessor = get(obj.getClass)

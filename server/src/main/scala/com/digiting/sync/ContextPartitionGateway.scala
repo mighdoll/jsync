@@ -35,20 +35,26 @@ trait ContextPartitionGateway  {
   private def partitionChange(partition:Partition, changes:Seq[DataChange]) {
     changes.first.target.partitionId
   
+    changes foreach {trace2("#%s Change received from partition %s", debugId, _)}
+
+    changes flatMap {_.references} foreach {get(_)}
     Observers.withMutator(partition.partitionId) {
       for {
         change <- changes
       } {
-      	trace2("#%s Change received from partition %s", connection.debugId, change)
-      // *tbd*/
+        modify(change)
       }
     }
   }
   
-  private def modify(app:AppContext, change:DataChange) {
+  private def modify(change:DataChange) {
     change match {
       case created:CreatedChange => NYI()
-      case property:PropertyChange => NYI()
+      case property:PropertyChange => 
+        withGetId(property.target) {obj =>
+        	trace2("#%s applying property: %s", debugId, change)
+          SyncableAccessor(obj).set(obj, property.property, getValue(property.newValue))          
+        }
       case deleted:DeletedChange => NYI()
       case insertAt:InsertAtChange => NYI()
       case removeAt:RemoveAtChange => NYI()
@@ -61,6 +67,12 @@ trait ContextPartitionGateway  {
       case clear:ClearChange => NYI()
     }
   }
+  
+  private def getValue(value:SyncableValue):AnyRef = 
+    value.value match {
+      case ref:SyncableReference => get(ref.id) get
+      case v => v.asInstanceOf[AnyRef]
+    }
 
     // TODO Add timeout re-registration 
 }

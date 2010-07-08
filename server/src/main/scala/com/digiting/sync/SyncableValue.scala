@@ -14,6 +14,7 @@
  */
 package com.digiting.sync
 import net.lag.logging.Logger
+import com.digiting.util.Matching.partialMatch
 
 /** Holds a value that's validated as legal for synchronization.
  * 
@@ -44,6 +45,10 @@ class SyncableValue {
       case x => x.toString
     }
   }
+
+  def reference:Option[SyncableId] = partialMatch(validated) {
+    case ref:SyncableReference => ref.id
+  }
 }
 
 object SyncableValue {
@@ -60,7 +65,7 @@ object SyncableValue {
   def apply(value:Double) = new SyncableValue(value)
   def apply(value:Null) = new SyncableValue(value)
   
-  def convert(value:Any) = {
+  def convert(value:Any):SyncableValue = {
     value match {
       case s:Syncable => new SyncableValue(SyncableReference(s))
       case v:String => new SyncableValue(v)
