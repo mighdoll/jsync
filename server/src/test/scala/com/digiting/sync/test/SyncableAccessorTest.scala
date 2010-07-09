@@ -31,8 +31,8 @@ class SyncableAccessorTest extends Spec with ShouldMatchers with SyncFixture {
     
     it("should find references from object properties") {
       withTestFixture {
-        val obj = new TestRefObj()
-        val obj2 = new TestRefObj()
+        val obj = new TestRefObj[TestRefObj[_]]()
+        val obj2 = new TestRefObj[Syncable]()
         obj.ref = obj2
 
         // verify internal accessor is built correctly

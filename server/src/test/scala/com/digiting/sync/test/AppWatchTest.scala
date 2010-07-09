@@ -4,35 +4,70 @@ import org.scalatest.matchers.ShouldMatchers
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import com.digiting.sync.syncable.TestNameObj
+import com.digiting.sync.syncable.TestRefObj
 
 
 @RunWith(classOf[JUnitRunner])
 class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {  
   describe("AppWatch") {
-    it("should see a change") {      
-      val shared = new RamPartition("shared")
-      val app1 = TempAppContext("app1")
-      val named = app1.withApp {
-        shared.publish("name", TestNameObj("water"))
+//    it("should see a property change") {      
+//      val (app1, app2, copy1, copy2) = withTwoApps { TestNameObj("water") }
+//      copy1 should not be (copy2)
+//      copy2.name should be ("water")
+//              
+//      app1.withApp {
+//        copy1.name = "oil"
+//      }
+//      copy2.name should be ("oil")
+//    }
+//    
+//    it("should see a property ref change") {
+//      val (app1, app2, copy1, copy2) = withTwoApps { 
+//        TestRefObj(TestNameObj("hummus")) 
+//      }
+//      copy2.ref.asInstanceOf[TestNameObj].name should be ("hummus")
+//      app1.withApp {
+//        copy1.ref = TestNameObj("tabouli")
+//      }
+//      copy2.ref.asInstanceOf[TestNameObj].name should be ("tabouli")      
+//      copy2.ref should not be (copy1.ref)
+//    }
+    
+    it("should see seq changes") {
+      val (app1, app2, copy1, copy2) = withTwoApps { 
+        val seq = new SyncableSeq[TestRefObj[TestNameObj]]
+        seq += TestRefObj(TestNameObj("zamboni"))
+        seq 
       }
-      
-      val app2 = TempAppContext("app2")
-      val named2 = app2.withApp {
-        val named2 = shared.published find("name") map {
-          _.asInstanceOf[TestNameObj]
-        } getOrElse fail
-        app2.subscriptionService.active.subscribeRoot(named2)
-        named2
-      }
-      
-      named2 should not be (named)
-      named2.name should be ("water")
-      named2
-              
+      copy2.first.ref.name should be ("zamboni")
       app1.withApp {
-        named.name = "oil"
+        copy1 += TestRefObj(TestNameObj("yamaha"))
       }
-      named2.name should be ("oil")
+      copy2(1).ref.name should be ("yamaha")
+//      app1.withApp {
+//        copy2.remove(0)
+//      }
+//      copy2.length should be (1)      
     }
+  }
+  
+  def withTwoApps[T <:Syncable](toPublish: =>T):(AppContext, AppContext, T, T) = {
+    val shared = new RamPartition("shared")
+    val app1 = TempAppContext("app1")
+    val copy1 = app1.withApp {     
+      val copy1 = toPublish
+      shared.publish("sharedObj", copy1)
+      copy1
+    }
+    
+    val app2 = TempAppContext("app2")
+    val copy2 = app2.withApp {
+      val copy2 = shared.published find("sharedObj") map {
+        _.asInstanceOf[T]
+      } getOrElse fail
+      app2.subscriptionService.active.subscribeRoot(copy2)
+      copy2
+    }    
+    (app1, app2, copy1, copy2)
   }
 }

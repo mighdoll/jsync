@@ -56,15 +56,14 @@ trait ContextPartitionGateway  {
           SyncableAccessor(obj).set(obj, property.property, getValue(property.newValue))          
         }
       case deleted:DeletedChange => NYI()
-      case insertAt:InsertAtChange => NYI()
-      case removeAt:RemoveAtChange => NYI()
+      case collectionChange:CollectionChange => 
+        withGetId(collectionChange.target) {obj =>
+          trace2("#%s collectionChange : %s", debugId, change)
+          obj match {
+            case collection:SyncableCollection => collection.revise(collectionChange)
+          }
+        }
       
-      case move:MoveChange => NYI()
-      case putMap:PutMapChange => NYI()
-      case removeMap:RemoveMapChange => NYI()
-      case put:PutChange => NYI()
-      case remove:RemoveChange => NYI()
-      case clear:ClearChange => NYI()
     }
   }
   

@@ -70,9 +70,11 @@ case class DeletedChange(val target:SyncableReference,
  
 //       -----------------  collection Data changes --------------------  
 
+trait SeqChange
+
 /** remove all contents from a collection */
 case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
-  versions:VersionChange) extends CollectionChange(versions) {
+  versions:VersionChange) extends CollectionChange(versions) with SeqChange {
   def operation = "clear"
 }
 
@@ -89,13 +91,14 @@ case class RemoveChange(val target:SyncableId, oldVal:SyncableReference, version
 /* remove from a seq*/
 case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId,
     versions:VersionChange) 
-  extends MembershipChange("removeAt", null, oldVal, versions) {
+  extends MembershipChange("removeAt", null, oldVal, versions) with SeqChange {
   override def toString = (super.toString + " at:" + at)
 }
+  
 /** add to a seq */
 case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:Int,
     versions:VersionChange) 
-  extends MembershipChange("insertAt", newVal, null, versions) {
+  extends MembershipChange("insertAt", newVal, null, versions) with SeqChange {
   
   override def toString = (super.toString + " at:" + at)
   override def references = newVal.id :: super.references 

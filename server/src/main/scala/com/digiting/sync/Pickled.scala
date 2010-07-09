@@ -117,14 +117,18 @@ class Pickled(val reference:SyncableReference, val version:String,
     new Pickled(reference, propChange.versions.now, updatedProperties, watches)
   }
   
-  def +(watch:PickledWatch):Pickled = {
+  def +(watch:PickledWatch) = {
     val moreWatches = watches + watch
-    new Pickled(reference, version, properties, moreWatches)    
+    val pickled = new Pickled(reference, version, properties, moreWatches)    
+    log.trace("+watch() %s", pickled)    
+    pickled
   }
   
   def -(watch:PickledWatch):Pickled = {
     val lessWatches = watches - watch
-    new Pickled(reference, version, properties, lessWatches)    
+    val pickled = new Pickled(reference, version, properties, lessWatches)    
+    log.trace("-watch() %s", pickled)
+    pickled
   }
   
   override def toString:String = {

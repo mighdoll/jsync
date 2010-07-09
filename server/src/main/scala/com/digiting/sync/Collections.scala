@@ -47,64 +47,32 @@ trait SyncableCollection extends Syncable {
   private[sync] def syncableElementIds:Seq[SyncableId] = {
     syncableElements map {_.fullId} toSeq
   }
+  
+  def revise(change:CollectionChange) 
 }
 
-class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
-  val log = Logger("SyncableSet")
-  def kind = "$sync.set"  
-  val set = new mutable.HashSet[T] 
-  
-  def -=(elem:T) = {
-    set -= elem
-    Observers.notify(new RemoveChange(fullId, SyncableReference(elem), newVersion()));
-  }
-  
-  def +=(elem:T) = {
-    set += elem
-    val putChange = PutChange(fullId, SyncableReference(elem), newVersion())
-    log.trace("put: %s", putChange)
-    Observers.notify(putChange);
-  }
-  
-
-
-  def contains(elem:T) = set contains elem
-  def size = set size
-  def elements = set elements
-    
-  override def clear() = {
-    val cleared = syncableElementIds
-    set.clear();
-    Observers.notify(new ClearChange(fullId, cleared, this.newVersion()));
-  }
-
-  def syncableElements:Seq[Syncable] = {
-    val list = new mutable.ListBuffer[Syncable]
-    for (elem <- elements) {
-      elem match {
-        case syncable:Syncable => list + syncable
-        case _ =>
-      }
-    }
-    list.toList
-  }
-}
-
-object SyncableSeq {
-  def kind = "$sync.sequence"
-}
-
-import SyncableSeq._
+import Log2._
 /** a collection of objects in sequential order.  
  * 
  * Not too worried about the API for now, this changes with scala 2.8
  */
 class SyncableSeq[T <: Syncable] extends SyncableCollection {
-  def kind = {SyncableSeq.kind}
+  def kind = "$sync.sequence"
+  implicit lazy val log = Logger("SyncableSeq")
   val list = new mutable.ArrayBuffer[T]
   
   def syncableElements:Seq[Syncable] = {
     list.clone
+  }
+  
+  override def revise(change:CollectionChange) {
+    trace2("revise: %s", change)
+    change match {
+      case insertAt:InsertAtChange =>
+        val elem = App.app.get(insertAt.newVal) getOrElse abort2("revise() can't find find newVal %s", change)
+      	insert(insertAt.at, elem.asInstanceOf[T])
+      case _ => NYI()
+    }
   }
   
   def insert(index:Int, elem:T) = {
@@ -158,11 +126,54 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def toList = list.toList
 }
 
+class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
+  val log = Logger("SyncableSet")
+  def kind = "$sync.set"  
+  val set = new mutable.HashSet[T] 
+
+  override def revise(change:CollectionChange) = NYI()
+
+  def -=(elem:T) = {
+    set -= elem
+    Observers.notify(new RemoveChange(fullId, SyncableReference(elem), newVersion()));
+  }
+  
+  def +=(elem:T) = {
+    set += elem
+    val putChange = PutChange(fullId, SyncableReference(elem), newVersion())
+    log.trace("put: %s", putChange)
+    Observers.notify(putChange);
+  }
+
+  def contains(elem:T) = set contains elem
+  def size = set size
+  def elements = set elements
+    
+  override def clear() = {
+    val cleared = syncableElementIds
+    set.clear();
+    Observers.notify(new ClearChange(fullId, cleared, this.newVersion()));
+  }
+
+  def syncableElements:Seq[Syncable] = {
+    val list = new mutable.ListBuffer[Syncable]
+    for (elem <- elements) {
+      elem match {
+        case syncable:Syncable => list + syncable
+        case _ =>
+      }
+    }
+    list.toList
+  }
+}
+
 /** A collection of syncable objects.  Keys are typically strings, values are Syncable.
  */
 class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V] with SyncableCollection {
   def kind = "$sync.map"
   val log = Logger("SyncableMap")
+
+  override def revise(change:CollectionChange) = NYI()
 
   override def update(key:K, value:V) {
     key match {

@@ -20,13 +20,24 @@ import java.io.Serializable
 import scala.collection.mutable.ArrayBuffer
 import LoadReferences._
 
-abstract trait PickledCollection extends Pickled {
-  def revise(change:CollectionChange):PickledCollection = {
+abstract trait PickledCollection[E] extends Pickled {
+  val members:Collection[E]
+  def reviseCollection(change:CollectionChange):PickledCollection[E]
+  def addWatch(watch:PickledWatch):PickledCollection[E]
+  def deleteWatch(watch:PickledWatch):PickledCollection[E]
+  
+  def revise(change:CollectionChange):PickledCollection[E] = {
     assert(version == change.versionChange.old)
     reviseCollection(change)
   }
   
-  def reviseCollection(change:CollectionChange):PickledCollection 
+  override def +(watch:PickledWatch):PickledCollection[E] = {
+    addWatch(watch)
+  }
+  
+  
+  override def +(propChange:PropertyChange):Pickled = NYI()
+
 }
 
 object PickledSeq {
@@ -54,7 +65,7 @@ object PickledMap {
 class PickledSeq(ref:SyncableReference, ver:String, 
     props:Map[String,SyncableValue], 
     watches:Set[PickledWatch], val members:mutable.Buffer[SyncableReference]) 
-    extends Pickled(ref,ver,props, watches) with PickledCollection {
+    extends Pickled(ref,ver,props,watches) with PickledCollection[SyncableReference] {
       
   override def unpickle:SyncableSeq[Syncable] = {
     val seq = super.unpickle.asInstanceOf[SyncableSeq[Syncable]]
@@ -82,13 +93,28 @@ class PickledSeq(ref:SyncableReference, ver:String,
         throw new ImplementationError
     }
     new PickledSeq(reference, change.versionChange.now, properties, watches, revisedMembers)
-  }  
+  }
+  
+  override def addWatch(watch:PickledWatch):PickledSeq = {
+    val moreWatches = watches + watch
+    val pickled = new PickledSeq(reference, version, properties, moreWatches, members)    
+    trace("PickledSeq addWatch() %s", pickled)    
+    pickled
+  }
+  
+  override def deleteWatch(watch:PickledWatch):PickledSeq = {
+    val moreWatches = watches - watch
+    val pickled = new PickledSeq(reference, version, properties, moreWatches, members)    
+    trace("PickledSeq deletewatch() %s", pickled)    
+    pickled
+  }
+  
 }
     
 @serializable
 class PickledSet(ref:SyncableReference, ver:String, 
     props:Map[String,SyncableValue], watches:Set[PickledWatch], val members:Set[SyncableReference]) 
-    extends Pickled(ref,ver,props,watches) with PickledCollection {
+    extends Pickled(ref,ver,props,watches) with PickledCollection[SyncableReference] {
       
   override def unpickle:SyncableSet[Syncable] = {
     val set = super.unpickle.asInstanceOf[SyncableSet[Syncable]]
@@ -114,6 +140,19 @@ class PickledSet(ref:SyncableReference, ver:String,
       }
     new PickledSet(reference, change.versionChange.now, properties, watches, revisedMembers)
   } 
+  override def addWatch(watch:PickledWatch):PickledSet= {
+    val moreWatches = watches + watch
+    val pickled = new PickledSet(reference, version, properties, moreWatches, members)    
+    trace("PickledSet addWatch() %s", pickled)    
+    pickled
+  }
+  
+  override def deleteWatch(watch:PickledWatch):PickledSet = {
+    val moreWatches = watches - watch
+    val pickled = new PickledSet(reference, version, properties, moreWatches, members)    
+    trace("PickledSet deletewatch() %s", pickled)    
+    pickled
+  }
 
 }
     
@@ -121,7 +160,7 @@ class PickledSet(ref:SyncableReference, ver:String,
 class PickledMap(ref:SyncableReference, ver:String, 
     props:Map[String,SyncableValue], watches:Set[PickledWatch],
     val members:Map[Serializable, SyncableReference]) 
-    extends Pickled(ref,ver,props,watches) with PickledCollection {
+    extends Pickled(ref,ver,props,watches) with PickledCollection[(Serializable,SyncableReference)] {
       
   override def unpickle:SyncableMap[Serializable, Syncable] = {
     val map = super.unpickle.asInstanceOf[SyncableMap[Serializable, Syncable]]
@@ -146,7 +185,21 @@ class PickledMap(ref:SyncableReference, ver:String,
           throw new ImplementationError      
       }
     new PickledMap(reference, change.versionChange.now, properties, watches, revisedMembers)
-  } 
+  }
+  override def addWatch(watch:PickledWatch):PickledMap = {
+    val moreWatches = watches + watch
+    val pickled = new PickledMap(reference, version, properties, moreWatches, members)    
+    trace("PickledMap addWatch() %s", pickled)    
+    pickled
+  }
+  
+  // SCALA - can we DRY these, maybe with 2.8 copy named parameters?
+  override def deleteWatch(watch:PickledWatch):PickledMap = {
+    val moreWatches = watches - watch
+    val pickled = new PickledMap(reference, version, properties, moreWatches, members)    
+    trace("PickledMap deletewatch() %s", pickled)    
+    pickled
+  }
 
 }
     

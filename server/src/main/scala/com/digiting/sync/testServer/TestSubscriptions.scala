@@ -75,7 +75,7 @@ object TestSubscriptions extends LogHelper {
         case mod:PropertyChange =>  
           log.trace("modifyReference: %s", mod)
           mod.target.target orElse {abort("modifyReference")} foreach {found =>
-            val root = found.asInstanceOf[TestRefObj]
+            val root = found.asInstanceOf[TestRefObj[TestRefObj[_]]]
             val insertRef = new TestRefObj(root.ref)
             root.ref = insertRef
           }
@@ -162,7 +162,7 @@ object TestSubscriptions extends LogHelper {
     def modified(change:DataChange) {
       partialMatch(change) {
         case p:PropertyChange => 
-          val ref:TestRefObj = expectSome(p.target.target)
+          val ref:TestRefObj[SyncableSeq[TestNameObj]] = expectSome(p.target.target)
           val seq = new SyncableSeq[TestNameObj]
           seq += new TestNameObj("don't duplicate me")
           ref.ref = seq

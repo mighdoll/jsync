@@ -68,7 +68,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         store get instanceId orElse {
           abort("collection target not found: %s", change)
         } foreach {pickled =>
-          val pickledCollection = pickled.asInstanceOf[PickledCollection]
+          val pickledCollection = pickled.asInstanceOf[PickledCollection[_]]
           store(instanceId) = pickledCollection.revise(collectionChange)
         }
       case observe:ObserveChange =>

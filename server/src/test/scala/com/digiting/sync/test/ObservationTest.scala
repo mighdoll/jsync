@@ -37,7 +37,7 @@ class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
     
     it("it should be able to defer notification") {
       withTestFixture {
-        val ref = new TestRefObj
+        val ref = TestRefObj[TestRefObj[_]]()
         Observers.watch(ref, "test", changed)
         Observers.pauseNotification {
           ref.ref = ref
@@ -52,9 +52,8 @@ class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
   describe("Observation.watchDeep") {
     it("should stop watching objects that are no longer referenced") {
       withTestFixture {
-        val root = new TestRefObj
-        val one = new TestNameObj
-        root.ref = one
+        val one = TestNameObj()
+        val root = TestRefObj(one)
         Observers.watchDeep(root, changed, changed, this)	// generates two watch change events
         root.ref = null	// generates one prop change, and one unwatch change
         log.trace("changes: \n%s", changes mkString("\n"))
@@ -66,9 +65,9 @@ class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
     
     it ("should see changes in a reference chain") {
       withTestFixture {
-        val obj = new TestRefObj()
-        val obj2 = new TestRefObj()
-        val obj3 = new TestRefObj()
+        val obj = TestRefObj[TestRefObj[_]]
+        val obj2 = TestRefObj[TestRefObj[_]]()
+        val obj3 = TestRefObj[TestRefObj[_]]()
         obj.ref = obj2			// two watch changes
 
         Observers.watchDeep(obj, changed, changed, this)
@@ -83,7 +82,7 @@ class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
 
     it("should see changes in a tree") {
       withTestFixture {
-        val root = new TestRefObj
+        val root = new TestRefObj[Syncable]
         Observers.watchDeep(root, changed, changed, this)	// watch
         val branch = new TestTwoRefsObj			
         val one,two = new TestNameObj

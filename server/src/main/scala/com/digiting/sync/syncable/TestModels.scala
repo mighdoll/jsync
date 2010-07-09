@@ -31,9 +31,14 @@ class TestValueObj extends Syncable {
   var value:String = _
 }
 
-class TestRefObj(var ref:Syncable) extends Syncable {
-  def this() = this(null)
+class TestRefObj[T <: Syncable](var ref:T) extends Syncable {
+  def this() = this(null.asInstanceOf[T])
   val kind = "$sync.test.refObj"
+}
+
+object TestRefObj {
+  def apply[T <:Syncable](ref:T) = new TestRefObj[T](ref)
+  def apply[T <:Syncable]() = new TestRefObj[T]()
 }
 
 class TestTwoRefsObj extends Syncable {
@@ -63,14 +68,13 @@ class TestPrimitiveProperties extends Syncable {
 class KindVersion extends Syncable {
   val kind = "$sync.test.kindVersioned"
   override def kindVersion = "1"
-  var ref:TestRefObj = _
+  var ref:TestRefObj[TestNameObj] = _
 }
 
 class KindVersion0 extends Syncable with Migration[KindVersion] {
   val kind = "$sync.test.kindVersioned"
   var ref:TestNameObj = _
   def copyTo(newVersion:KindVersion) {
-    newVersion.ref = new TestRefObj
-    newVersion.ref.ref = ref
+    newVersion.ref = TestRefObj(ref)
   }
 }

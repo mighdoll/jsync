@@ -59,7 +59,7 @@ object ProtocolReferenceTestServer extends LogHelper {
   val log = Logger("ProtocolReferenceTestServer")
   
   @ImplicitService
-  def serveTest(ref:TestRefObj):Syncable = {
+  def serveTest(ref:TestRefObj[TestNameObj]):Syncable = {
     App.withTransientPartition {
       ref.ref match {
         case name:TestNameObj if (name.name == "fred") =>
