@@ -16,7 +16,7 @@ package com.digiting.sync
 import collection.mutable
 import java.util.concurrent.ConcurrentLinkedQueue
 import collection.mutable.ListBuffer
-import net.lag.logging.Logger
+import com.digiting.util.Log2._
 
 /** a pool of syncable objects.  
  * 
@@ -25,7 +25,7 @@ import net.lag.logging.Logger
  * changes.
  */
 class WatchedPool(name:String) {
-  val log = Logger("WatchedPool")
+  implicit private val log = logger("WatchedPool")
   type CommitWatchFn = (Seq[ChangeDescription]) => Unit
   
   // holds all syncable objects we're caching in RAM, indexed by partition/id
@@ -33,31 +33,35 @@ class WatchedPool(name:String) {
 
   // changes made to any object in the pool
   private val changes = new ConcurrentLinkedQueue[ChangeDescription]	
-
-  // notifications to call on commit()
-  private val commitWatchers = mutable.Set[CommitWatchFn]()
     
   /** find an object from the pool */
   def get(partition:String, id:String):Option[Syncable] = localObjects get key(partition, id)
 
   /** add a created change event for an object we've already added to the queue */
   def created(syncable:Syncable) = {
-    log.ifTrace("created" + syncable)
+    trace2("created" + syncable)
     assert (localObjects contains key(syncable))
     changes add CreatedChange(SyncableReference(syncable), Pickled(syncable),
-      VersionChange(syncable.version, syncable.version))    
+      VersionChange(syncable.version, syncable.version))   
+    // TODO CONSIDER generating the CreatedChange somewhere that makes more sense..
   }
 
   /** put an object into the pool */
-  def put(syncable:Syncable) = {
-    log.ifTrace("put" + syncable)
-    localObjects put (key(syncable), syncable)
-    Observers.watch(syncable, this, changeNoticed)
+  def put(syncable:Syncable) {
+    log.ifTrace("put" + syncable)   
+    localObjects get (key(syncable)) map {found =>
+      warn2("put() but it's already in map: %s %s", found, syncable)
+      localObjects put (key(syncable), syncable) // might be a revised instance..
+    } orElse {
+      localObjects put (key(syncable), syncable) // might be a revised instance..
+      Observers.watch(syncable, this, changeNoticed)
+      None
+    } 
   }
 
   /** called when any object in the pool is change */
   def changeNoticed(change:ChangeDescription) = {
-    log.ifTrace {"changeNoticed: " + change}
+    trace2({"changeNoticed: " + change})
     changes add change
   }
 
@@ -68,10 +72,8 @@ class WatchedPool(name:String) {
 
   /** print entire pool for debugging porpoises */
   def printLocal {
-    log.trace("local objects: ")
-    for (local <- localObjects) {
-      log.ifTrace("  " + local)
-    }
+    info2("local objects: ")
+    info2({localObjects mkString("  ", "  ", "")})
   }
 
   def drainChanges():Seq[ChangeDescription] = {
@@ -83,14 +85,10 @@ class WatchedPool(name:String) {
         taken = changes.poll
       }
     }
-    log.ifTrace{drained map {"commit()ing: " + _.toString} mkString("\n")}
+    trace2({drained map {"drainChanges: " + _.toString} mkString("\n")})
     drained
   }
     
-  /** register for a callback on commit */
-  def watchCommit(func:(Seq[ChangeDescription])=>Unit) {
-    commitWatchers + func
-  }
 
   /** index by key and partition id */    // TODO DRY with Syncable.compositeId 
   private def key(partition:String, id:String):String = partition + "/" + id

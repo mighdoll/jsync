@@ -14,6 +14,7 @@
  */
 package com.digiting.sync
 import java.security.SecureRandom
+import com.digiting.util._
 
 class ProtocolException(message:String) extends Exception(message) {
   def this() = this("")
@@ -32,7 +33,7 @@ object RandomIds {
    */
   def randomUriString(length:Int):String = {    
     val legalChars = 
-      "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~*().-"
+      "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     val s = new StringBuilder
     0 until length foreach { _ =>	
       val dex = random.nextInt(legalChars.length)
@@ -42,6 +43,19 @@ object RandomIds {
     s.toString
   }
   
+  def randomId(length:Int):String = {
+    Configuration.getString("UniqueIds") match {
+      case Some("debug") => debugId()
+      case _ => randomUriString(length)  
+    }
+  }
+  
+  var nextId = 0
+  def debugId():String = synchronized {
+    val result = nextId.toString
+    nextId = nextId + 1
+    result
+  }
 }
 
 object StringUtil {

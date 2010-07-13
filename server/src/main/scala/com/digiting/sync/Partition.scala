@@ -16,7 +16,9 @@ package com.digiting.sync
 
 import scala.util.DynamicVariable
 import com.digiting.util._
-import Partition._
+import Log2._
+import Partition.Transaction
+import Partition.InvalidTransaction
 
 /** A storage segment of syncable objects 
  * 
@@ -27,8 +29,8 @@ import Partition._
  * put() is called, the data is lost.
  */
 abstract class Partition(val partitionId:String) extends RamWatches 
-    with ConcretePartition with LogHelper {  
-  protected lazy val log = logger("Partition")
+    with ConcretePartition { 
+  implicit private lazy val log2 = logger("Partition")
   val id = PartitionId(partitionId)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
   private[sync] val published = new PublishedRoots(this)
@@ -53,14 +55,14 @@ abstract class Partition(val partitionId:String) extends RamWatches
           syncable:Syncable = pickled.unpickle // loads referenced objects too
         } yield syncable
       }
-    log.trace("#%s get(%s) = %s", partitionId, instanceId, syncable)
+    trace2("#%s get(%s) = %s", partitionId, instanceId, syncable)
     syncable
   }
   
     /** create, update, delete or observer an object or a collection */
   def modify(change:StorableChange) { 
     inTransaction {tx => 
-      trace("#%s update(%s)", partitionId, change)
+      trace2("#%s update(%s)", partitionId, change)
       modify(change, tx)
       tx.changes += change
     }    

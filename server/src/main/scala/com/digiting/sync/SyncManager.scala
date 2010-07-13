@@ -270,7 +270,7 @@ object SyncManager extends LogHelper {
   
   /** create a unique id for a new syncable */
   private def randomInstanceId():String = {
-    "s_" + RandomIds.randomUriString(32);
+    "s_" + RandomIds.randomId(32);
   }  
   
 }

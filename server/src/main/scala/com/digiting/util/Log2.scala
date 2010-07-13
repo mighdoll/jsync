@@ -34,6 +34,11 @@ object Log2 {
     log.error(message, params:_*)
     None
   }
+  /** Level 930 logging wrapper.  Returns None so it can be used in for comprehensions */ 
+  def error2[T](message:String, params:Any*)(implicit log:Logger):Option[T] = {
+    log.error(message, params:_*)
+    None
+  }
   /** Level 970 logging wrapper.  Returns None so it can be used in for comprehensions */ 
   def critical2[T](message:String, params:Any*)(implicit log:Logger):Option[T] = {
     log.critical(message, params:_*)
@@ -54,7 +59,7 @@ object Log2 {
   }
   
   /** log an error and throw an exception */
-  def abort2(message:String, params:AnyRef*)(implicit log:Logger) {
+  def abort2[T](message:String, params:AnyRef*)(implicit log:Logger):T = {
     val errorMessage = String.format(message, params:_*)
     fatal2(errorMessage)
     throw new ImplementationError(errorMessage)

@@ -45,7 +45,6 @@ abstract sealed class MembershipChange(val operation:String,
   val newValue:SyncableId, val oldValue:SyncableId, versionChange:VersionChange) 
   extends CollectionChange(versionChange) {
   override def toString = (super.toString + " ." + operation + "(" + newValue + ")  was(" + oldValue + ")")
-  override def references = super.references ++ List(newValue)
 }
 
  
@@ -70,11 +69,9 @@ case class DeletedChange(val target:SyncableReference,
  
 //       -----------------  collection Data changes --------------------  
 
-trait SeqChange
-
 /** remove all contents from a collection */
 case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
-  versions:VersionChange) extends CollectionChange(versions) with SeqChange {
+  versions:VersionChange) extends CollectionChange(versions) {
   def operation = "clear"
 }
 
@@ -86,19 +83,22 @@ case class PutChange(val target:SyncableId, newVal:SyncableReference, versions:V
   
 /** remove from a set*/  
 case class RemoveChange(val target:SyncableId, oldVal:SyncableReference, versions:VersionChange) 
-  extends MembershipChange("remove", null, oldVal, versions) 
+  extends MembershipChange("remove", null, oldVal, versions) {  // CONSIDER null is evil
+    
+	override def references = super.references ++ List(oldValue)
+}
 
 /* remove from a seq*/
 case class RemoveAtChange(val target:SyncableId, at:Int, oldVal:SyncableId,
     versions:VersionChange) 
-  extends MembershipChange("removeAt", null, oldVal, versions) with SeqChange {
+  extends MembershipChange("removeAt", null, oldVal, versions) {
   override def toString = (super.toString + " at:" + at)
 }
   
 /** add to a seq */
 case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:Int,
     versions:VersionChange) 
-  extends MembershipChange("insertAt", newVal, null, versions) with SeqChange {
+  extends MembershipChange("insertAt", newVal, null, versions) {
   
   override def toString = (super.toString + " at:" + at)
   override def references = newVal.id :: super.references 

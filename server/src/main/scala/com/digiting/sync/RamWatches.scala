@@ -9,10 +9,10 @@ import Partition.Transaction
 /** supports registering functions as watches on a partition.  The watch functions
  * are not persistent, so they're lost if the server is rebooted.
  */
-
-trait RamWatches extends LogHelper {
+trait RamWatches {
   self: Partition =>
-  
+  import Log2._
+  implicit private val log = logger("RamWatches")
   type PartitionWatchFn = (Seq[DataChange])=>Unit
 
   val watchFns = new ConcurrentHashMap[RequestId, PartitionWatchFn]
@@ -35,7 +35,7 @@ trait RamWatches extends LogHelper {
     if (fn != null) {
       fn(changes)
     } else {
-      err("notify() can't find fn for %s  for change:%s", pickledWatch, changes)
+      err2("notify() can't find fn for %s  for change:%s", pickledWatch, changes)
     }   
   }
   

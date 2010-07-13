@@ -26,44 +26,56 @@ trait ContextPartitionGateway  {
   private def makePartitionWatchFn(partitionId:PartitionId):PickledWatch = {
 	  val partition = Partitions(partitionId)
     val pickled = partition.pickledWatchFn(
-      {partitionChange(partition,_)}, partitionWatchTimeout)
+      {partitionChanged(partition,_)}, partitionWatchTimeout)
     watchFns(partitionId) = pickled
     pickled
   }
 
-  /** called when we receive a change from the partition */
-  private def partitionChange(partition:Partition, changes:Seq[DataChange]) {
-    changes.first.target.partitionId
+  /** called when we receive a transactions worth of changes from the partition */
+  private def partitionChanged(partition:Partition, changes:Seq[DataChange]) {
+    withApp {
+      changes.first.target.partitionId
+    
+      changes foreach {trace2("#%s Change received from partition %s", debugId, _)}
   
-    changes foreach {trace2("#%s Change received from partition %s", debugId, _)}
+      changes flatMap {_.references} foreach {get(_)}
 
-    changes flatMap {_.references} foreach {get(_)}
-    Observers.withMutator(partition.partitionId) {
-      for {
-        change <- changes
-      } {
-        modify(change)
-      }
-    }
+      Observers.pauseNotification {
+        Observers.withMutator(partition.partitionId) {  // TODO, I think we can get rid of this withMutator
+          changes foreach {modify(_)}
+        }
+        Observers.releasePaused {_ == instanceCache}
+        val toss = instanceCache.drainChanges()         
+        trace2({"partitionChanged() tossing partition changes: " +
+                (toss mkString("\n\ttoss: ", "\n\ttoss: ", ""))})
+      } // app notification released here, possibly generating more changes
+    } // client and any partition notification (of app changes subsequent to toss above) sent here, in withApp.commit()
+    
+    /* SOON - consider revising this.  apps should queue notifications (as the instanceCache
+     * and subscriptions do), rather than relaying watches immediately.  Then we can stop this
+     * pauseNotification silliness and just manipulate the queues directly.  
+     */
   }
   
+  /** apply one modification */
   private def modify(change:DataChange) {
-    change match {
-      case created:CreatedChange => NYI()
-      case property:PropertyChange => 
-        withGetId(property.target) {obj =>
-        	trace2("#%s applying property: %s", debugId, change)
-          SyncableAccessor(obj).set(obj, property.property, getValue(property.newValue))          
-        }
-      case deleted:DeletedChange => NYI()
-      case collectionChange:CollectionChange => 
-        withGetId(collectionChange.target) {obj =>
-          trace2("#%s collectionChange : %s", debugId, change)
-          obj match {
-            case collection:SyncableCollection => collection.revise(collectionChange)
+    remoteChange.withValue(change) {
+      change match {
+        case created:CreatedChange => NYI()
+        case property:PropertyChange => 
+          withGetId(property.target) {obj =>
+          	trace2("#%s applying property: %s", debugId, change)
+            SyncableAccessor(obj).set(obj, property.property, getValue(property.newValue))          
           }
-        }
-      
+        case collectionChange:CollectionChange => 
+          withGetId(collectionChange.target) {obj =>
+            trace2("#%s collectionChange : %s", debugId, change)
+            obj match {
+              case collection:SyncableCollection => collection.revise(collectionChange)
+            }
+          }
+        case deleted:DeletedChange => NYI()        
+      }
     }
   }
   

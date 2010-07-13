@@ -49,8 +49,8 @@ object Observers extends LogHelper {
   case class Watcher(changed:DataChangeFn, watchClass:Any)    
   case class Notification(watcher:Watcher, change:DataChange)
   
-  var currentMutator = new DynamicVariable("server") 						// 'source' of current changes, tagged onto all observations
-  private var watchers = new MultiMap[Syncable, Watcher]  				// watch one observable  CONSIDER can we use std library MultiMap?
+  var currentMutator = new DynamicVariable("server") 				// 'source' of current changes, tagged onto all observations
+  private var watchers = new MultiMap[Syncable, Watcher]  			// watch one observable  
   private val deepWatches = new MultiMap[Syncable, DeepWatch]()		// watch a connected set of observables
   private var holdNotify = new DynamicVariable[Option[mutable.ListBuffer[Notification]]](None)
   
@@ -64,7 +64,7 @@ object Observers extends LogHelper {
           val versionChange = syncable.newVersion()
           val change = PropertyChange(targetId, property, SyncableValue.convert(newValue), 
             SyncableValue.convert(oldValue), versionChange)
-          Observers.notify(change)
+          App.app.updated(syncable, change)
         }
       }
     }
@@ -103,11 +103,15 @@ object Observers extends LogHelper {
     }
   }
   
+  var noticeDisabled = false  // whether notices are currently disabled (for debugging)
   def withNoNotice[T](fn: => T):T = {
     // just use a pause buffer and throw away the contents 
     holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
       log.trace("notices disabled")
+      val oldNoticeDisabled = noticeDisabled
+      noticeDisabled = true
       val result = fn
+      noticeDisabled = oldNoticeDisabled
       log.trace("notices re-enabled")
       result
     }

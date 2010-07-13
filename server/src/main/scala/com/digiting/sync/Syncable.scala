@@ -15,9 +15,9 @@
 package com.digiting.sync
 
 import com.digiting.sync.aspects.Observable
-import net.lag.logging.Logger
-import net.lag.logging.Level._
 import SyncManager.NextVersion
+import com.digiting.util._
+import Log2._
 
 /**
  * All objects participating in the syncable system must extend Syncable.  Syncable
@@ -42,23 +42,13 @@ trait Syncable extends Observable {
   def kindVersion = "0"  // 'schema' version of this kind, (used to support data migration)
   def partition = Partitions.getMust(id.partitionId.id)	// partition this object calls home
   var version = "initial"           // instance version of this object
-  private val _log = Logger("Syncable")
+  implicit private lazy val _log = logger("Syncable")
   def fullId = id   // TODO get rid of this
 
   SyncManager.created(this)
   
   override def toString:String = {
-    val partitionStr = 
-      if (partition == null) 
-        "partition?" 
-      else 
-        partition.partitionId
-        
-    if (_log.getLevel != null && _log.getLevel.intValue >= TRACE.intValue) {    
-      JsonUtil.toJson(Message.toJsonMap(this), 0, true)      
-    } else {
-      String.format("{%s:%s}", shortKind, compositeId)
-    }
+    String.format("{%s:%s}", shortKind, compositeId)
   }
   
   def shortCompositeId:String = id.partitionId.id.take(4) + "/" + id.instanceId.id.take(5)
@@ -86,15 +76,15 @@ trait Syncable extends Observable {
   
   private[sync] def newVersion():VersionChange = {
     val oldVersion = version
-    version = 
+    val newVersion = 
       SyncManager.setNextVersion.take match {
         case Some(NextVersion(syncable, version)) =>
           assert(syncable == this)
           version
         case None => 
-          RandomIds.randomUriString(10)
+          "v" + RandomIds.randomId(10)
       }
-    VersionChange(oldVersion, version)
+    VersionChange(oldVersion, newVersion)
   }
   
   /* CONSIDER override def hashCode = id.hashCode  */    
@@ -109,7 +99,7 @@ trait LocalOnly
  * LATER make this a generic mechansim that any syncable can implement
  */
 object SyncableInfo {
-  val log = Logger("SyncableInfo")
+  implicit private lazy val log = logger("SyncableInfo")
   /* true if the field isn't a user settable property (e.g. it's the sync id field) */
   def isReserved(fieldName:String):Boolean = {    
     val result = 
@@ -124,7 +114,7 @@ object SyncableInfo {
         case _ if fieldName startsWith "_" => true
         case _ => false
       }
-    log.trace("isReserved %s = %s", fieldName, result)
+    trace2("isReserved %s = %s", fieldName, result)
 
     result
   }

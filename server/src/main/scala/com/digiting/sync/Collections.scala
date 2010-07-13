@@ -58,32 +58,36 @@ import Log2._
  */
 class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def kind = "$sync.sequence"
-  implicit lazy val log = Logger("SyncableSeq")
+  implicit private lazy val log = logger("SyncableSeq")
   val list = new mutable.ArrayBuffer[T]
   
   def syncableElements:Seq[Syncable] = {
     list.clone
   }
   
-  override def revise(change:CollectionChange) {
+  override def revise(change:CollectionChange) {  
     trace2("revise: %s", change)
     change match {
       case insertAt:InsertAtChange =>
         val elem = App.app.get(insertAt.newVal) getOrElse abort2("revise() can't find find newVal %s", change)
       	insert(insertAt.at, elem.asInstanceOf[T])
+      case removeAt:RemoveAtChange =>
+        remove(removeAt.at)
       case _ => NYI()
     }
   }
   
-  def insert(index:Int, elem:T) = {
-    list.insert(index, elem)
-    Observers.notify(InsertAtChange(this.fullId, SyncableReference(elem), index, newVersion()))
+  def insert(index:Int, elem:T)  {
+    list.insert(index, elem)    
+    val proposed = InsertAtChange(this.fullId, SyncableReference(elem), index, newVersion())
+    App.app.updated(this, proposed)
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    Observers.notify(RemoveAtChange(this.fullId, index, origValue.fullId, newVersion()))    
+    val proposed = RemoveAtChange(this.fullId, index, origValue.fullId, newVersion())    
+    App.app.updated(this, proposed)
   }
   
   def toStream = list.toStream
@@ -98,7 +102,8 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def clear() = {
     val cleared = syncableElementIds
     list.clear();
-    Observers.notify(new ClearChange(this.fullId, cleared, newVersion()));
+    val proposed = new ClearChange(this.fullId, cleared, newVersion())
+    App.app.updated(this, proposed)
   }
   
   def map[C](fn: (T)=> C):Seq[C] = list.map(fn)
@@ -120,7 +125,8 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
     val elem = list(fromDex)
     list.remove(fromDex)
     list.insert(toDex, elem)            
-    Observers.notify(new MoveChange(this.fullId, fromDex, toDex, newVersion()))
+    val proposed = new MoveChange(this.fullId, fromDex, toDex, newVersion())
+    App.app.updated(this, proposed)
   }
   
   def toList = list.toList
@@ -135,14 +141,15 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
 
   def -=(elem:T) = {
     set -= elem
-    Observers.notify(new RemoveChange(fullId, SyncableReference(elem), newVersion()));
+    val proposed = new RemoveChange(fullId, SyncableReference(elem), newVersion())
+    App.app.updated(this, proposed)
   }
   
   def +=(elem:T) = {
     set += elem
     val putChange = PutChange(fullId, SyncableReference(elem), newVersion())
     log.trace("put: %s", putChange)
-    Observers.notify(putChange);
+    App.app.updated(this, putChange)
   }
 
   def contains(elem:T) = set contains elem
@@ -152,7 +159,8 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   override def clear() = {
     val cleared = syncableElementIds
     set.clear();
-    Observers.notify(new ClearChange(fullId, cleared, this.newVersion()));
+    val proposed = new ClearChange(fullId, cleared, this.newVersion())
+    App.app.updated(this, proposed)
   }
 
   def syncableElements:Seq[Syncable] = {
@@ -181,15 +189,17 @@ class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V]
       case _ =>
     }
     val oldValueOpt = get(key) map {SyncableReference(_)}
-    Observers.notify(PutMapChange(this.fullId, key, oldValueOpt, 
-        SyncableReference(value), newVersion() ))
+    val proposed = PutMapChange(this.fullId, key, oldValueOpt, 
+        SyncableReference(value), newVersion() )
     super.update(key,value)
+    App.app.updated(this, proposed)
   }
   
   override def clear {
     val members = syncableElements map {_.fullId}
-    Observers.notify(ClearChange(this.fullId, members, newVersion() ))
     super.clear()
+    val proposed = ClearChange(this.fullId, members, newVersion())
+    App.app.updated(this, proposed)
   }
   
   override def removeEntry(key:K):Option[Entry] = {
@@ -202,7 +212,8 @@ class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V]
     }
     
     val result = super.removeEntry(key)
-    Observers.notify(RemoveMapChange(this.fullId, key, oldValue, newVersion()))
+    val proposed = RemoveMapChange(this.fullId, key, oldValue, newVersion())
+    App.app.updated(this, proposed)
     result
   }
   

@@ -15,10 +15,11 @@
 package com.digiting.sync
 import net.lag.logging.Logger
 import com.digiting.util._
+import Log2._
 
 /** utiliy routines to bulk load SyncableReferences, useful for loading the members of a collection */
-object LoadReferences extends LogHelper {
-  val log = Logger("LoadRefs")  
+object LoadReferences {
+  implicit private val log = logger("LoadRefs")  
   
     /** SOON parallel or batch load multiple objects from the backend for speedier loading from e.g. simpledb */
   def loadRefs(collection:SyncableCollection, 
@@ -26,7 +27,7 @@ object LoadReferences extends LogHelper {
     for {
       ref <- refs
       syncable <- App.app.get(ref.id) orElse
-        err("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
+        err2("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield 
       syncable
   }
@@ -36,7 +37,7 @@ object LoadReferences extends LogHelper {
     for {
       (key, ref) <- refs
       syncable <- App.app.get(ref) orElse 
-        err("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
+        err2("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield {
       (key, syncable)
     }

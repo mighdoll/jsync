@@ -17,9 +17,8 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Buffer
 import com.digiting.util._
 import collection.mutable.HashMap
-import com.digiting.util.LogHelper
 import java.io.Serializable
-import Partition._
+import Partition.Transaction
 import collection.immutable
 
 /**
@@ -27,8 +26,9 @@ import collection.immutable
  * 
  * (Note that this implemenation does not respect transactions.)
  */
-class RamPartition(partId:String) extends Partition(partId) with LogHelper {
-  protected override lazy val log = logger("RamPartition")
+import Log2._
+class RamPartition(partId:String) extends Partition(partId) {
+  implicit private lazy val log2 = logger("RamPartition")
 
   protected val store:collection.mutable.Map[InstanceId,Pickled] = new HashMap[InstanceId, Pickled] 
   
@@ -36,7 +36,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     
-    log.trace("get #%s %s, found: %s", partId, instanceId, result getOrElse "")
+    trace2("get #%s %s, found: %s", partId, instanceId, result getOrElse "")
     result
   }
 
@@ -44,7 +44,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
     get(instanceId, tx) match {
       case Some(pickled) => pickled.watches
       case _ =>
-        err("getWatches can't find instanceId: %s", instanceId)
+        err2("getWatches can't find instanceId: %s", instanceId)
         immutable.Set.empty
     }
   }
@@ -58,7 +58,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         put(created.pickled)
       case prop:PropertyChange =>
         get(instanceId, tx) orElse {  
-          err("target of property change not found: %s", prop) 
+          err2("target of property change not found: %s", prop) 
         } foreach {pickled =>
           store(instanceId) = pickled + prop
         }
@@ -66,7 +66,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
         throw new NotYetImplemented
       case collectionChange:CollectionChange =>
         store get instanceId orElse {
-          abort("collection target not found: %s", change)
+          abort2("collection target not found: %s", change)
         } foreach {pickled =>
           val pickledCollection = pickled.asInstanceOf[PickledCollection[_]]
           store(instanceId) = pickledCollection.revise(collectionChange)
@@ -91,7 +91,7 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
   }
 
   private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
-    trace("put %s ", pickled)
+    trace2("put %s ", pickled)
     store += (pickled.reference.instanceId -> pickled)
   }
   
@@ -100,21 +100,21 @@ class RamPartition(partId:String) extends Partition(partId) with LogHelper {
       case Some(pickled) => 
         fn(pickled)
       case _ =>
-        abort("watch() can't find instance %s", instanceId)
+        abort2("watch() can't find instance %s", instanceId)
     }
   }  
   
 
   def deleteContents() = synchronized {
     for {(id, pickled) <- store} {
-      log.trace("deleting: %s", pickled)
+      trace2("deleting: %s", pickled)
       store -= (id)
     }
   }
 
   override def debugPrint() {
     for {(_,value) <- store} {
-      log.info("  %s", value.toString)
+      info2("  %s", value.toString)
     }
   }
 }

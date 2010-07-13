@@ -16,13 +16,13 @@ package com.digiting.sync
 import scala.collection.mutable.HashMap
 import SyncableInfo.isReserved
 import SyncManager.newBlankSyncable
-import net.lag.logging.Logger
 import com.digiting.util._
 import java.io.Serializable
 import scala.collection.{mutable,immutable}
+import Log2._
 
 object Pickled {
-  val log = Logger("Pickled")
+  implicit private val log = logger("Pickled")
   def apply[T <: Syncable](reference:SyncableReference, version:String,
       properties:Map[String, SyncableValue]) =
     new Pickled(reference, version, properties, Set.empty)
@@ -38,7 +38,7 @@ object Pickled {
     val props = new HashMap[String, SyncableValue]
     for {
       (prop, value) <- SyncableAccessor.properties(syncable) if !isReserved(prop)
-      a = log.trace("pickling %s: %s %s", syncable.fullId, prop, value)
+      a = trace2("pickling %s: %s %s", syncable.fullId, prop, value)
       syncValue = SyncableValue.convert(value)
     } {
       props + (prop -> syncValue)
@@ -69,19 +69,21 @@ case class PickledWatch (val clientId:ClientId, val requestId:RequestId, val exp
 
 @serializable
 class Pickled(val reference:SyncableReference, val version:String,
-    val properties:Map[String, SyncableValue], val watches:Set[PickledWatch]) extends LogHelper {
-  protected val log = Logger("Pickled")
+    val properties:Map[String, SyncableValue], val watches:Set[PickledWatch])  {
+  implicit private val log = logger("Pickled")
   
   def unpickle:Syncable = {
     val syncable:Syncable = newBlankSyncable(reference.kind, reference.id) 
+    syncable.version = version
     val classAccessor = SyncableAccessor.get(syncable.getClass)
-    Observers.withNoNotice {
+    App.app.instanceCache put syncable  // CONSIDER should this be done here?
+    Observers.withNoNotice {  
       for ((propName, value) <- properties) {
         classAccessor.set(syncable, propName, unpickleValue(value.value))
       }
     }
-    App.app.instanceCache put syncable  // CONSIDER should this be done here?
-    
+
+    trace2("unpickled %s", syncable)
     syncable
   }
   
@@ -90,7 +92,7 @@ class Pickled(val reference:SyncableReference, val version:String,
       case ref:AnyRef => ref      // matches almost everything
       case null => null
       case x => 
-        err("boxValue unexpected code path for: " + x)
+        err2("boxValue unexpected code path for: " + x)
         throw new ImplementationError
     }
   }
@@ -99,7 +101,7 @@ class Pickled(val reference:SyncableReference, val version:String,
     value match {
       case ref:SyncableReference =>
         App.app.get(ref) getOrElse {
-          err("unpickleValue can't find referenced object: ", ref)
+          err2("unpickleValue can't find referenced object: ", ref)
           throw new ImplementationError
         }          
       case other => boxValue(other)
@@ -108,9 +110,9 @@ class Pickled(val reference:SyncableReference, val version:String,
   
   /** return a new Pickled with the change applied */
   def +(propChange:PropertyChange):Pickled = {
-    log.trace("revise() %s", propChange)
+    trace2("revise() %s", propChange)
     if (propChange.versions.old != version) {
-      log.warning("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
+      warning2("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
         propChange.versions.old, version, propChange, this)
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
@@ -120,14 +122,14 @@ class Pickled(val reference:SyncableReference, val version:String,
   def +(watch:PickledWatch) = {
     val moreWatches = watches + watch
     val pickled = new Pickled(reference, version, properties, moreWatches)    
-    log.trace("+watch() %s", pickled)    
+    trace2("+watch() %s", pickled)    
     pickled
   }
   
   def -(watch:PickledWatch):Pickled = {
     val lessWatches = watches - watch
     val pickled = new Pickled(reference, version, properties, lessWatches)    
-    log.trace("-watch() %s", pickled)
+    trace2("-watch() %s", pickled)
     pickled
   }
   

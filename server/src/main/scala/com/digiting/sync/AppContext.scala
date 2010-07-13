@@ -15,58 +15,20 @@
 package com.digiting.sync
 import scala.util.DynamicVariable
 import Receiver.ReceiveMessage
-import com.digiting.util._
 import scala.collection.mutable
+import util._
+import Log2._
 
-/** thread local access to the currently running app context */
-object App extends LogHelper {
-  val log = logger("App(Obj)")
-  val current = new DynamicVariable[Option[AppContext]](None)
-  def currentAppName:String = current.value match {
-    case Some(app) => app.appName
-    case _ => "<no-current-app>"
-  }
-  
-  def withTransientPartition[T](fn: =>T):T = {
-    current.value match {
-      case Some(app:AppContext) => app.withTransientPartition(fn)
-      case _ => 
-        throw new ImplementationError()
-    }  
-  }
-  def app:AppContext = current.value getOrElse {abort("App.app() - no current app")}
-}
-
-trait HasTransientPartition { 
-  val transientPartition:Partition
-
-  def withTransientPartition[T] (fn: =>T):T = {
-    SyncManager.currentPartition.withValue(transientPartition) {
-      fn
-    }
-  }
-  
-}
-
-class GenericAppContext(connection:Connection) extends AppContext(connection) {
-  val appName = "generic-app-context"
-}
-
-object TempAppContext {
-  def apply(name:String):AppContext = {
-		new {val appName = name} with AppContext(new Connection(name + "-connection"))
-  }
-}
-
-/** App with the ability to connect syncable message queues to annotated service endpoints.  */
-abstract class RichAppContext(connection:Connection) extends AppContext(connection) with ImplicitServices
 
 // CONSIDER -- the apps should probably be actors..
 // NOTE - for now, we assume that each app context has one and only one connection
 abstract class AppContext(val connection:Connection) extends HasTransientPartition 
-  	with ContextPartitionGateway with LogHelper {
-  override val log = logger("AppContext")
+  	with ContextPartitionGateway  {
+  implicit private lazy val log = logger("AppContext")
   def appName:String
+  val remoteChange = new DynamicOnce[DataChange]
+  val versioningDisabled = new DynamicVariable[Boolean](false)
+
   override val transientPartition = new RamPartition(connection.connectionId)
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set")
@@ -84,16 +46,9 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
     * instance cache.  */
   def get(partitionId:String, syncableId:String):Option[Syncable] = {    
-    instanceCache get(partitionId, syncableId) orElse {
-      val foundOpt = Partitions.get(partitionId) match {
-        case Some(partition) => partition.get(InstanceId(syncableId)) 
-        case _ =>
-          log.error("unexpected partition in Syncables.get: " + partitionId)
-          None        
-      }
-      foundOpt map (instanceCache put _)  
-      foundOpt
-    }   
+    instanceCache get(partitionId, syncableId) orElse 
+      get(SyncableId(PartitionId(partitionId), InstanceId(syncableId)))
+       
   }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
@@ -101,7 +56,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   def get(ids:SyncableId):Option[Syncable] = {
     instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
       Partitions.get(ids.partitionId.id) orElse {
-        err("no partition found for: %s", ids.toString)
+        err2("no partition found for: %s", ids.toString)
       } flatMap {partition =>
         partition get ids.instanceId map {found =>
           instanceCache put found
@@ -110,7 +65,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       }
     }
   }
-
+  
   def commit() {
     val pending = subscriptionService.active.takePending()
     val changes = instanceCache.drainChanges()
@@ -163,15 +118,29 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-
-
+  def withNoVersioning[T](fn: =>T):T = {
+    versioningDisabled.withValue(true) {
+      fn
+    }
+  }
+  
+  /** after a syncable has been changed, update the version and trigger notification */
+  def updated(syncable:Syncable, proposed:DataChange) {   
+    val change = remoteChange.take() getOrElse proposed
+    Observers.notify(change)
+    if (!versioningDisabled.value) {
+    	syncable.version = change.versionChange.now
+    }
+    trace2("updated() changeNotify(%s) versioning(%s:%s) change: %s", 
+      !Observers.noticeDisabled, !versioningDisabled.value, syncable.version, change)
+  }
   
   /** utility for fetching an object and running a function with the fetched object */
   private[sync] def withGetId[T](id:SyncableId)(fn:(Syncable)=>T):T = {
     get(id) map fn match {
       case Some(result) => result
       case None =>
-        err("withGetId can't find: " + id) 
+        err2("withGetId can't find: " + id) 
         throw new ImplementationError
     }      
   }
@@ -189,7 +158,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
         change <- changes
         storableChange <- matchStorableChange(change)
         partition <- Partitions.get(change.target.partitionId.id) orElse 
-          err("partition not found for change: %s", change.toString)
+          err2("partition not found for change: %s", change.toString)
       } yield {
         (storableChange, partition)
       }
@@ -211,7 +180,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       }
     }
   }
-  
-
-  
 }
+   
+   
+

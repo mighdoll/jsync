@@ -14,10 +14,11 @@
  */
 package com.digiting.sync
 import com.digiting.util._
+import Log2._
 
-class InfinispanPartition(partId:String) extends RamPartition(partId) with LogHelper {
-  override protected lazy val log = logger("InfinispanPartition")
+class InfinispanPartition(partId:String) extends RamPartition(partId) {
+  implicit private lazy val log = logger("InfinispanPartition")
   override protected val store = new InifinispanCache[InstanceId, Pickled]
-  debug("creating %s", partId)
+  debug2("creating %s", partId)
   
 }

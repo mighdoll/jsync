@@ -52,9 +52,9 @@ object ProcessMessage extends LogHelper {
       	    // first release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
             Observers.releasePaused {_.isInstanceOf[DeepWatch]}
             
-            // second release notifications to the app watch pool (mutator doesn't matter for this)
+            // second release notifications to the app watch pool so the app sees a consistent version of changes (mutator doesn't matter for this as no further mutations are triggered)
             Observers.releasePaused {_ == app.instanceCache}
-          }          
+          }
         }          
         ; // third, release notifications to the app.  Responses are processed in app context 
       } catch {

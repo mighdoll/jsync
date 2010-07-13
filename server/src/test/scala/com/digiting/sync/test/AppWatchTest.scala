@@ -10,28 +10,28 @@ import com.digiting.sync.syncable.TestRefObj
 @RunWith(classOf[JUnitRunner])
 class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {  
   describe("AppWatch") {
-//    it("should see a property change") {      
-//      val (app1, app2, copy1, copy2) = withTwoApps { TestNameObj("water") }
-//      copy1 should not be (copy2)
-//      copy2.name should be ("water")
-//              
-//      app1.withApp {
-//        copy1.name = "oil"
-//      }
-//      copy2.name should be ("oil")
-//    }
-//    
-//    it("should see a property ref change") {
-//      val (app1, app2, copy1, copy2) = withTwoApps { 
-//        TestRefObj(TestNameObj("hummus")) 
-//      }
-//      copy2.ref.asInstanceOf[TestNameObj].name should be ("hummus")
-//      app1.withApp {
-//        copy1.ref = TestNameObj("tabouli")
-//      }
-//      copy2.ref.asInstanceOf[TestNameObj].name should be ("tabouli")      
-//      copy2.ref should not be (copy1.ref)
-//    }
+    it("should see a property change") {      
+      val (app1, app2, copy1, copy2) = withTwoApps { TestNameObj("water") }
+      copy1 should not be (copy2)
+      copy2.name should be ("water")
+              
+      app1.withApp {
+        copy1.name = "oil"
+      }
+      copy2.name should be ("oil")
+    }
+    
+    it("should see a property ref change") {
+      val (app1, app2, copy1, copy2) = withTwoApps { 
+        TestRefObj(TestNameObj("hummus")) 
+      }
+      copy2.ref.asInstanceOf[TestNameObj].name should be ("hummus")
+      app1.withApp {
+        copy1.ref = TestNameObj("tabouli")
+      }
+      copy2.ref.asInstanceOf[TestNameObj].name should be ("tabouli")      
+      copy2.ref should not be (copy1.ref)
+    }
     
     it("should see seq changes") {
       val (app1, app2, copy1, copy2) = withTwoApps { 
@@ -44,10 +44,10 @@ class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {
         copy1 += TestRefObj(TestNameObj("yamaha"))
       }
       copy2(1).ref.name should be ("yamaha")
-//      app1.withApp {
-//        copy2.remove(0)
-//      }
-//      copy2.length should be (1)      
+      app1.withApp {
+        copy1.remove(0)
+      }
+      copy2.length should be (1)      
     }
   }
   
