@@ -13,7 +13,7 @@
  *   limitations under the License.
  */
 package com.digiting.sync.test
-import org.scalatest.Spec
+import org.scalatest.Spec 
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import com.digiting.util.Configuration
@@ -36,18 +36,17 @@ class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
           old.obj = new TestNameObj("wheel")
           Pickled(old)
         }
-        1
         
-//        withTempContext {
-//          pickled.unpickle() match {
-//            case migrated:KindVersion =>
-//              migrated.kind should be (pickled.reference.kind)
-//              migrated.kindVersion should be ("1")
-//              migrated.obj.ref.asInstanceOf[TestNameObj].name should be ("wheel")
-//            case _ =>
-//              fail            
-//          }
-//        }      
+        withTempContext {
+          pickled.unpickle() match {
+            case migrated:KindVersion =>
+              migrated.kind should be (pickled.reference.kind)
+              migrated.kindVersion should be ("1")
+              migrated.obj.ref.asInstanceOf[TestNameObj].name should be ("wheel")
+            case _ =>
+              fail            
+          }
+        }      
       } 
     }        
   }

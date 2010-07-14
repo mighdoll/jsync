@@ -83,9 +83,17 @@ class Pickled(val reference:KindVersionedId, val instanceVersion:String,
         }
       }
     }
-
-    trace2("unpickled %s", syncable)
-    syncable
+  	
+    val latest = migrateToLatest(syncable)
+    trace2("unpickled %s", latest)
+    latest
+  }
+  
+  private def migrateToLatest(syncable:Syncable):Syncable = {
+    syncable match {
+      case migrator:MigrateTo[_] => migrator.migrate
+      case normal => normal
+    }
   }
   
   private def boxValue(value:Any):AnyRef = {

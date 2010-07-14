@@ -15,20 +15,21 @@
 package com.digiting.sync
 import SyncManager.newSyncable
 import com.digiting.util._
-import Log2._
+import Log2._ 
 
 /** a syncable of an old kind version that is migrated to a new class as it's read */
 trait MigrateTo[T <: Syncable] extends Syncable {
-  implicit private val log = logger("MigrateTo")
+  implicit private lazy val _log = logger("MigrateTo")
   /** copy data from the migrating instance to the new version */
   def copyTo(otherVersion:T)
  
   /** migrate this old instance to a current version one with the same id and version */
   def migrate:Syncable = {
+    App.app.instanceCache remove this
     val migrated:Syncable = Observers.withNoNotice {
       newSyncable(kind, id)
     } 
-    SyncManager.withPartition(partition) { // new objects in copy should go in same partition
+    SyncManager.withPartition(partition) { // put new objects copyTo() makes in same partition
       copyTo(migrated.asInstanceOf[T])
     }
     info2("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 

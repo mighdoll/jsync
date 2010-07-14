@@ -35,7 +35,7 @@ import Log2._
  * act as their own IDL (interface description language).
  */
 trait Syncable extends Observable {
-  implicit private lazy val xlog = logger("Syncable")
+  implicit private lazy val _log = logger("Syncable")
   val id = SyncManager.creating(this) // ask the sync manager for an identity for this new object
   var version = "initial"             // instance version of this object, changes every time the object is updated
   

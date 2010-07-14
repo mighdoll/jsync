@@ -64,7 +64,6 @@ object SyncManager extends LogHelper {
   reset()
 
   
-  
   /** For testing, reset as if we'd just rebooted.  */
   def reset() {
     currentPartition.value = null
@@ -73,7 +72,7 @@ object SyncManager extends LogHelper {
     setNextId.set(None)
   }
   
-  /** construct a new syncable instance in the specified partition with the specified class*/
+  /** construct a new syncable instance in the specified partition with the specified class */
   def newSyncable(kind:Kind, ids:SyncableId):Syncable = {
     metaAccessors.get(kind) match {
       case Some(meta) => 
@@ -116,7 +115,8 @@ object SyncManager extends LogHelper {
     }
   }
 
-
+  // TODO -- we have too many construction routines, clean this up.
+  
   /** reflection access to this kind of syncable */
   def propertyAccessor(syncable:Syncable):ClassAccessor = {
     propertyAccessor(syncable.kind)
