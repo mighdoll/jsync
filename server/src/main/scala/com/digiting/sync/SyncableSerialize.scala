@@ -46,8 +46,8 @@ object SyncableSerialize extends LogHelper {
       kind <- attributes get "kind" orElse
         err("createFromAttributes() no kind found for atributes %s", attributes.toString)
       kindVersion <- attributes get "kindVersion" orElse Some("0")    
-      ids = SyncableId(partition.id, instanceId)      
-      syncable = SyncManager.newBlankSyncable(kind, kindVersion, ids)  
+      versionedId = new KindVersionedId(partition.id, InstanceId(instanceId), kind, kindVersion)      
+      syncable = SyncManager.newBlankSyncable(versionedId)  
     } yield {
       Observers.withNoNotice {
         applyAttributes(syncable, attributes)

@@ -23,9 +23,9 @@ import Log2._
 
 object Pickled {
   implicit private val log = logger("Pickled")
-  def apply[T <: Syncable](reference:SyncableReference, version:String,
+  def apply[T <: Syncable](id:KindVersionedId, instanceVersion:String,
       properties:Map[String, SyncableValue]) =
-    new Pickled(reference, version, properties, Set.empty)
+    new Pickled(id, instanceVersion, properties, Set.empty)
   
   /**
    * Pickle the provided syncable
@@ -34,7 +34,7 @@ object Pickled {
    * contain add/put operations to fill the collection from its empty state.)  
    */
   def apply[T <: Syncable](syncable:T):Pickled = {
-    val ref = SyncableReference(syncable)
+    val ref = KindVersionedId(syncable)
     val props = new HashMap[String, SyncableValue]
     for {
       (prop, value) <- SyncableAccessor.properties(syncable) if !isReserved(prop)
@@ -68,13 +68,13 @@ case class RequestId (val id:String)
 case class PickledWatch (val clientId:ClientId, val requestId:RequestId, val expiration:Long)
 
 @serializable
-class Pickled(val reference:SyncableReference, val version:String,
+class Pickled(val reference:KindVersionedId, val instanceVersion:String,
     val properties:Map[String, SyncableValue], val watches:Set[PickledWatch])  {
   implicit private val log = logger("Pickled")
   
   def unpickle():Syncable = {
-    val syncable:Syncable = newBlankSyncable(reference.kind, reference)
-    syncable.version = version
+    val syncable:Syncable = newBlankSyncable(reference)
+    syncable.version = instanceVersion
     val classAccessor = SyncableAccessor.get(syncable.getClass)
     Observers.withNoNotice {  
       App.app.withNoVersioning {
@@ -112,9 +112,9 @@ class Pickled(val reference:SyncableReference, val version:String,
   /** return a new Pickled with the change applied */
   def +(propChange:PropertyChange):Pickled = {
     trace2("revise() %s", propChange)
-    if (propChange.versions.old != version) {
+    if (propChange.versions.old != instanceVersion) {
       warning2("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
-        propChange.versions.old, version, propChange, this)
+        propChange.versions.old, instanceVersion, propChange, this)
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
     new Pickled(reference, propChange.versions.now, updatedProperties, watches)
@@ -122,14 +122,14 @@ class Pickled(val reference:SyncableReference, val version:String,
   
   def +(watch:PickledWatch) = {
     val moreWatches = watches + watch
-    val pickled = new Pickled(reference, version, properties, moreWatches)    
+    val pickled = new Pickled(reference, instanceVersion, properties, moreWatches)    
     trace2("+watch() %s", pickled)    
     pickled
   }
   
   def -(watch:PickledWatch):Pickled = {
     val lessWatches = watches - watch
-    val pickled = new Pickled(reference, version, properties, lessWatches)    
+    val pickled = new Pickled(reference, instanceVersion, properties, lessWatches)    
     trace2("-watch() %s", pickled)
     pickled
   }
@@ -137,7 +137,7 @@ class Pickled(val reference:SyncableReference, val version:String,
   override def toString:String = {
     val props = properties map Function.tupled {(k,v) => k + "=" + v.toString}
     
-    String.format("<%s %s %s>", reference, version, props)
+    String.format("<%s %s %s>", reference, instanceVersion, props)
   }
   
 }

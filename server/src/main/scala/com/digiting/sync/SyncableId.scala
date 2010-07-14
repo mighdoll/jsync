@@ -66,8 +66,14 @@ class SyncableReference(partitionId:PartitionId, instanceId:InstanceId, val kind
   override def toString = super.toString + "[" + kind + "]"
 }
 
-/** a reference that also has a kind */
-class VerionedReference(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
+object KindVersionedId {
+  def apply(syncable:Syncable):KindVersionedId = 
+    new KindVersionedId(syncable.id.partitionId, syncable.id.instanceId, syncable.kind, syncable.kindVersion) 
+
+}
+
+/** a syncable id that includes a kind and a kindVersion */
+class KindVersionedId(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
 	extends SyncableReference(partitionId, instanceId, kind) {
    override def toString = SyncableId.toString +  "[" + kind + "-" + kindVersion + "]"
 } 

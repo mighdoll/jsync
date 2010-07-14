@@ -73,21 +73,11 @@ object SyncManager extends LogHelper {
     setNextId.set(None)
   }
   
-  /** untested.  create a local JsonMap for*/
-  private def constructLocalMapForSyncable(kind:Kind, ids:SyncableId):Option[SyncableJson] = {
-    // handle case we're we don't have a server class registered 
-    setNextId.withValue(ids) {
-      val js = new SyncableJson()
-      js.kind = kind
-      Some(js)
-    }        
-  }
-  
   /** construct a new syncable instance in the specified partition with the specified class*/
-  def newSyncable[T <: Syncable](kind:Kind, ids:SyncableId):T = {
+  def newSyncable(kind:Kind, ids:SyncableId):Syncable = {
     metaAccessors.get(kind) match {
       case Some(meta) => 
-        constructSyncable(meta.clazz.asInstanceOf[Class[T]], ids)
+        constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
       case None =>
         log.error("no server class found for kind: " + kind)
         NYI()
@@ -96,15 +86,15 @@ object SyncManager extends LogHelper {
     
   /** construct a new blank syncable instance.
    * does not send a creation notification to observers.
-   * if the requested kindVersion is obsolete (due to Migration), then return the migrated-to type
+   * if the requested kindVersion is obsolete (due to Migration), returns the obsolete type
    */
-  def newBlankSyncable(kind:Kind, kindVersion:String, ids:SyncableId):Syncable = {
+  def newBlankSyncable(id:KindVersionedId):Syncable = {
     quietCreate.withValue(true) {
-      migrations get VersionedKind(kind, kindVersion) match {
+      migrations get VersionedKind(id.kind, id.kindVersion) match {
         case Some(meta) =>
-          constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
+          constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], id)
         case _ =>  
-          newSyncable(kind,ids)
+          newSyncable(id.kind, id)
       }
     }
   }
@@ -117,6 +107,15 @@ object SyncManager extends LogHelper {
       newSyncable(kind, id).asInstanceOf[T]
     }
   }
+  
+  
+  /** build a syncable with a specified class, and instance Id */
+  private def constructSyncable[T <: Syncable](clazz:Class[T], ids:SyncableId):T = {
+    withNextNewId(ids) {
+      clazz.newInstance
+    }
+  }
+
 
   /** reflection access to this kind of syncable */
   def propertyAccessor(syncable:Syncable):ClassAccessor = {
@@ -131,13 +130,6 @@ object SyncManager extends LogHelper {
     }
   }
 
-
-  /** build a syncable with a specified Id */
-  private def constructSyncable[T <: Syncable](clazz:Class[T], ids:SyncableId):T = {
-    withNextNewId(ids) {
-      clazz.newInstance
-    }
-  }
   
   /** register kind to class mapping, so we can receive and instantiate objects of this kind */
   def registerKind(clazz:Class[_ <: Syncable]) = {

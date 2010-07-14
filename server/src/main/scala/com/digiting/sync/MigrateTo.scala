@@ -26,7 +26,7 @@ trait MigrateTo[T <: Syncable] extends Syncable {
   /** migrate this old instance to a current version one with the same id and version */
   def migrate:Syncable = {
     val migrated:Syncable = Observers.withNoNotice {
-      newSyncable[Syncable](kind, id)
+      newSyncable(kind, id)
     } 
     SyncManager.withPartition(partition) { // new objects in copy should go in same partition
       copyTo(migrated.asInstanceOf[T])
