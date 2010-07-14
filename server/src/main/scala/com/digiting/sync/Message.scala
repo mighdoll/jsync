@@ -231,7 +231,7 @@ object Message extends LogHelper {
    * (JsonUtil.toJson will later convert them to json text) */
   private def toJsonMapValue(value:Any):Any = {
     value match {
-      case syncable:Syncable => new JsonRef(syncable.fullId)  // TODO get rid of this?
+      case syncable:Syncable => new JsonRef(syncable.id)  // TODO get rid of this?
       case id:SyncableId => new JsonRef(id)
       case map:Map[_,_] => map
       case seq:Seq[_] => seq.toList

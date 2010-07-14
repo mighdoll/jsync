@@ -45,7 +45,7 @@ trait SyncableCollection extends Syncable {
   }
   
   private[sync] def syncableElementIds:Seq[SyncableId] = {
-    syncableElements map {_.fullId} toSeq
+    syncableElements map {_.id} toSeq
   }
   
   def revise(change:CollectionChange) 
@@ -79,14 +79,14 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   
   def insert(index:Int, elem:T)  {
     list.insert(index, elem)    
-    val proposed = InsertAtChange(this.fullId, SyncableReference(elem), index, newVersion())
+    val proposed = InsertAtChange(this.id, SyncableReference(elem), index, newVersion())
     App.app.updated(this, proposed)
   }
   
   def remove(index:Int) = {
     val origValue = list(index)
     list.remove(index)
-    val proposed = RemoveAtChange(this.fullId, index, origValue.fullId, newVersion())    
+    val proposed = RemoveAtChange(this.id, index, origValue.id, newVersion())    
     App.app.updated(this, proposed)
   }
   
@@ -102,7 +102,7 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
   def clear() = {
     val cleared = syncableElementIds
     list.clear();
-    val proposed = new ClearChange(this.fullId, cleared, newVersion())
+    val proposed = new ClearChange(this.id, cleared, newVersion())
     App.app.updated(this, proposed)
   }
   
@@ -125,7 +125,7 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
     val elem = list(fromDex)
     list.remove(fromDex)
     list.insert(toDex, elem)            
-    val proposed = new MoveChange(this.fullId, fromDex, toDex, newVersion())
+    val proposed = new MoveChange(this.id, fromDex, toDex, newVersion())
     App.app.updated(this, proposed)
   }
   
@@ -141,13 +141,13 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
 
   def -=(elem:T) = {
     set -= elem
-    val proposed = new RemoveChange(fullId, SyncableReference(elem), newVersion())
+    val proposed = new RemoveChange(id, SyncableReference(elem), newVersion())
     App.app.updated(this, proposed)
   }
   
   def +=(elem:T) = {
     set += elem
-    val putChange = PutChange(fullId, SyncableReference(elem), newVersion())
+    val putChange = PutChange(id, SyncableReference(elem), newVersion())
     log.trace("put: %s", putChange)
     App.app.updated(this, putChange)
   }
@@ -159,7 +159,7 @@ class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection 
   override def clear() = {
     val cleared = syncableElementIds
     set.clear();
-    val proposed = new ClearChange(fullId, cleared, this.newVersion())
+    val proposed = new ClearChange(id, cleared, this.newVersion())
     App.app.updated(this, proposed)
   }
 
@@ -189,16 +189,16 @@ class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V]
       case _ =>
     }
     val oldValueOpt = get(key) map {SyncableReference(_)}
-    val proposed = PutMapChange(this.fullId, key, oldValueOpt, 
+    val proposed = PutMapChange(this.id, key, oldValueOpt, 
         SyncableReference(value), newVersion() )
     super.update(key,value)
     App.app.updated(this, proposed)
   }
   
   override def clear {
-    val members = syncableElements map {_.fullId}
+    val members = syncableElements map {_.id}
     super.clear()
-    val proposed = ClearChange(this.fullId, members, newVersion())
+    val proposed = ClearChange(this.id, members, newVersion())
     App.app.updated(this, proposed)
   }
   
@@ -212,7 +212,7 @@ class SyncableMap[K <: Serializable, V <: Syncable] extends mutable.HashMap[K,V]
     }
     
     val result = super.removeEntry(key)
-    val proposed = RemoveMapChange(this.fullId, key, oldValue, newVersion())
+    val proposed = RemoveMapChange(this.id, key, oldValue, newVersion())
     App.app.updated(this, proposed)
     result
   }

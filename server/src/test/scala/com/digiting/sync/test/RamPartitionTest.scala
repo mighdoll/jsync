@@ -44,7 +44,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         val s = withTestPartition {TestNameObj("Oleg")}
         withTestPartition {s.name = "Huck"}        
         withTempContext {
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:TestNameObj) =>
               found.name should be ("Huck")
             case _ =>
@@ -57,7 +57,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
       withTestFixture {
         val s = withTestPartition {makeTestSeq()}
         withTempContext {
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableSeq[_]) =>
               val seq = found.asInstanceOf[SyncableSeq[TestNameObj]]
               seq.length should be (2)
@@ -75,7 +75,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         val s = withTestPartition {makeTestSeq()}
         withTestPartition {s.move(0, 1)}
         withTempContext {
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableSeq[_]) =>
               val seq = found.asInstanceOf[SyncableSeq[TestNameObj]]
               seq.length should be (2)
@@ -92,7 +92,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         val s = withTestPartition {makeTestSeq()}
         withTestPartition {s.remove(0)}
         withTempContext {
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableSeq[_]) =>
               val seq = found.asInstanceOf[SyncableSeq[TestNameObj]]
               seq.length should be (1)
@@ -112,7 +112,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
           s += TestNameObj("Janet")
         }  
         withTempContext {        
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableSet[_]) =>
               val set = found.asInstanceOf[SyncableSet[TestNameObj]]
               var foundJanet, foundElle = false
@@ -139,7 +139,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         withTestPartition {s += beth}
         withTestPartition {s -= beth}
         withTempContext {        
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableSet[_]) =>
               val set = found.asInstanceOf[SyncableSet[TestNameObj]]
               set.size should be (0)
@@ -154,7 +154,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
       withTestFixture {
         val s = withTestPartition {makeTestMap()}
         withTempContext {        
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableMap[_,_]) =>
               val map = found.asInstanceOf[SyncableMap[String,TestNameObj]]
               map("e").name should be ("Elle")
@@ -171,7 +171,7 @@ class RamPartitionTest extends Spec with ShouldMatchers with SyncFixture {
         val s = withTestPartition {makeTestMap()}
         withTestPartition {s -= ("e")}
         withTempContext {        
-          testPartition.get(s.fullId.instanceId) match {
+          testPartition.get(s.id.instanceId) match {
             case Some(found:SyncableMap[_,_]) =>
               val map = found.asInstanceOf[SyncableMap[String,TestNameObj]]
               map get ("e") should be (None)

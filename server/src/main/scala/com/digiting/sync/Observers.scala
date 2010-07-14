@@ -60,7 +60,7 @@ object Observers extends LogHelper {
       if (!SyncableInfo.isReserved(property)) {
         if (newValue != oldValue) {
           val syncable = target.asInstanceOf[Syncable]
-          val targetId = syncable.fullId
+          val targetId = syncable.id
           val versionChange = syncable.newVersion()
           val change = PropertyChange(targetId, property, SyncableValue.convert(newValue), 
             SyncableValue.convert(oldValue), versionChange)

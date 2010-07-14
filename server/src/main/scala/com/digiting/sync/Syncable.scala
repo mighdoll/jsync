@@ -20,46 +20,44 @@ import com.digiting.util._
 import Log2._
 
 /**
- * All objects participating in the syncable system must extend Syncable.  Syncable
- * objects are reflectable/serializable by the SyncManager metaAccessors, and 
- * observable by the Observers system.
+ * Base trait for objects participating in the syncable system.  Syncable objects can
+ * be tracked for changes, persisted to storage partitions, and/or sent over the wire to
+ * other nodes.
  * 
  * Syncable objects are uniquely identified by a (instanceId, partitionId) pair.
  * 
- * Each concrete Syncable subclass must define a 'kind'.  A kind is an implementation
- * neutral, protocol type designation.  Each kind is implemented by a unique class
- * on each syncable peer (scala server or javascript browser).  (Currently, the
- * kind strings are interpreted as javascript insantiation functions by the javascript
- * jsync library).
+ * Each concrete Syncable subclass must have a 'kind', a slightly more javascript 
+ * friendly name for the type.
  * 
- * (LATER Syncable objects will also carry an instance versioning field to help the server
- * with conflict detection..)
+ * When a Syncable instance is saved to persistent storage, it will be tagged by 
+ * kind and id, and all the public properties of the syncable will be saved.  Ditto for 
+ * sending over the wire to javascript implementations.  In other words, Syncable subclasses
+ * act as their own IDL (interface description language).
  */
 trait Syncable extends Observable {
+  implicit private lazy val xlog = logger("Syncable")
   val id = SyncManager.creating(this) // ask the sync manager for an identity for this new object
+  var version = "initial"             // instance version of this object, changes every time the object is updated
   
-  def kind:String		 // the public name for this type of Syncable, shared with javascript
-  def kindVersion = "0"  // 'schema' version of this kind, (used to support data migration)
+  def kind:String		     // the public name for this type of Syncable, shared with javascript
+  def kindVersion = "0"  // 'schema' version of this kind, (so we can migrate old versions of persisted Syncables)
   def partition = Partitions.getMust(id.partitionId.id)	// partition this object calls home
-  var version = "initial"           // instance version of this object
-  implicit private lazy val _log = logger("Syncable")
-  def fullId = id   // TODO get rid of this
 
   SyncManager.created(this)
   
   override def toString:String = {
-    String.format("{%s:%s}", shortKind, compositeId)
+    String.format("{%s:%s}", shortKind, id)
   }
-  
-  def shortCompositeId:String = id.partitionId.id.take(4) + "/" + id.instanceId.id.take(5)
-  def compositeId:String = fullId.toCompositeIdString
-  
+ 
   /** return a shallow serialization of this instance */
   def frozenCopy:JsonObject.JsonMap = {
     Message.toJsonMap(this)
   }
   
-        
+
+  /** for pretty printing, get the the trailing part of com.foo.trailing */
+  private def shortKind = dotTail(kind)
+  
   /** for pretty printing, get the the trailing part of com.foo.trailing */
   private def dotTail(str:String) = {
     val extractTail = ".*\\.(.*)".r
@@ -72,7 +70,6 @@ trait Syncable extends Observable {
     }
   }
   
-  private def shortKind = dotTail(kind) 
   
   private[sync] def newVersion():VersionChange = {
     val oldVersion = version

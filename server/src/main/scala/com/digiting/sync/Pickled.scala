@@ -38,7 +38,7 @@ object Pickled {
     val props = new HashMap[String, SyncableValue]
     for {
       (prop, value) <- SyncableAccessor.properties(syncable) if !isReserved(prop)
-      a = trace2("pickling %s: %s %s", syncable.fullId, prop, value)
+      a = trace2("pickling %s: %s %s", syncable.id, prop, value)
       syncValue = SyncableValue.convert(value)
     } {
       props + (prop -> syncValue)

@@ -231,7 +231,7 @@ object SyncManager extends LogHelper {
   
   
      
-  /** create the identity for a new object */
+  /** create the identity for a new object.  called as a new istance is being initialized */
   def creating(syncable:Syncable):SyncableId = {    
     val identity = setNextId.take() match {
       case Some(id) => 
@@ -244,7 +244,7 @@ object SyncManager extends LogHelper {
   }
   
 
-  /** called when a new instance is created */
+  /** called when a new instance is created, after the id is assigned */
   def created(syncable:Syncable) {
     trace("created(): %s", syncable)
     assert(syncable.partition != null)

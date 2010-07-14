@@ -27,7 +27,7 @@ object LoadReferences {
     for {
       ref <- refs
       syncable <- App.app.get(ref) orElse
-        err2("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
+        err2("loadRefs can't find target: %s in collection %s", ref, collection.id)
     } yield 
       syncable
   }
@@ -37,7 +37,7 @@ object LoadReferences {
     for {
       (key, ref) <- refs
       syncable <- App.app.get(ref) orElse 
-        err2("loadMapRefs can't find target: %s in collection %s", ref, collection.fullId)
+        err2("loadMapRefs can't find target: %s in collection %s", ref, collection.id)
     } yield {
       (key, syncable)
     }

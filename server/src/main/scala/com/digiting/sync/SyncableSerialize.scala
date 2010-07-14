@@ -136,7 +136,7 @@ object SyncableSerialize extends LogHelper {
     }
     
     def apply(ref:Syncable):String = {      
-      ref.compositeId + "=" + ref.kind
+      ref.id.toCompositeIdString + "=" + ref.kind
     }
   }
   
