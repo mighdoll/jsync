@@ -115,9 +115,9 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
       // This code and the test above assumes that BeginWatch messages are 
       // sent to completely other DeepWatch subscribers, and we need to filter them out.
       // I don't think that's actually the case though, SOON try removing it.
-      case watch:WatchChange if watch.watcher.watchClass == this =>
+      case watch:DeepWatchChange if watch.watcher.watchClass == this =>
         queueChange(change)
-      case watch:WatchChange =>
+      case watch:DeepWatchChange =>
         log.trace("#%s not queueing watch change from another watch or deepwatch: #%s.  change: %s", 
                   app.debugId, watch.watcher.debugId, change)
       case _ =>  

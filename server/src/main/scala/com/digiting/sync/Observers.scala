@@ -41,7 +41,7 @@ object Observers extends LogHelper {
   val log = Logger("Observers")
   /** called when a change happens */
   type DataChangeFn = (DataChange)=>Unit   // Consider a listener object...
-  type WatchChangeFn = (WatchChange)=>Unit   // Consider a listener object...
+  type DeepWatchChangeFn = (DeepWatchChange)=>Unit   // Consider a listener object...
   
   /** an observer watching for changes.  
    * @param watchClass  is a caller specified indentifer so that the caller can delete single or multiple watches by identifer
@@ -131,7 +131,7 @@ object Observers extends LogHelper {
    * @param fn          function called on changes to the watched set
    * @param watchClass  names this watch, which enables removing the watch by name
    */
-  def watchDeep(root:Syncable, fn:DataChangeFn, watchFn:WatchChangeFn, watchClass:Any):DeepWatch = {
+  def watchDeep(root:Syncable, fn:DataChangeFn, watchFn:DeepWatchChangeFn, watchClass:Any):DeepWatch = {
     val deepWatch = new DeepWatch(root, App.app, fn, watchFn, watchClass)
     deepWatches + (root, deepWatch)
     deepWatch

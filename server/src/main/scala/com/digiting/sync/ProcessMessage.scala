@@ -49,7 +49,7 @@ object ProcessMessage extends LogHelper {
             patchReferences(references)
             processEdits(message.edits)
             
-      	    // first release notifications to DeepWatch early so that WatchChanges will have the client connection as the mutator
+      	    // first release notifications to DeepWatch early so that DeepWatchChanges will have the client connection as the mutator
             Observers.releasePaused {_.isInstanceOf[DeepWatch]}
             
             // second release notifications to the app watch pool so the app sees a consistent version of changes (mutator doesn't matter for this as no further mutations are triggered)

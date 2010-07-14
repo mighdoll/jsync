@@ -18,7 +18,7 @@ trait ContextPartitionGateway  {
     val pickledWatchFn = watchFns get id.partitionId getOrElse 
       makePartitionWatchFn(id.partitionId)
     
-    val partitionWatch = new ObserveChange(id, pickledWatchFn)
+    val partitionWatch = new BeginObserveChange(id, pickledWatchFn)
     App.app.instanceCache.changeNoticed(partitionWatch)
   }
   

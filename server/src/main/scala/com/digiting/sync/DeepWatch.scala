@@ -38,7 +38,7 @@ object DeepWatchDebug {
  * connected set.  Changes are reported to client watchers and used internally to update 
  * reference counts.  
  */
-class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val watchFn:WatchChangeFn, val watchClass:Any) extends LogHelper {
+class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val watchFn:DeepWatchChangeFn, val watchClass:Any) extends LogHelper {
   val log = Logger("DeepWatch")
   private val connectedSet = mutable.Map[Syncable, Int]()  // tracked syncables and their reference counts
   val debugId = DeepWatchDebug.nextDebugId()

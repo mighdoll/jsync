@@ -123,7 +123,7 @@ object Message extends LogHelper {
           err("not yet implemented")
         case x:CreatedChange =>
           err("not yet implemented")
-        case observing:ObservingChange =>
+        case observing:ObserveChange =>
         case change => log.error("Message.makeMessage() unhandled change: " + change)
       }
     }

@@ -142,7 +142,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
       change match {
         case c:CreatedChange => None
         case dataChange:DataChange => Some(dataChange)
-        case obs:ObservingChange => None
+        case obs:ObserveChange => None
       }
     }
   }

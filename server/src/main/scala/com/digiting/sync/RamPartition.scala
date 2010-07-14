@@ -71,7 +71,7 @@ class RamPartition(partId:String) extends Partition(partId) {
           val pickledCollection = pickled.asInstanceOf[PickledCollection[_]]
           store(instanceId) = pickledCollection.revise(collectionChange)
         }
-      case observe:ObserveChange =>
+      case observe:BeginObserveChange =>
       	watch(observe.target.instanceId, observe.watcher, tx)
       case endObserve:EndObserveChange =>
         unwatch(endObserve.target.instanceId, endObserve.watcher, tx)        
