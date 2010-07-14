@@ -146,7 +146,7 @@ object SyncManager extends LogHelper {
       val accessor = SyncableAccessor.get(clazz)
       val kind = syncable.kind
       syncable match {
-        case migration:Migration[_] =>
+        case migration:MigrateTo[_] =>
           migrations += (VersionedKind(kind, migration.kindVersion) -> accessor)
         case _ =>
           metaAccessors += (kind -> accessor)          

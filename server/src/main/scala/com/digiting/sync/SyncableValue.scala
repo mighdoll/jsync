@@ -47,7 +47,7 @@ class SyncableValue {
   }
 
   def reference:Option[SyncableId] = partialMatch(validated) {
-    case ref:SyncableReference => ref.id
+    case ref:SyncableReference => ref
   }
 }
 

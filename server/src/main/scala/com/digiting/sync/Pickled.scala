@@ -73,7 +73,7 @@ class Pickled(val reference:SyncableReference, val version:String,
   implicit private val log = logger("Pickled")
   
   def unpickle():Syncable = {
-    val syncable:Syncable = newBlankSyncable(reference.kind, reference.id)
+    val syncable:Syncable = newBlankSyncable(reference.kind, reference)
     syncable.version = version
     val classAccessor = SyncableAccessor.get(syncable.getClass)
     Observers.withNoNotice {  

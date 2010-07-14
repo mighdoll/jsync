@@ -78,7 +78,7 @@ case class ClearChange(val target:SyncableId, val members:Iterable[SyncableId],
 /** add to a set*/
 case class PutChange(val target:SyncableId, newVal:SyncableReference, versions:VersionChange) 
   extends MembershipChange("put", newVal, null, versions)  {
-  override def references = newVal.id :: super.references
+  override def references = newVal :: super.references
 }
   
 /** remove from a set*/  
@@ -101,7 +101,7 @@ case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:In
   extends MembershipChange("insertAt", newVal, null, versions) {
   
   override def toString = (super.toString + " at:" + at)
-  override def references = newVal.id :: super.references 
+  override def references = newVal :: super.references 
 }  
 /** rearrange a seq */
 case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int, 
@@ -116,7 +116,7 @@ case class RemoveMapChange(val target:SyncableId, key:Serializable, oldValue:Syn
 case class PutMapChange(val target:SyncableId, key:Serializable, oldValue:Option[SyncableReference], 
     newValue:SyncableReference, versions:VersionChange) extends CollectionChange(versions) {
       
-  override def references = newValue.id :: super.references 
+  override def references = newValue :: super.references 
 }
 
 //       -----------------  observe changes --------------------  

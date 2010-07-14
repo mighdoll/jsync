@@ -68,13 +68,18 @@ class TestPrimitiveProperties extends Syncable {
 class KindVersion extends Syncable {
   val kind = "$sync.test.kindVersioned"
   override def kindVersion = "1"
-  var ref:TestRefObj[TestNameObj] = _
+  var obj:TestRefObj[TestNameObj] = _
+  
+  def copyTo(otherVersion:KindVersion0) {
+	  otherVersion.obj = obj.ref
+  }
 }
 
-class KindVersion0 extends Syncable with Migration[KindVersion] {
+class KindVersion0 extends Syncable with MigrateTo[KindVersion] {
   val kind = "$sync.test.kindVersioned"
-  var ref:TestNameObj = _
-  def copyTo(newVersion:KindVersion) {
-    newVersion.ref = TestRefObj(ref)
+  var obj:TestNameObj = _
+  
+  def copyTo(otherVersion:KindVersion) {
+    otherVersion.obj = TestRefObj(obj)
   }
 }

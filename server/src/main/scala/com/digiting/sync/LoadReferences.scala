@@ -26,7 +26,7 @@ object LoadReferences {
       refs:Iterable[SyncableReference]):Iterable[Syncable] = {    
     for {
       ref <- refs
-      syncable <- App.app.get(ref.id) orElse
+      syncable <- App.app.get(ref) orElse
         err2("loadRefs can't find target: %s in collection %s", ref, collection.fullId)
     } yield 
       syncable

@@ -81,7 +81,7 @@ trait ContextPartitionGateway  {
   
   private def getValue(value:SyncableValue):AnyRef = 
     value.value match {
-      case ref:SyncableReference => get(ref.id) get
+      case ref:SyncableReference => get(ref) get
       case v => v.asInstanceOf[AnyRef]
     }
 

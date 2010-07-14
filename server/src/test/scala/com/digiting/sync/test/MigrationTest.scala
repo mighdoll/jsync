@@ -33,22 +33,21 @@ class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
         val pickled = withTestPartition {
           val old = new KindVersion0
           val ref = TestNameObj("wheel")
-          old.ref = new TestNameObj("wheel")
+          old.obj = new TestNameObj("wheel")
           Pickled(old)
         }
         pickled
         
-//        withTempContext {
-//          pickled.unpickle() match {
-//            case migrated:KindVersion =>
-//              migrated.kind should be (pickled.reference.kind)
-//              migrated.kindVersion should be ("1")
-//              migrated.ref.ref.asInstanceOf[TestNameObj].name should be ("wheel")
-//            case _ =>
-//              fail            
-//          }          
-//        }
-      
+        withTempContext {
+          pickled.unpickle() match {
+            case migrated:KindVersion =>
+              migrated.kind should be (pickled.reference.kind)
+              migrated.kindVersion should be ("1")
+              migrated.obj.ref.asInstanceOf[TestNameObj].name should be ("wheel")
+            case _ =>
+              fail            
+          }
+        }      
       } 
     }        
   }

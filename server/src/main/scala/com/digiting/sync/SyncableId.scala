@@ -45,23 +45,30 @@ class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {
 
 /** a persistent reference to a syncable */
 object SyncableReference {
-  def apply(partitionId:String, instanceId:String, kind:SyncManager.Kind) = {
-    val id = SyncableId(PartitionId(partitionId), InstanceId(instanceId))
-    new SyncableReference(id, kind)    
-  }
+  def apply(partitionId:String, instanceId:String, kind:SyncManager.Kind) = 
+    new SyncableReference(PartitionId(partitionId), InstanceId(instanceId), kind)    
   
-  def apply(id:SyncableId) = {
+  
+  def apply(id:SyncableId):SyncableReference = {
     App.app.withGetId(id) {obj => 
-      new SyncableReference(id, obj.kind)
+      SyncableReference(obj)
     }
   }
   
-  def apply(syncable:Syncable) = {
-    new SyncableReference(syncable.fullId, syncable.kind)
+  def apply(syncable:Syncable):SyncableReference = {
+    new SyncableReference(syncable.id.partitionId, syncable.id.instanceId, syncable.kind)
   }
 }
 
-class SyncableReference(val id:SyncableId, val kind:SyncManager.Kind) extends 
-  SyncableId(id.partitionId, id.instanceId) {
-  override def toString = id.toCompositeIdString + "[" + kind + "]"
+import SyncManager.Kind
+class SyncableReference(partitionId:PartitionId, instanceId:InstanceId, val kind:Kind) extends 
+  SyncableId(partitionId, instanceId) {
+  override def toString = super.toString + "[" + kind + "]"
 }
+
+/** a reference that also has a kind */
+class VerionedReference(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
+	extends SyncableReference(partitionId, instanceId, kind) {
+   override def toString = SyncableId.toString +  "[" + kind + "-" + kindVersion + "]"
+} 
+  

@@ -17,11 +17,11 @@ import SyncManager.newSyncable
 import com.digiting.util._
 import Log2._
 
-/** a syncable that is migrated as it's read */
-trait Migration[T <: Syncable] extends Syncable {
-  implicit private val log = logger("Migration")
+/** a syncable of an old kind version that is migrated to a new class as it's read */
+trait MigrateTo[T <: Syncable] extends Syncable {
+  implicit private val log = logger("MigrateTo")
   /** copy data from the migrating instance to the new version */
-  def copyTo(target:T)
+  def copyTo(otherVersion:T)
  
   /** migrate this old instance to a current version one with the same id and version */
   def migrate:Syncable = {
@@ -34,8 +34,8 @@ trait Migration[T <: Syncable] extends Syncable {
     info2("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 
               this.kindVersion, migrated, migrated.kindVersion)
     migrated
-  }
-  
+  }  
 }
 
-// CONSIDER renaming to MigrateTo?
+
+
