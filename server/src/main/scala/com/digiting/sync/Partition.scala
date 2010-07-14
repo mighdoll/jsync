@@ -61,7 +61,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
   
     /** create, update, delete or observer an object or a collection */
   def modify(change:StorableChange) { 
-    inTransaction {tx => 
+    expectTransaction {tx => 
       trace2("#%s update(%s)", partitionId, change)
       modify(change, tx)
       tx.changes += change
@@ -75,14 +75,14 @@ abstract class Partition(val partitionId:String) extends RamWatches
    * After the specified duration in milliseconds, the watch is discarded.
    */
   def watch(id:InstanceId, pickledWatch:PickledWatch) {
-    inTransaction {tx =>
+    expectTransaction {tx =>
       watch(id, pickledWatch, tx)
     }
   }
   
   /** unregister a previously registered watch */
   def unwatch(id:InstanceId, pickledWatch:PickledWatch) {
-    inTransaction {tx =>
+    expectTransaction {tx =>
       unwatch(id, pickledWatch, tx)
     }    
   }
@@ -113,7 +113,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
   }
   
   /** verify that we're currently in a valid transaction*/
-  private[this] def inTransaction[T](fn: (Transaction)=>T):T =  {
+  private[this] def expectTransaction[T](fn: (Transaction)=>T):T =  {
     currentTransaction value match {
       case Some(tx:Transaction) => 
         fn(tx)
@@ -129,7 +129,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
         fn(tx)
       case None =>
         withTransaction {
-          inTransaction(fn)
+          expectTransaction(fn)
         }
     }
   }
@@ -178,12 +178,8 @@ abstract class Partition(val partitionId:String) extends RamWatches
       } {    
         byWatch append(watch, change)
       }
-     
-      for {
-        (watch, changes) <- byWatch
-      } {
-        notify(watch, changes)
-      }
+      
+      byWatch foreach {case (watch, changes) => notify(watch, changes)}
     }
   }
   

@@ -27,8 +27,10 @@ trait ConcretePartition {
 }
 
 /** this is a trick to allow a simulated client to refer to a Partition instance 
-  * with the name ".transient".  LATER we should change the SyncableIdentity to use a string
-  * for the partition id, rather than the partition reference (...SyncableIdentity is gone now.)
+  * with the name ".transient".  
+  * 
+  * LATER consider whether we still need a stub partition interface (perhaps just 
+  * an id is enough, e.g. TransientPartitionId)
   */
 object TransientPartition extends FakePartition(".transient")
 
@@ -41,4 +43,5 @@ class FakePartition(partitionId:String) extends Partition(partitionId) {
   private[sync] def getWatches(id:InstanceId, tx:Transaction):Set[PickledWatch] = Set.empty
   override def hasStorage = false
   def deleteContents() {}
+  
 }
