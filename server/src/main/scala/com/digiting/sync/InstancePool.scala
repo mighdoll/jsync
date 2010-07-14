@@ -54,7 +54,6 @@ class WatchedPool(name:String)  {
   /** put an object into the pool */
   def put(syncable:Syncable) {
     trace2("#%s put: %s", debugId, syncable)   
-    1
     localObjects get (key(syncable)) map {found =>
       abort2("#%s put() but it's already in map: %s %s", debugId, found, syncable)
       
