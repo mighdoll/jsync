@@ -26,25 +26,31 @@ object SyncFixture {
 
 import SyncFixture.nextId
 
-class UnitTestContext(connection:Connection) extends AppContext(connection) {
-  def appName = "Unit Test"
-}
-
 import SyncManager.withPartition
 
 trait SyncFixture {  
   Configuration.initFromVariable("jsyncServerConfig")      
   val changes = new mutable.ListBuffer[ChangeDescription]()
   val testPartition = new RamPartition("testPartition-" + nextId()) with RamWatches
-  val testApp = new UnitTestContext(new Connection("UnitTesting-Dummy"))
+  val testApp = TempAppContext("UnitTesting")
   
   def withTestFixture[T](fn: => T):T = {    
     setup()
   
+    val result = withTestPartition(fn)
+    cleanup()
+    result
+  }
+  
+  def withTempContext[T](fn: =>T):T = {
+    TempAppContext("tmp").withApp {
+      fn
+    }
+  }
+  
+  def withTestPartition[T](fn: =>T):T = {
     testApp.withApp {
-      val result = withPartition(testPartition) { fn }
-      cleanup()
-      result
+      withPartition(testPartition) { fn }  
     }
   }
    

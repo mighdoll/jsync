@@ -30,24 +30,25 @@ class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
     
     it("should migrate a simple object from an old to a new schema") {
       withTestFixture {
-        val old = new KindVersion0
-        old.ref = new TestNameObj("wheel")
-        val oldAttributes = syncableAttributes(old)
-        
-        val created = createFromAttributes(old.id.instanceId.id, old.partition, oldAttributes)
-        created match {
-          case Some(migration:Migration[_]) =>
-            migration.migrate match {
-              case migrated:KindVersion =>
-                migrated.kind should be (old.kind)
-                migrated.kindVersion should be ("1")
-                migrated.ref.ref should be (old.ref)
-              case _ =>
-                assert(false)
-            }
-          case _ =>
-            assert(false)
+        val pickled = withTestPartition {
+          val old = new KindVersion0
+          val ref = TestNameObj("wheel")
+          old.ref = new TestNameObj("wheel")
+          Pickled(old)
         }
+        pickled
+        
+//        withTempContext {
+//          pickled.unpickle() match {
+//            case migrated:KindVersion =>
+//              migrated.kind should be (pickled.reference.kind)
+//              migrated.kindVersion should be ("1")
+//              migrated.ref.ref.asInstanceOf[TestNameObj].name should be ("wheel")
+//            case _ =>
+//              fail            
+//          }          
+//        }
+      
       } 
     }        
   }

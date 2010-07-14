@@ -161,3 +161,6 @@ object SyncableSerialize extends LogHelper {
   }
 
 }
+
+// LATER CONSIDER reworking this to serialize a Pickled to a string representation
+

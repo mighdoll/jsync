@@ -72,14 +72,15 @@ class Pickled(val reference:SyncableReference, val version:String,
     val properties:Map[String, SyncableValue], val watches:Set[PickledWatch])  {
   implicit private val log = logger("Pickled")
   
-  def unpickle:Syncable = {
-    val syncable:Syncable = newBlankSyncable(reference.kind, reference.id) 
+  def unpickle():Syncable = {
+    val syncable:Syncable = newBlankSyncable(reference.kind, reference.id)
     syncable.version = version
     val classAccessor = SyncableAccessor.get(syncable.getClass)
-    App.app.instanceCache put syncable  // CONSIDER should this be done here?
     Observers.withNoNotice {  
-      for ((propName, value) <- properties) {
-        classAccessor.set(syncable, propName, unpickleValue(value.value))
+      App.app.withNoVersioning {
+        for ((propName, value) <- properties) {
+          classAccessor.set(syncable, propName, unpickleValue(value.value))
+        }
       }
     }
 

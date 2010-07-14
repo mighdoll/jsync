@@ -14,15 +14,16 @@
  */
 package com.digiting.sync
 import SyncManager.newSyncable
-import net.lag.logging.Logger
+import com.digiting.util._
+import Log2._
 
 /** a syncable that is migrated as it's read */
 trait Migration[T <: Syncable] extends Syncable {
-  private val _log = Logger("Migration")
+  implicit private val log = logger("Migration")
   /** copy data from the migrating instance to the new version */
   def copyTo(target:T)
  
-  /** migrate this old instance to a current version one with the same id */
+  /** migrate this old instance to a current version one with the same id and version */
   def migrate:Syncable = {
     val migrated:Syncable = Observers.withNoNotice {
       newSyncable[Syncable](kind, id)
@@ -30,11 +31,11 @@ trait Migration[T <: Syncable] extends Syncable {
     SyncManager.withPartition(partition) { // new objects in copy should go in same partition
       copyTo(migrated.asInstanceOf[T])
     }
-    _log.info("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 
+    info2("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 
               this.kindVersion, migrated, migrated.kindVersion)
     migrated
   }
   
 }
 
-// CONSIDER renaming to MigrationTo?
+// CONSIDER renaming to MigrateTo?

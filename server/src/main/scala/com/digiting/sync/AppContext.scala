@@ -55,14 +55,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     * instance cache.  */
   def get(ids:SyncableId):Option[Syncable] = {
     instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
-      Partitions.get(ids.partitionId.id) orElse {
-        err2("no partition found for: %s", ids.toString)
-      } flatMap {partition =>
-        partition get ids.instanceId map {found =>
-          instanceCache put found
-          found
-        }
-      }
+      Partitions(ids) get(ids.instanceId)
     }
   }
   

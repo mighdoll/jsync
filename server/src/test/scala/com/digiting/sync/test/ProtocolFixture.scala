@@ -59,6 +59,8 @@ object ProtocolFixture extends LogHelper {
     }
     
     sendTestMessage(messageStr, getServiceReply(serviceCall)) 
+    
+    // LATER replace this manual stuff by using a separate app context.
   }
   
   // manually extract a reply edit to a ServiceCall

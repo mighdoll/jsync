@@ -16,7 +16,11 @@ package com.digiting.sync
 import collection.mutable
 import java.util.concurrent.ConcurrentLinkedQueue
 import collection.mutable.ListBuffer
-import com.digiting.util.Log2._
+import com.digiting.util._
+import Log2._
+
+object WatchedPool extends UniqueId 
+import WatchedPool.makeId
 
 /** a pool of syncable objects.  
  * 
@@ -24,22 +28,23 @@ import com.digiting.util.Log2._
  * about changes via watchCommit().  Owners of the WatchedPool call commit() to release
  * changes.
  */
-class WatchedPool(name:String) {
+class WatchedPool(name:String)  {
   implicit private val log = logger("WatchedPool")
-  type CommitWatchFn = (Seq[ChangeDescription]) => Unit
+  private val debugId = makeId().toString
   
+  trace2("#%s created", debugId) 
   // holds all syncable objects we're caching in RAM, indexed by partition/id
-  private val localObjects = new mutable.HashMap[String, Syncable]   // LATER this should be a WeakMap
+  private val localObjects = new mutable.HashMap[String, Syncable]   
 
   // changes made to any object in the pool
   private val changes = new ConcurrentLinkedQueue[ChangeDescription]	
-    
+
   /** find an object from the pool */
   def get(partition:String, id:String):Option[Syncable] = localObjects get key(partition, id)
 
   /** add a created change event for an object we've already added to the queue */
   def created(syncable:Syncable) = {
-    trace2("created" + syncable)
+    trace2("#%s created %s", debugId, syncable)
     assert (localObjects contains key(syncable))
     changes add CreatedChange(SyncableReference(syncable), Pickled(syncable),
       VersionChange(syncable.version, syncable.version))   
@@ -48,9 +53,11 @@ class WatchedPool(name:String) {
 
   /** put an object into the pool */
   def put(syncable:Syncable) {
-    log.ifTrace("put" + syncable)   
+    trace2("#%s put: %s", debugId, syncable)   
+    1
     localObjects get (key(syncable)) map {found =>
-      warn2("put() but it's already in map: %s %s", found, syncable)
+      abort2("#%s put() but it's already in map: %s %s", debugId, found, syncable)
+      
       localObjects put (key(syncable), syncable) // might be a revised instance..
     } orElse {
       localObjects put (key(syncable), syncable) // might be a revised instance..

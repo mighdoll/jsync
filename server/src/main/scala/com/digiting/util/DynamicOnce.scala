@@ -16,22 +16,14 @@ package com.digiting.util
 import scala.util.DynamicVariable
 import Log2._
 
-trait DebugId {
-  private var nextId = 0
-  def debugId() = {
-    val next = nextId
-    nextId = nextId + 1
-    next
-  }
-}
-object DynamicOnce extends DebugId
+object DynamicOnce extends UniqueId
 
 /** 
  * A dynamic variable that can be read only once.  Subsequent reads return None
  */
 class DynamicOnce[T] {
   var current = new DynamicVariable[Option[T]](None)
-  val debugId = DynamicOnce.debugId()
+  val debugId = DynamicOnce.makeId()
   implicit private val log = logger("DynamicOnce")
   
   /** return the current value as an Option, and then clear the current value */

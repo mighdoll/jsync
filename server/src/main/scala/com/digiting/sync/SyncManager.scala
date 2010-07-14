@@ -260,7 +260,7 @@ object SyncManager extends LogHelper {
       App.current.value map {app =>
       	app.instanceCache put syncable
         if (!quietCreate.value)
-          app.instanceCache created syncable
+          app.instanceCache created syncable  // CONSIDER can this use app.updated() instead?
       } orElse {
         warn("created %s, but no current App", syncable)
       }
