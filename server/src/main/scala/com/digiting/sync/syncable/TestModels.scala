@@ -75,6 +75,15 @@ class KindVersion extends Syncable {
   }
 }
 
+object KindVersion0 {
+  def apply() = new KindVersion0
+  def apply(named:TestNameObj) = {
+    val o = new KindVersion0()
+    o.obj = named
+    o
+  }
+}
+
 class KindVersion0 extends Syncable with MigrateTo[KindVersion] {
   val kind = "$sync.test.kindVersioned"
   var obj:TestNameObj = _

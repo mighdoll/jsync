@@ -188,7 +188,7 @@ object Message extends LogHelper {
   }
   
   private def memberChangeToEdit(change:MembershipChange, operandElements:Any):JsonMap = {
-    log.info("memberChangeToEdit %s %s", change, operandElements)
+    log.trace("memberChangeToEdit %s %s", change, operandElements)
     val editItems = operandElements match {
       case single:SyncableId => single.toJsonMap :: Nil
       case list:List[_] => 

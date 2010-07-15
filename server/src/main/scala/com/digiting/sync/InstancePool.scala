@@ -42,14 +42,6 @@ class WatchedPool(name:String)  {
   /** find an object from the pool */
   def get(partition:String, id:String):Option[Syncable] = localObjects get key(partition, id)
 
-  /** add a created change event for an object we've already added to the queue */
-  def created(syncable:Syncable) = {
-    trace2("#%s created %s", debugId, syncable)
-    assert (localObjects contains key(syncable))
-    changes add CreatedChange(SyncableReference(syncable), Pickled(syncable),
-      VersionChange(syncable.version, syncable.version))   
-    // TODO CONSIDER generating the CreatedChange somewhere that makes more sense..
-  }
 
   /** put an object into the pool */
   def put(syncable:Syncable) {

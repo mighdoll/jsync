@@ -50,7 +50,7 @@ object SyncManager extends LogHelper {
   val currentPartition = new DynamicVariable[Partition](null)	
 
   // don't register a creation change while this is true (so partitions can instantiate objects)
-  val quietCreate = new DynamicVariable[Boolean](false)
+  val quietCreate = new DynamicVariable[Option[Boolean]](None)
   
   // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed 
   private val creatingFake = new DynamicOnce[Boolean];  
@@ -88,7 +88,7 @@ object SyncManager extends LogHelper {
    * if the requested kindVersion is obsolete (due to Migration), returns the obsolete type
    */
   def newBlankSyncable(id:KindVersionedId):Syncable = {
-    quietCreate.withValue(true) {
+    quietCreate.withValue(Some(true)) {
       migrations get VersionedKind(id.kind, id.kindVersion) match {
         case Some(meta) =>
           constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], id)
@@ -102,7 +102,7 @@ object SyncManager extends LogHelper {
    * does not send a creation notification to observers.
    */
   def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
-    quietCreate.withValue(true) {
+    quietCreate.withValue(Some(true)) {
       newSyncable(kind, id).asInstanceOf[T]
     }
   }
@@ -249,13 +249,15 @@ object SyncManager extends LogHelper {
     trace("created(): %s", syncable)
     assert(syncable.partition != null)
     creatingFake.take orElse {
-      App.current.value map {app =>
-      	app.instanceCache put syncable
-        if (!quietCreate.value)
-          app.instanceCache created syncable  // CONSIDER can this use app.updated() instead?
-      } orElse {
-        warn("created %s, but no current App", syncable)
-      }
+      val app = App.app
+    	app.instanceCache put syncable
+      quietCreate.value orElse { 
+        app.updated(syncable) {
+          CreatedChange(SyncableReference(syncable), Pickled(syncable),
+          		VersionChange(syncable.version, syncable.version))   
+        } 
+        None
+      } 
       None
     }
   }

@@ -20,7 +20,7 @@ import com.digiting.util._
  * Trait that supports RPC style communication over a sync channel via annotated server methods.  
  * Server methods are annotated with @ImplicitService, and then the client can send javas
  * 
- * TODO rename this to something that doesn't use the word 'implicit', a word with another
+ * SOON rename this to something that doesn't use the word 'implicit', a word with another
  * meaning in the scala context.
  */
 trait ImplicitServices extends AppContext {

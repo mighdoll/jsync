@@ -41,7 +41,7 @@ trait Syncable extends Observable {
   
   def kind:String		     // the public name for this type of Syncable, shared with javascript
   def kindVersion = "0"  // 'schema' version of this kind, (so we can migrate old versions of persisted Syncables)
-  def partition = Partitions.getMust(id.partitionId.id)	// partition this object calls home
+  def partition = Partitions(id.partitionId)	// partition this object calls home
 
   SyncManager.created(this)
   

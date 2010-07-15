@@ -13,9 +13,10 @@
  *   limitations under the License.
  */
 package com.digiting.sync
-import SyncManager.newSyncable
+import SyncManager.{newSyncable, withPartition}
 import com.digiting.util._
 import Log2._ 
+
 
 /** a syncable of an old kind version that is migrated to a new class as it's read */
 trait MigrateTo[T <: Syncable] extends Syncable {
@@ -26,11 +27,10 @@ trait MigrateTo[T <: Syncable] extends Syncable {
   /** migrate this old instance to a current version one with the same id and version */
   def migrate:Syncable = {
     App.app.instanceCache remove this
-    val migrated:Syncable = Observers.withNoNotice {
-      newSyncable(kind, id)
-    } 
-    SyncManager.withPartition(partition) { // put new objects copyTo() makes in same partition
+    val migrated = withPartition(partition) { // put new objects copyTo() makes in same partition
+    	val migrated = newSyncable(kind, id)    // this will create a CreateChange that replaces the old version in the partition
       copyTo(migrated.asInstanceOf[T])
+      migrated
     }
     info2("migrated %s kindVersion: %s  to  %s kindVersion: %s", this, 
               this.kindVersion, migrated, migrated.kindVersion)

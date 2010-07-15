@@ -38,7 +38,7 @@ object Pickled {
     val props = new HashMap[String, SyncableValue]
     for {
       (prop, value) <- SyncableAccessor.properties(syncable) if !isReserved(prop)
-      a = trace2("pickling %s: %s %s", syncable.id, prop, value)
+      a = trace2("pickling property in %s.%s=%s", syncable, prop, value)
       syncValue = SyncableValue.convert(value)
     } {
       props + (prop -> syncValue)
@@ -121,8 +121,9 @@ class Pickled(val reference:KindVersionedId, val instanceVersion:String,
   def +(propChange:PropertyChange):Pickled = {
     trace2("revise() %s", propChange)
     if (propChange.versions.old != instanceVersion) {
-      warning2("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
+      abort2("update() versions don't match on changed.old=%s actual(current)=%s  %s  %s", 
         propChange.versions.old, instanceVersion, propChange, this)
+      // SOON notify mutator of conflict
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
     new Pickled(reference, propChange.versions.now, updatedProperties, watches)
