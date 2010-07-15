@@ -68,12 +68,12 @@ case class RequestId (val id:String)
 case class PickledWatch (val clientId:ClientId, val requestId:RequestId, val expiration:Long)
 
 @serializable
-class Pickled(val reference:KindVersionedId, val instanceVersion:String,
+class Pickled(val id:KindVersionedId, val instanceVersion:String,
     val properties:Map[String, SyncableValue], val watches:Set[PickledWatch])  {
   implicit private val log = logger("Pickled")
   
   def unpickle():Syncable = {
-    val syncable:Syncable = newBlankSyncable(reference)
+    val syncable:Syncable = newBlankSyncable(id)
     syncable.version = instanceVersion
     val classAccessor = SyncableAccessor.get(syncable.getClass)
     Observers.withNoNotice {  
@@ -126,19 +126,19 @@ class Pickled(val reference:KindVersionedId, val instanceVersion:String,
       // SOON notify mutator of conflict
     }
     val updatedProperties = properties + (propChange.property -> propChange.newValue)
-    new Pickled(reference, propChange.versions.now, updatedProperties, watches)
+    new Pickled(id, propChange.versions.now, updatedProperties, watches)
   }
   
   def +(watch:PickledWatch) = {
     val moreWatches = watches + watch
-    val pickled = new Pickled(reference, instanceVersion, properties, moreWatches)    
+    val pickled = new Pickled(id, instanceVersion, properties, moreWatches)    
     trace2("+watch() %s", pickled)    
     pickled
   }
   
   def -(watch:PickledWatch):Pickled = {
     val lessWatches = watches - watch
-    val pickled = new Pickled(reference, instanceVersion, properties, lessWatches)    
+    val pickled = new Pickled(id, instanceVersion, properties, lessWatches)    
     trace2("-watch() %s", pickled)
     pickled
   }
@@ -146,7 +146,7 @@ class Pickled(val reference:KindVersionedId, val instanceVersion:String,
   override def toString:String = {
     val props = properties map Function.tupled {(k,v) => k + "=" + v.toString}
     
-    String.format("<%s %s %s>", reference, instanceVersion, props)
+    String.format("<%s %s %s>", id, instanceVersion, props)
   }
   
 }

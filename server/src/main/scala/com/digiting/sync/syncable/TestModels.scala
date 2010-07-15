@@ -76,7 +76,6 @@ class KindVersion extends Syncable {
 }
 
 object KindVersion0 {
-  def apply() = new KindVersion0
   def apply(named:TestNameObj) = {
     val o = new KindVersion0()
     o.obj = named

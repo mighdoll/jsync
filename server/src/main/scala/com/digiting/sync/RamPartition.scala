@@ -92,7 +92,7 @@ class RamPartition(partId:String) extends Partition(partId) {
 
   private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
     trace2("put %s ", pickled)
-    store += (pickled.reference.instanceId -> pickled)
+    store += (pickled.id.instanceId -> pickled)
   }
   
   private def withPickled[T](instanceId:InstanceId, tx:Transaction)(fn:(Pickled)=>T):T = {

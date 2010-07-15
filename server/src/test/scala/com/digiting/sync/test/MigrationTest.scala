@@ -17,33 +17,47 @@ import org.scalatest.Spec
 import org.scalatest.matchers.ShouldMatchers
 import com.digiting.sync.syncable._
 import com.digiting.util.Configuration
-import com.digiting.sync.SyncableSerialize._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import com.digiting.util.Log2._
 
 @RunWith(classOf[JUnitRunner])
 class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
+  implicit private lazy val log = logger("MigrationTest")
   describe("Migration") {
     it("should initialize configuration") {
       Configuration.initFromVariable("jsyncServerConfig")      
     }
     
     it("should migrate a simple object from an old to a new schema") {
+      def expectTestPartitionVersion(id:SyncableId, version:String) {
+        testPartition.withDebugTransaction {tx =>     // verify that partition has the updated versio now
+          testPartition.get(id.instanceId, tx) match {
+            case Some(pickled:Pickled) => 
+              pickled.id.kindVersion should be (version)          
+            case _ => fail  
+          }
+        }        
+      }
+      
       withTestFixture {
         val old = withTestPartition { KindVersion0(TestNameObj("wheel")) }
-        val pickled = Pickled(old)
+        expectTestPartitionVersion(old.id, "0") // orig version in store
         
         withTempContext {
-          pickled.unpickle() match {
-            case migrated:KindVersion =>
-              migrated.kind should be (pickled.reference.kind)
+          testPartition.get(old.id.instanceId) match {  // triggers the migration (via unpickle)
+            case Some(migrated:KindVersion) =>
+              migrated.kind should be (old.kind)
               migrated.kindVersion should be ("1")
-              migrated.obj.ref.asInstanceOf[TestNameObj].name should be ("wheel")
+              migrated.obj.ref.name should be ("wheel")
             case _ =>
-              fail            
+              fail
           }
-        }      
+        } 
+        
+        expectTestPartitionVersion(old.id, "1") // new version in store
+        
       } 
-    }        
+    }   
   }
 }

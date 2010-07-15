@@ -42,21 +42,21 @@ abstract trait PickledCollection[E] extends Pickled {
 
 object PickledSeq {
   def apply(p:Pickled, members:mutable.Buffer[SyncableReference] ) = {
-    new PickledSeq(p.reference, p.instanceVersion, p.properties, Set.empty, members)
+    new PickledSeq(p.id, p.instanceVersion, p.properties, Set.empty, members)
   }
   val emptyMembers = new ArrayBuffer[SyncableReference] 
 }
 
 object PickledSet {
   def apply(p:Pickled, members:Set[SyncableReference]) = {
-    new PickledSet(p.reference, p.instanceVersion, p.properties, Set.empty, members)
+    new PickledSet(p.id, p.instanceVersion, p.properties, Set.empty, members)
   }
   val emptyMembers = new immutable.HashSet[SyncableReference]
 }
 
 object PickledMap {
   def apply(p:Pickled, members:Map[Serializable, SyncableReference]) = {
-    new PickledMap(p.reference, p.instanceVersion, p.properties, Set.empty, members)
+    new PickledMap(p.id, p.instanceVersion, p.properties, Set.empty, members)
   }
   val emptyMembers = new immutable.HashMap[Serializable, SyncableReference] 
 }
@@ -96,19 +96,19 @@ class PickledSeq(id:KindVersionedId, ver:String,
       case _ =>
         throw new ImplementationError
     }
-    new PickledSeq(reference, change.versionChange.now, properties, watches, revisedMembers)
+    new PickledSeq(id, change.versionChange.now, properties, watches, revisedMembers)
   }
   
   override def addWatch(watch:PickledWatch):PickledSeq = {
     val moreWatches = watches + watch
-    val pickled = new PickledSeq(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledSeq(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledSeq addWatch() %s", pickled)    
     pickled
   }
   
   override def deleteWatch(watch:PickledWatch):PickledSeq = {
     val moreWatches = watches - watch
-    val pickled = new PickledSeq(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledSeq(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledSeq deletewatch() %s", pickled)    
     pickled
   }
@@ -144,18 +144,18 @@ class PickledSet(id:KindVersionedId, ver:String,
         case _ =>
           throw new ImplementationError      
       }
-    new PickledSet(reference, change.versionChange.now, properties, watches, revisedMembers)
+    new PickledSet(id, change.versionChange.now, properties, watches, revisedMembers)
   } 
   override def addWatch(watch:PickledWatch):PickledSet= {
     val moreWatches = watches + watch
-    val pickled = new PickledSet(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledSet(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledSet addWatch() %s", pickled)    
     pickled
   }
   
   override def deleteWatch(watch:PickledWatch):PickledSet = {
     val moreWatches = watches - watch
-    val pickled = new PickledSet(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledSet(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledSet deletewatch() %s", pickled)    
     pickled
   }
@@ -192,11 +192,11 @@ class PickledMap(id:KindVersionedId, ver:String,
         case _ =>
           throw new ImplementationError      
       }
-    new PickledMap(reference, change.versionChange.now, properties, watches, revisedMembers)
+    new PickledMap(id, change.versionChange.now, properties, watches, revisedMembers)
   }
   override def addWatch(watch:PickledWatch):PickledMap = {
     val moreWatches = watches + watch
-    val pickled = new PickledMap(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledMap(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledMap addWatch() %s", pickled)    
     pickled
   }
@@ -204,7 +204,7 @@ class PickledMap(id:KindVersionedId, ver:String,
   // SCALA - can we DRY these, maybe with 2.8 copy named parameters?
   override def deleteWatch(watch:PickledWatch):PickledMap = {
     val moreWatches = watches - watch
-    val pickled = new PickledMap(reference, instanceVersion, properties, moreWatches, members)    
+    val pickled = new PickledMap(id, instanceVersion, properties, moreWatches, members)    
     trace2("PickledMap deletewatch() %s", pickled)    
     pickled
   }

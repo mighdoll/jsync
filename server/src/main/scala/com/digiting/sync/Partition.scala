@@ -44,6 +44,14 @@ abstract class Partition(val partitionId:String) extends RamWatches
       result
     }
   }
+  
+  def withDebugTransaction[T](fn: (Transaction)=>T):T = {
+    withTransaction {
+      currentTransaction.value map {tx =>
+        fn(tx)
+      } getOrElse abort2("")
+    }
+  }
 
   /** Fetch an object or a collection.  
    * (Creates an implicit transaction if none is currently active) */
@@ -113,7 +121,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
   }
   
   /** verify that we're currently in a valid transaction*/
-  private[this] def expectTransaction[T](fn: (Transaction)=>T):T =  {
+  private def expectTransaction[T](fn: (Transaction)=>T):T =  {
     currentTransaction value match {
       case Some(tx:Transaction) => 
         fn(tx)
