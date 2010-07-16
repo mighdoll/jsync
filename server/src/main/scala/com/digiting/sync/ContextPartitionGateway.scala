@@ -41,13 +41,14 @@ trait ContextPartitionGateway  {
       changes flatMap {_.references} foreach {get(_)}
 
       Observers.pauseNotification {
-        Observers.withMutator(partition.partitionId) {  // TODO, I think we can get rid of this withMutator
-          changes foreach {modify(_)}
-        }
-        Observers.releasePaused {_ == instanceCache}
+        changes foreach {modify(_)}
+        
+        // hack the changes out of the instnace cache lest they go back to the partition
+        Observers.releasePaused {_ == instanceCache}  
         val toss = instanceCache.drainChanges()         
         trace2({"partitionChanged() tossing partition changes: " +
                 (toss mkString("\n\ttoss: ", "\n\ttoss: ", ""))})
+        
       } // app notification released here, possibly generating more changes
     } // client and any partition notification (of app changes subsequent to toss above) sent here, in withApp.commit()
     

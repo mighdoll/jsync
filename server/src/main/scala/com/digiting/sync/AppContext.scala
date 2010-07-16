@@ -23,7 +23,7 @@ import Log2._
 // CONSIDER -- the apps should probably be actors..
 // NOTE - for now, we assume that each app context has one and only one connection
 abstract class AppContext(val connection:Connection) extends HasTransientPartition 
-  	with ContextPartitionGateway  {
+  	with ContextPartitionGateway with HasWatches {
   implicit private lazy val log = logger("AppContext")
   def appName:String
   val remoteChange = new DynamicOnce[DataChange]
@@ -47,8 +47,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     * instance cache.  */
   def get(partitionId:String, syncableId:String):Option[Syncable] = {    
     instanceCache get(partitionId, syncableId) orElse 
-      get(SyncableId(PartitionId(partitionId), InstanceId(syncableId)))
-       
+      get(SyncableId(PartitionId(partitionId), InstanceId(syncableId)))       
   }
   
   /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
@@ -66,6 +65,9 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     commitToPartitions(changes)
   }
   
+  def notifyAppWatchers() {
+    
+  }
       
   /** accept a protocol message for this application */
   def receiveMessage(message:Message) {

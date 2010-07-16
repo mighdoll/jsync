@@ -2,7 +2,7 @@
 <launchConfiguration type="org.eclipse.jdt.junit.launchconfig">
 <stringAttribute key="bad_container_name" value="/jsync-server/id"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/jsync-server/src/test/scala/com/digiting/sync/test/PartitionWatchTest.scala"/>
+<listEntry value="/jsync-server/src/test/scala/com/digiting/sync/test/RamWatchesTest.scala"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
 <listEntry value="1"/>
