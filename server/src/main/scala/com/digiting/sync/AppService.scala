@@ -25,7 +25,7 @@ class AppService[T <: Syncable](val serviceName:String, app:AppContext, debugId:
   val log = Logger("AppService")
   
   log.trace("init()")
-  app.watch(queue) { change =>
+  app.watch2(queue) { change =>
     log.trace("queueChanged(): %s", change)
     for {
       insertAt <- matchInsertAtChange(change) orElse 

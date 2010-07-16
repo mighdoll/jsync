@@ -49,7 +49,8 @@ trait ContextPartitionGateway  {
         trace2({"partitionChanged() tossing partition changes: " +
                 (toss mkString("\n\ttoss: ", "\n\ttoss: ", ""))})
         
-      } // app notification released here, possibly generating more changes
+      } 
+      notifyWatchers() // app notification released here, possibly generating more changes
     } // client and any partition notification (of app changes subsequent to toss above) sent here, in withApp.commit()
     
     /* SOON - consider revising this.  apps should queue notifications (as the instanceCache

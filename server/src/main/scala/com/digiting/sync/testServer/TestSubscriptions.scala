@@ -238,13 +238,13 @@ object TestSubscriptions extends LogHelper {
   
   /** call a function on changes made by the client */
   private def withForeignChange(syncable:Syncable, watchName:String)(fn: (DataChange)=>Unit)  {
-    Observers.watch(syncable, watchName, {change =>
+    App.app.watch2(syncable) {change =>
       if (change.source != App.currentAppName) {
         fn(change)
       } else {
 //        log.trace("ignoring non-foreign change: %s", change)
       }
-    })
+    }
   }
   
     /**

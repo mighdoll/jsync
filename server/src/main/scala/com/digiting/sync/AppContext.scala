@@ -65,15 +65,6 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     commitToPartitions(changes)
   }
   
-  def notifyAppWatchers() {
-    while (!pending.isEmpty) {
-      val copy = pending.toSeq    
-      pending.clear    
-      copy foreach {notification =>
-        notification.fn(notification.change)
-      }
-    } // repeat in case the notified functions make more changes
-  }
       
   /** accept a protocol message for this application */
   def receiveMessage(message:Message) {

@@ -55,7 +55,8 @@ object ProcessMessage extends LogHelper {
             // second release notifications to the app watch pool so the app sees a consistent version of changes (mutator doesn't matter for this as no further mutations are triggered)
             Observers.releasePaused {_ == app.instanceCache}
           }
-        }          
+        }
+        app.notifyWatchers()
         ; // third, release notifications to the app.  Responses are processed in app context 
       } catch {
         // LATER send client a protocol reset message, reset our state too
