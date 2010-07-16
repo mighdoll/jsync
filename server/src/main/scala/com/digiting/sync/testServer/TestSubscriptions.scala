@@ -82,11 +82,11 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publish("modifyReference", {()=>
+    testPartition.publish("modifyReference") {
       val ref = new TestRefObj      
       withForeignChange(ref, "modifyReferenceTest") {modify}
       Some(ref)
-    })    
+    }    
   }
   
   /** server adds an object to a set when the client adds an object */
@@ -106,11 +106,11 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publish("duplicatingSet", {()=>
+    testPartition.publish("duplicatingSet") {
       val set = new SyncableSet[Syncable]      
       withForeignChange(set, "duplicatingSetTest") {duplicate(set, _)}
       Some(set)
-    })  
+    }  
   }
   
   /** server and client insert and erase a sequence 
@@ -129,11 +129,11 @@ object TestSubscriptions extends LogHelper {
       }
     }
     
-    testPartition.publish("sequence", {() =>
+    testPartition.publish("sequence") {
       val seq = createNameSequence("a","b","c")
       withForeignChange(seq, "sequenceTest") {modify}
       Some(seq)
-    })
+    }
   }
   
   /** move an element in a sequence
@@ -168,17 +168,17 @@ object TestSubscriptions extends LogHelper {
           ref.ref = seq
       }
     }
-    testPartition.publish("addReferencedSequence", {() =>
+    testPartition.publish("addReferencedSequence") {
       val ref = new TestRefObj    
       withForeignChange(ref, "addReferencedSequence") {modified}
       Some(ref)
-    })                                   
+    }                                   
   }
 
   /** round trip modification of primitive field types */
   def primitivesRoundTrip() {
     
-    testPartition.publish("primitivesRoundTrip", {() =>
+    testPartition.publish("primitivesRoundTrip") {
     	val prims = new TestPrimitiveProperties
       var once = false
       withForeignChange(prims, "primitivesRoundTrip") {change =>        
@@ -199,7 +199,7 @@ object TestSubscriptions extends LogHelper {
          }
       }
       Some(prims)
-    })
+    }
   }
   
   /** a test on the sequence "a","b","c" */
@@ -209,11 +209,11 @@ object TestSubscriptions extends LogHelper {
   
   
   private def generateAbc(publicName:String)(modifiedFn:(DataChange)=>Unit) {
-    testPartition.publish(publicName, {() =>
+    testPartition.publish(publicName) {
       val seq = createNameSequence("a","b","c")
       withForeignChange(seq, publicName) {modifiedFn}
       Some(seq)
-    })        
+    }
   }
   
   /** cast an option expected to be of a certain type and non-empty

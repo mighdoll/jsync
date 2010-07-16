@@ -59,7 +59,7 @@ class PublishedRoots(partition:Partition) {
   }
     
   /** create a dynamic subscription, that calls a function to produce */
-  def createGenerated(name:String, fn:()=>Option[Syncable]):Unit = {
+  def createGenerated(name:String, fn: ()=>Option[Syncable]):Unit = {
     find(name) match {
       case Some(data) =>
         log.error("creating generated subscription function atop data! " + name)

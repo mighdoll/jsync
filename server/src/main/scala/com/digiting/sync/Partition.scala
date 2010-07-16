@@ -110,8 +110,8 @@ abstract class Partition(val partitionId:String) extends RamWatches
   }
   
   /** map a name to a function that produces an object for that name dynamically. */  
-  def publish(publicName:String, generator: ()=>Option[Syncable]) {
-    published.createGenerated(publicName, generator)
+  def publish(publicName:String) (generator: =>Option[Syncable]) {
+    published.createGenerated(publicName, () =>generator)
   }
     
   /** destroy this partition and its contents */

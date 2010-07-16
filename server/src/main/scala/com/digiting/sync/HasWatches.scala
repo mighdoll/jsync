@@ -1,12 +1,16 @@
 package com.digiting.sync
 import Observers.DataChangeFn
-import com.digiting.util.MultiMap // LATER replace this with SCALA 2.8
+import collection.mutable
 
 trait HasWatches {
-	
-  val watchers = new MultiMap[Syncable, DataChangeFn]
+  case class Notification(fn:DataChangeFn, change:DataChange)
+	def pending = new mutable.Queue[Notification]
+ 
+  /** watch a syncable: changes will be reported to the app at commit time */
   def watch(syncable:Syncable)(dataChangeFn:DataChangeFn) { 
-    watchers += (syncable, dataChangeFn)
+    Observers.watch(syncable, this, {change =>
+      pending += Notification(dataChangeFn, change)
+    })
   }
     
 }
