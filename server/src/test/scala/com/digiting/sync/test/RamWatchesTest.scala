@@ -17,7 +17,7 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
         withTransaction {
           // FIXME
           Observers.withMutator("testWatch") {
-            watch(nameObj.id.instanceId, {changes:Seq[DataChange] =>
+            watch(nameObj.id.instanceId, 10000) {changes:Seq[DataChange] =>
               changes match {
                 case Seq(PropertyChange(target, property, newValue, oldValue, versions)) =>
                   found = true
@@ -27,7 +27,7 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
                   target should be (nameObj.id)
                 case _ =>
               }
-            }, 100000)
+            }
           }
         }
         App.app.commit()
@@ -44,9 +44,9 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
         var found = false
         withTransaction {
           Observers.withMutator("testWatch") {
-            watch(nameObj.id.instanceId, {_=>
-              found = true},
-            1)
+            watch(nameObj.id.instanceId, 1) {_=>
+              found = true
+            }
           }
         }
         App.app.commit()

@@ -46,11 +46,4 @@ object Partition extends LogHelper {
   
 }
 
-case class PartitionId(val id:String) {
-  override def toString:String = id
-}
-
-case class InstanceId(val id:String) {
-  override def toString:String = id
-}
 

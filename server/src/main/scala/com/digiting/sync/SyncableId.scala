@@ -77,4 +77,25 @@ class KindVersionedId(partitionId:PartitionId, instanceId:InstanceId, kind:Kind,
 	extends SyncableReference(partitionId, instanceId, kind) {
    override def toString = toCompositeIdString +  "[" + kind + "-" + kindVersion + "]"
 } 
-  
+ 
+
+trait HasId {
+  val id:String
+  override def toString:String = id  
+}
+
+/** id of an instance within a partition */
+case class InstanceId(val id:String) extends HasId 
+
+/** id of a storage partition */
+case class PartitionId(val id:String) extends SyncNode with HasId 
+
+/** id of a client browser connection */
+case class ClientId(val id:String) extends SyncNode with HasId 
+
+/** id of a server app context */
+case class AppId(val id:String) extends SyncNode with HasId 
+
+/** a participant in the app synchronization */
+trait SyncNode
+

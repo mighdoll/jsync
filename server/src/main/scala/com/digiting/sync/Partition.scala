@@ -28,8 +28,7 @@ import Partition.InvalidTransaction
  * The current implementation does not guarantee durability.  If the server crashes right after
  * put() is called, the data is lost.
  */
-abstract class Partition(val partitionId:String) extends RamWatches 
-    with ConcretePartition { 
+abstract class Partition(val partitionId:String) extends ConcretePartition { 
   implicit private lazy val log2 = logger("Partition")
   val id = PartitionId(partitionId)
   private val currentTransaction = new DynamicVariable[Option[Transaction]](None)
@@ -168,7 +167,7 @@ abstract class Partition(val partitionId:String) extends RamWatches
           watches = getWatches(targetId, tx) 
           invalid = watches filter(System.currentTimeMillis > _.expiration)
           validWatches = (watches -- invalid)
-          outgoing = validWatches filter(_.clientId != change.source)          
+          outgoing = validWatches filter(_.watcherId != change.source)          
         } yield {          
           // remove invalid watches
           invalid foreach (unwatch(targetId, _))
@@ -191,6 +190,34 @@ abstract class Partition(val partitionId:String) extends RamWatches
     }
   }
   
+  /** try putting this back into a trait after SCALA 2.8 (trying to work around spurious verify errors in eclipse)*/
+  import RandomIds.randomUriString  
+  import java.util.concurrent.ConcurrentHashMap
+  type PartitionWatchFn = (Seq[DataChange])=>Unit
+
+  val watchFns = new ConcurrentHashMap[RequestId, PartitionWatchFn]
+  
+  def pickleWatch(duration:Int)(fn:PartitionWatchFn):PickledWatch = {
+    val requestId = RequestId(randomUriString(8))
+    watchFns.put(requestId, fn)
+    val watcherId = AppId(Observers.currentMutator.value)
+    new PickledWatch(watcherId, requestId, System.currentTimeMillis + duration)
+  }
+  
+  def watch(id:InstanceId, duration:Int)(fn:PartitionWatchFn):PickledWatch = {
+    val pickledWatch = pickleWatch(duration)(fn)
+    watch(id, pickledWatch)
+    pickledWatch
+  }
     
+  protected[sync] def notify(pickledWatch:PickledWatch, changes:Seq[DataChange]) {
+    val fn = watchFns get(pickledWatch.requestId)
+    if (fn != null) {
+      fn(changes)
+    } else {
+      err2("notify() can't find fn for %s  for change:%s", pickledWatch, changes)
+    }   
+  }
+      
   Partitions.add(this)  // tell the manager about us
 }

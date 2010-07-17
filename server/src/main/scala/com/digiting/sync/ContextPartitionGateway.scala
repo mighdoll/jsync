@@ -26,67 +26,12 @@ trait ContextPartitionGateway  {
   /** make a new pickled watch function for a given partition */
   private def makePartitionWatchFn(partitionId:PartitionId):PickledWatch = {
 	  val partition = Partitions(partitionId)
-    val pickled = partition.pickledWatchFn(
-      {this ! (partition,_)}, partitionWatchTimeout)
+    val pickled = partition.pickleWatch(partitionWatchTimeout) {change=>
+      this ! (partitionId, change)
+    }
     watchFns(partitionId) = pickled
     pickled
   }
-
-  /** called when we receive a transactions worth of changes from the partition */
-  def applyPartitionChanges(partition:Partition, changes:Seq[DataChange]) {
-    withApp {
-      changes.first.target.partitionId
-    
-      changes foreach {trace2("#%s Change received from partition %s", debugId, _)}
-  
-      changes flatMap {_.references} foreach {get(_)}
-
-      Observers.pauseNotification {
-        changes foreach {modify(_)}
-        
-        // hack the changes out of the instnace cache lest they go back to the partition
-        Observers.releasePaused {_ == instanceCache}  
-        val toss = instanceCache.drainChanges()         
-        trace2({"partitionChanged() tossing partition changes: " +
-                (toss mkString("\n\ttoss: ", "\n\ttoss: ", ""))})
-        
-      } 
-      notifyWatchers() // app notification released here, possibly generating more changes
-    } // client and any partition notification (of app changes subsequent to toss above) sent here, in withApp.commit()
-    
-    /* SOON - consider revising this.  apps should queue notifications (as the instanceCache
-     * and subscriptions do), rather than relaying watches immediately.  Then we can stop this
-     * pauseNotification silliness and just manipulate the queues directly.  
-     */
-  }
-  
-  /** apply one modification */
-  private def modify(change:DataChange) {
-    remoteChange.withValue(change) {
-      change match {
-        case created:CreatedChange => NYI()
-        case property:PropertyChange => 
-          withGetId(property.target) {obj =>
-          	trace2("#%s applying property: %s", debugId, change)
-            SyncableAccessor(obj).set(obj, property.property, getValue(property.newValue))          
-          }
-        case collectionChange:CollectionChange => 
-          withGetId(collectionChange.target) {obj =>
-            trace2("#%s collectionChange : %s", debugId, change)
-            obj match {
-              case collection:SyncableCollection => collection.revise(collectionChange)
-            }
-          }
-        case deleted:DeletedChange => NYI()        
-      }
-    }
-  }
-  
-  private def getValue(value:SyncableValue):AnyRef = 
-    value.value match {
-      case ref:SyncableReference => get(ref) get
-      case v => v.asInstanceOf[AnyRef]
-    }
 
     // SOON Add timeout re-registration 
 }

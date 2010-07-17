@@ -58,7 +58,8 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  def commit() {
+  def commit() {      
+    notifyWatchers() // notify internal apps, possibly generating more changes
     val pending = subscriptionService.active.takePending()
     val changes = instanceCache.drainChanges()
     sendPendingChanges(pending)
