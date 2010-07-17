@@ -45,17 +45,11 @@ class PublishedRoots(partition:Partition) {
    * replaced */
   def create(name:String, root:Syncable) {    
     val ids = SyncableId(partition.id, nameToId(name))
-    val published = 
-      SyncManager.withNextNewId(ids) {
-        SyncManager.currentPartition.withValue(partition) {
-          new PublishedRoot(normalize(name), root)
-        }
+    SyncManager.withNextNewId(ids) {
+      SyncManager.currentPartition.withValue(partition) {
+        new PublishedRoot(normalize(name), root)
       }
-    
-    // TODO fix this when we make the SyncManager pools per connection (and per partition?)
-    val change = new CreatedChange(SyncableReference(published),
-      Pickled(published), VersionChange(published.version, published.version))
-    partition.withTransaction {partition.modify(change)} 
+    }
   }
     
   /** create a dynamic subscription, that calls a function to produce */
