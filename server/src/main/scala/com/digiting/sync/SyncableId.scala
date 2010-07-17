@@ -10,26 +10,26 @@ object CompositeId {
       case _ => None
     }
   }
+  def compositeString(partitionId:String, instanceId:String):String = {
+    partitionId + "/" + instanceId
+  }
 }
 
-import CompositeId.compositeIdRegex
+import CompositeId._
 object SyncableId {
-  def unapply(s:String):Option[SyncableId] = {
-    compositeIdRegex.unapplySeq(s) match {
-      case Some(part :: id :: nil) => Some(SyncableId(PartitionId(part),id))
-      case _ => None
-    }
-  }
+  def unapply(s:String):Option[SyncableId] = toSyncableId(s)
+  
   def apply(partitionId:PartitionId, instanceIdString:String) = 
     new SyncableId(partitionId, InstanceId(instanceIdString))
   def apply(partitionId:PartitionId, instanceId:InstanceId) = 
     new SyncableId(partitionId, instanceId)
+  
 }
 
 class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {  
   def toJsonMap = immutable.Map("$id" -> instanceId.id, "$partition" -> partitionId.id)
   def toJson = JsonUtil.toJson(toJsonMap)
-  def toCompositeIdString = partitionId.id + "/" + instanceId.id
+  def toCompositeIdString = compositeString(partitionId.id, instanceId.id)
   override def toString = toCompositeIdString
   def target = App.app.get(this)
   override def equals(other: Any): Boolean = 

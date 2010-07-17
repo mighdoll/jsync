@@ -24,7 +24,7 @@ object ClientTestApp {
   }
 }
 
-// TODO add a client test that calls this
+// SOON add a client test that calls this
 @ImplicitServiceClass("ClientTestResponse")
 object ClientTestResponse extends LogHelper {  
   val log = Logger("ClientTestResponse")

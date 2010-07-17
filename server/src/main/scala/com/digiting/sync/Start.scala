@@ -24,6 +24,6 @@ object Start {
       ClientTestApp.init()          
     }
     
-    Demos.init  // TODO move this to a separate project
+    Demos.init  // SOON move this to a separate project
   }
 }
