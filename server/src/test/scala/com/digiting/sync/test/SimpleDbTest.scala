@@ -94,7 +94,7 @@ import org.scalatest.junit.JUnitRunner
 //    
 //        
 //    it("should create a test partition") {
-//      testPartition = admin.partition(PartitionRef("testDomain", "sdb-test"))	// TODO create random number 
+//      testPartition = admin.partition(PartitionRef("testDomain", "sdb-test"))	// LATER create random number 
 //      admin.domains contains ("testDomain") should be (true)
 //      val partitionItem = admin.partitionsDomain item("testDomain.sdb-test")  
 //      partitionItem.attributes("partition").contains("sdb-test") should be (true)

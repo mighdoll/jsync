@@ -33,7 +33,7 @@ class ParseTest extends Spec with ShouldMatchers with SyncFixture {
         val puts = ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test") :: Nil
         val edits = ImmutableJsonMap("#edit" -> ImmutableJsonMap("$id" -> "test-2", "$partition" -> "test"), 
                                      "put" -> puts) :: Nil
-        val controls = ImmutableJsonMap("#start" -> true) :: Nil    // TODO this isn't correct for #start
+        val controls = ImmutableJsonMap("#start" -> true) :: Nil    // LATER consider- this isn't correct for #start (?)
         val message = new Message(0, controls, edits, syncs)
         
         // message to json and back

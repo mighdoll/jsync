@@ -155,7 +155,7 @@ import SyncableSerialize._
 //      case c:BeginWatch => // ignored
 //      case c:EndWatch => // ignored
 //        
-//      case c:CreatedChange[_] => put(c.target.asInstanceOf[Syncable])  // TODO unpickle here
+//      case c:CreatedChange[_] => put(c.target.asInstanceOf[Syncable])  // LATER unpickle here
 //    }
 //  } 
 //  
@@ -167,7 +167,7 @@ import SyncableSerialize._
 //  
 //  private def refreshContents(change:ChangeDescription) {
 //    val seq:SyncableSeq[Syncable] = change.target.asInstanceOf[SyncableSeq[Syncable]]
-//    clearMembers(seq)		// TODO, add version here:  EVENTUAL ISSUE - these two are not guaranteed to happen in the right order
+//    clearMembers(seq)		// LATER, add version here:  EVENTUAL ISSUE - these two are not guaranteed to happen in the right order
 //    saveMembers(seq)    
 //  }
 //  
