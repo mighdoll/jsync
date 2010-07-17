@@ -24,27 +24,32 @@ import org.scalatest.junit.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class ConfigurationTest extends Spec with ShouldMatchers {
   describe("Configuration") {
-    it("should setup the test") {
-      Configuration.initFromVariable("jsyncServerConfig")      
+    def withBaseConfiguration[T](fn: =>T):T = {
+       Configuration.initFromVariable("jsyncServerConfig")      
+       val result = fn
+       Configuration.reset()
+       result
     }
     
     it("should load configuration in debug mode") {
-      Configuration.withOverride("jsyncServer_runMode" -> None) {
-        Configuration.reset()
-        Configuration("digiting") should be ("true")
-        Configuration.runMode should be ("debug")
+      withBaseConfiguration {
+        Configuration.withOverride("jsyncServer_runMode" -> None) {
+          Configuration.reset()
+          Configuration("digiting") should be ("true")
+          Configuration.runMode should be ("debug")
+        }
       }
     }
     it("should configuration in productionTest mode") {
-      Configuration.withOverride("jsyncServer_runMode" -> Some("productionTest")) {
-        Configuration.reset()
-        Configuration("digiting") should be ("true")       
-        Configuration.runMode should be ("productionTest")
+      withBaseConfiguration {
+        Configuration.withOverride("jsyncServer_runMode" -> Some("productionTest")) {
+          Configuration.reset()
+          Configuration("digiting") should be ("true")       
+          Configuration.runMode should be ("productionTest")
+        }
       }
     }
-    it("should cleanup the test") {
-      Configuration.reset()  // TODO cleanup routine in the scalatest api?
-    }
+    
   }
 }
 
