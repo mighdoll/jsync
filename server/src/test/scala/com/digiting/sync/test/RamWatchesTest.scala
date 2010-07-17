@@ -15,7 +15,6 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
         var found = false
         import testPartition._
         withTransaction {
-          // FIXME
           Observers.withMutator("testWatch") {
             watch(nameObj.id.instanceId, 10000) {changes:Seq[DataChange] =>
               changes match {
