@@ -10,7 +10,7 @@ trait ContextPartitionGateway  {
   private val partitionWatchTimeout = 100000
   
   // one watch function for each partition containing an object we're watching  
-  val watchFns = new mutable.HashMap[PartitionId,PickledWatch]
+  val watchFns = new mutable.HashMap[PartitionId, PickledWatch]
 
   /**  Watch for changes made by others to an object in the partition store.
    */  
@@ -18,6 +18,7 @@ trait ContextPartitionGateway  {
     val pickledWatchFn = watchFns get id.partitionId getOrElse 
       makePartitionWatchFn(id.partitionId)
     
+    // queue a BeginObserve change to the partition
     val partitionWatch = new BeginObserveChange(id, pickledWatchFn)
     App.app.instanceCache.changeNoticed(partitionWatch)
   }
@@ -26,13 +27,13 @@ trait ContextPartitionGateway  {
   private def makePartitionWatchFn(partitionId:PartitionId):PickledWatch = {
 	  val partition = Partitions(partitionId)
     val pickled = partition.pickledWatchFn(
-      {partitionChanged(partition,_)}, partitionWatchTimeout)
+      {this ! (partition,_)}, partitionWatchTimeout)
     watchFns(partitionId) = pickled
     pickled
   }
 
   /** called when we receive a transactions worth of changes from the partition */
-  private def partitionChanged(partition:Partition, changes:Seq[DataChange]) {
+  def applyPartitionChanges(partition:Partition, changes:Seq[DataChange]) {
     withApp {
       changes.first.target.partitionId
     
@@ -87,5 +88,5 @@ trait ContextPartitionGateway  {
       case v => v.asInstanceOf[AnyRef]
     }
 
-    // TODO Add timeout re-registration 
+    // SOON Add timeout re-registration 
 }

@@ -75,7 +75,7 @@ class Receiver(connection:Connection) extends Actor {
       case Some(message) =>        
         connection.appContext match {
           case Some(app) =>
-            ProcessMessage.process(message, app)	// CONSIDER actorify appContext? 
+            app ! message
           case _ =>
             log.error("processReceived() - no app defined!  how can I process message: %s", message.toJson)
         }

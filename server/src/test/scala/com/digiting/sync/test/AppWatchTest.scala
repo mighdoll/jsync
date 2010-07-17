@@ -18,6 +18,7 @@ class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {
       app1.withApp {
         copy1.name = "oil"
       }
+      app2 !? Flush()
       copy2.name should be ("oil")
     }
     
@@ -29,6 +30,7 @@ class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {
       app1.withApp {
         copy1.ref = TestNameObj("tabouli")
       }
+      app2 !? Flush()
       copy2.ref.asInstanceOf[TestNameObj].name should be ("tabouli")      
       copy2.ref should not be (copy1.ref)
     }
@@ -43,10 +45,13 @@ class AppWatchTest extends Spec with ShouldMatchers with SyncFixture {
       app1.withApp {
         copy1 += TestRefObj(TestNameObj("yamaha"))
       }
+      app2 !? Flush()
+
       copy2(1).ref.name should be ("yamaha")
       app1.withApp {
         copy1.remove(0)
       }
+      app2 !? Flush()
       copy2.length should be (1)      
     }
   }

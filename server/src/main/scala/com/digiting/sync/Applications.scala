@@ -102,7 +102,7 @@ object Applications extends LogHelper {
       message.findControlProperty("#start") flatMap {
         _ match {
           case map:Map[_,_] => 
-            // experimenting with lift-json a bit to extract StartParameters.  TODO get rid of this when we move to lift-json overall
+            // experimenting with lift-json a bit to extract StartParameters.  LATER get rid of this when we move to lift-json overall
             val jsonMap = map.asInstanceOf[JsonMap]
             val jsonString = JsonUtil.toJson(jsonMap)
             val parsed = JsonParser.parse(jsonString)

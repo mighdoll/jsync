@@ -23,7 +23,7 @@ import Log2._
 // CONSIDER -- the apps should probably be actors..
 // NOTE - for now, we assume that each app context has one and only one connection
 abstract class AppContext(val connection:Connection) extends HasTransientPartition 
-  	with ContextPartitionGateway with HasWatches {
+  	with ContextPartitionGateway with HasWatches with AppContextActor {
   implicit private lazy val log = logger("AppContext")
   def appName:String
   val remoteChange = new DynamicOnce[DataChange]
