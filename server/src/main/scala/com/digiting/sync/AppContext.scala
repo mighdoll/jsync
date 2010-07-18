@@ -50,20 +50,11 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
 
   /** override this in your app */
   def appVersion = "unspecified"  
-
-    
-  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-    * instance cache.  */
-  def get(partitionId:String, syncableId:String):Option[Syncable] = {    
-    instanceCache get(partitionId, syncableId) orElse 
-      get(SyncableId(PartitionId(partitionId), InstanceId(syncableId)))       
-  }
   
-  /** retrieve an object synchronously an arbitrary partition.  Stores the object in the local
-    * instance cache.  */
-  def get(ids:SyncableId):Option[Syncable] = {
-    instanceCache get(ids.partitionId.id, ids.instanceId.id) orElse {
-      Partitions(ids) get(ids.instanceId)
+  /** retrieve an object synchronously from instance cache or from its home partition.  */
+  def get(id:SyncableId):Option[Syncable] = {
+    instanceCache get(id) orElse {
+      Partitions(id) get(id.instanceId) // SyncManager.created() will put this newly fetched object in the pool
     }
   }
   

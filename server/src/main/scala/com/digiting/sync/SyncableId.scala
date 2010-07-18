@@ -24,6 +24,8 @@ object SyncableId {
     new SyncableId(partitionId, InstanceId(instanceIdString))
   def apply(partitionId:PartitionId, instanceId:InstanceId) = 
     new SyncableId(partitionId, instanceId)
+  def apply(partitionIdString:String, instanceIdString:String) = 
+    new SyncableId(PartitionId(partitionIdString), InstanceId(instanceIdString))
   
 }
 

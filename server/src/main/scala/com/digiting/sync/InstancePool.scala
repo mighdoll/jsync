@@ -40,7 +40,10 @@ class WatchedPool(name:String)  {
   private val changes = new ConcurrentLinkedQueue[ChangeDescription]	
 
   /** find an object from the pool */
-  def get(partition:String, id:String):Option[Syncable] = localObjects get key(partition, id)
+  def get(partition:String, instance:String):Option[Syncable] = localObjects get key(partition, instance)
+  
+  /** find an object from the pool */
+  def get(id:SyncableId) = localObjects get key(id)
 
 
   /** put an object into the pool */
@@ -91,7 +94,8 @@ class WatchedPool(name:String)  {
   /** index by key and partition id */    
   private def key(partition:String, id:String):String = CompositeId.compositeString(partition, id) 
   /** index by key and partition id */
-  private def key(syncable:Syncable):String = key(syncable.id.partitionId.id, syncable.id.instanceId.id)
+  private def key(syncable:Syncable):String = key(syncable.id)
+  private def key(id:SyncableId):String = id.toCompositeIdString
 }
 
 
