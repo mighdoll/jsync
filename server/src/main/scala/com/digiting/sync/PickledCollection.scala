@@ -71,11 +71,9 @@ class PickledSeq(id:KindVersionedId, ver:String,
   
   override def unpickle:SyncableSeq[Syncable] = {
     val seq = super.unpickle.asInstanceOf[SyncableSeq[Syncable]]
-    Observers.withNoNotice {
-      App.app.withNoVersioning {
-        loadRefs(seq, members) foreach {             
-          seq += _
-        }
+    App.app.enableChanges(false){
+      loadRefs(seq, members) foreach {             
+        seq += _
       }
     }
     seq
@@ -122,11 +120,9 @@ class PickledSet(id:KindVersionedId, ver:String,
   implicit private val log = logger("PickledSet")
   override def unpickle:SyncableSet[Syncable] = {
     val set = super.unpickle.asInstanceOf[SyncableSet[Syncable]]
-    Observers.withNoNotice {
-      App.app.withNoVersioning {
-        loadRefs(set, members) foreach {             
-          set += _
-        }
+    App.app.enableChanges(false) {
+      loadRefs(set, members) foreach {             
+        set += _
       }
     }
     set
@@ -172,7 +168,7 @@ class PickledMap(id:KindVersionedId, ver:String,
 
   override def unpickle:SyncableMap[Serializable, Syncable] = {
     val map = super.unpickle.asInstanceOf[SyncableMap[Serializable, Syncable]]
-    Observers.withNoNotice {
+    App.app.enableChanges(false) {
       loadMapRefs(map, members) foreach {
         case (key, value) => map(key) = value
       }

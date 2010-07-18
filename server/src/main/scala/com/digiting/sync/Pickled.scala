@@ -15,7 +15,7 @@
 package com.digiting.sync
 import scala.collection.mutable.HashMap
 import SyncableInfo.isReserved
-import SyncManager.newSyncableQuiet
+import SyncManager.newSyncable
 import com.digiting.util._
 import java.io.Serializable
 import scala.collection.{mutable,immutable}
@@ -72,18 +72,17 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
   implicit private val log = logger("Pickled")
   
   def unpickle():Syncable = {
-    val syncable = 
-      Observers.withNoNotice {  
-        val syncable = newSyncableQuiet(id)
-        syncable.version = instanceVersion
-        val classAccessor = SyncableAccessor.get(syncable.getClass)
-        App.app.withNoVersioning {
-          for ((propName, value) <- properties) {
-            classAccessor.set(syncable, propName, unpickleValue(value.value))
-          }
-        }
-        syncable
+    val app = App.app
+    val syncable = app.enableChanges(false) { newSyncable(id) }
+    syncable.version = instanceVersion
+    
+    val classAccessor = SyncableAccessor.get(syncable.getClass)    
+    for ((propName, pickledValue) <- properties) {      
+      val value = unpickleValue(pickledValue.value) 
+      app.enableChanges(false) {
+        classAccessor.set(syncable, propName, value) 
       }
+    }
   	
     val latest = migrateToLatest(syncable)
     trace2("unpickled %s", latest)
@@ -92,7 +91,8 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
   
   private def migrateToLatest(syncable:Syncable):Syncable = {
     syncable match {
-      case migrator:MigrateTo[_] => migrator.migrate
+      case migrator:MigrateTo[_] => 
+        App.app.enableChanges(true) { migrator.migrate }
       case normal => normal
     }
   }
@@ -102,8 +102,7 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
       case ref:AnyRef => ref      // matches almost everything
       case null => null
       case x => 
-        err2("boxValue unexpected code path for: " + x)
-        throw new ImplementationError
+        abort2("boxValue unexpected code path for: " + x)
     }
   }
   
@@ -111,8 +110,7 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
     value match {
       case ref:SyncableReference =>
         App.app.get(ref) getOrElse {
-          err2("unpickleValue can't find referenced object: ", ref)
-          throw new ImplementationError
+          abort2("unpickleValue can't find referenced object: ", ref)
         }          
       case other => boxValue(other)
     }

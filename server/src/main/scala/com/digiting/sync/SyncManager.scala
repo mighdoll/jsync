@@ -39,9 +39,6 @@ object SyncManager extends LogHelper {
   
   // default partition for new objects
   val currentPartition = new DynamicVariable[Partition](null)	
-
-  // don't register a creation change while this is true (so partitions can instantiate objects)
-  val quietCreate = new DynamicVariable[Option[Boolean]](None)
   
   // true while we're creating an ephemeral syncable, that isn't mapped in the index or observed 
   private val creatingFake = new DynamicOnce[Boolean];  
@@ -69,27 +66,20 @@ object SyncManager extends LogHelper {
     val access = kinds.accessor(kind)
     constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], id)
   }
-    
-  /** construct a new blank syncable instance.
-   * does not send a creation notification to observers.
-   * if the requested kindVersion is obsolete (due to Migration), returns the obsolete type
-   */
-  def newSyncableQuiet(kindedId:KindVersionedId):Syncable = {
-    quietCreate.withValue(Some(true)) {
-      val access = kinds.accessor(kindedId)
-      constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], kindedId.id)
-    }
+  
+  /** construct a new syncable instance in the specified partition with the specified class
+   * (this variant of newSyncable works for registered obsolete kindVersions too) */
+  def newSyncable(kindedId:KindVersionedId):Syncable = {
+    val access = kinds.accessor(kindedId)
+    constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], kindedId.id)
   }
   
-  /** build a syncable with a specified class, and instance Id */
+  /** build a syncable with a specified instance Id */
   private def constructSyncable[T <: Syncable](clazz:Class[T], id:SyncableId):T = {
     withNextNewId(id) {
       clazz.newInstance
     }
   }
-
-  // TODO -- we have too many construction routines, clean this up.
-
 
   
   /** run a function with the current partition temporarily set.  Handy for creating objects
@@ -99,7 +89,8 @@ object SyncManager extends LogHelper {
       fn
     }      
   }
-  
+
+  /** the next Syncable created will have this id */
   def withNextNewId[T](id:SyncableId)(fn: =>T):T = {
     setNextId.withValue(id) {
       fn
@@ -179,12 +170,9 @@ object SyncManager extends LogHelper {
     creatingFake.take orElse {
       val app = App.app
     	app.instanceCache put syncable
-      quietCreate.value orElse { 
-        app.updated(syncable) {
-          CreatedChange(SyncableReference(syncable), Pickled(syncable),
-          		VersionChange(syncable.version, syncable.version))   
-        } 
-        None
+      app.updated(syncable) {
+        CreatedChange(SyncableReference(syncable), Pickled(syncable),
+        		VersionChange(syncable.version, syncable.version))   
       } 
       None
     }

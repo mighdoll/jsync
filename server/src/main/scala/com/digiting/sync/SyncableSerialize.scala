@@ -20,6 +20,8 @@ import SyncableInfo.isReserved
 
 import SyncableKinds.Kind
 
+/** NOTE this isn't currenlty being tested. */
+
 /** utilities to serialize/deserialize a syncable to from a map of key,value strings */
 object SyncableSerialize extends LogHelper {
   case class Reference(val partition:String, id:String, kind:Kind)
@@ -44,19 +46,19 @@ object SyncableSerialize extends LogHelper {
     attributes:Map[String,String]):Option[Syncable] = {
     
     val syncable:Syncable = null
-    for {
-      kind <- attributes get "kind" orElse
-        err("createFromAttributes() no kind found for atributes %s", attributes.toString)
-      kindVersion <- attributes get "kindVersion" orElse Some("0")    
-      versionedId = new KindVersionedId(partition.id, InstanceId(instanceId), kind, kindVersion)      
-      syncable = SyncManager.newSyncableQuiet(versionedId)  
-    } yield {
-      Observers.withNoNotice {
+    App.app.enableChanges(false) {
+      for {
+        kind <- attributes get "kind" orElse
+          err("createFromAttributes() no kind found for atributes %s", attributes.toString)
+        kindVersion <- attributes get "kindVersion" orElse Some("0")    
+        versionedId = new KindVersionedId(partition.id, InstanceId(instanceId), kind, kindVersion)      
+        syncable = SyncManager.newSyncable(versionedId)  
+      } yield {
         applyAttributes(syncable, attributes)
-      }
-      log.trace("createFromAttributes() created: %s", syncable)
-      syncable       
-    }    
+        log.trace("createFromAttributes() created: %s", syncable)
+        syncable       
+      }    
+    }
   }
 
   

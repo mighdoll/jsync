@@ -25,17 +25,26 @@ import Log2._
 abstract class AppContext(val connection:Connection) extends HasTransientPartition 
   	with ContextPartitionGateway with HasWatches with AppContextActor {
   implicit private lazy val log = logger("AppContext")
+  
   def appName:String
   val remoteChange = new DynamicOnce[DataChange]
   val versioningDisabled = new DynamicVariable[Boolean](false)
 
   override val transientPartition = new RamPartition(connection.connectionId)
+  
   var implicitPartition = new RamPartition(".implicit-"+ connection.connectionId) // objects known to be on both sides
   def defaultPartition:Partition = throw new ImplementationError("no partition set")
-  def debugId = connection.debugId
   
+  /** handy id for logging */
+  def debugId = connection.debugId
+
+  /** syncable objects cached here in context.  includes all the syncables in an active client subscription. 
+   * changes to these syncables are observed and sent to the partitions for persistent storage */
   val instanceCache = new WatchedPool("AppContext")
   
+  /** enable/disable ChangeDescriptions */
+  private val generateChanges = new DynamicVariable[Boolean](true)
+
   /** allows clients to subscribe to objects deeply (including references) */
   val subscriptionService = new {val app = this} with SubscriptionService
 
@@ -110,22 +119,25 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       }
     }
   }
-  
-  def withNoVersioning[T](fn: =>T):T = {
-    versioningDisabled.withValue(true) {
-      fn
-    }
+    
+  /** enables/disables generation of ChangeDescriptions while executing a function */
+  def enableChanges[T](enable:Boolean)(fn: =>T):T = {
+    generateChanges.withValue(enable) {fn}
   }
   
   /** after a syncable has been changed, update the version and trigger notification */
   def updated(syncable:Syncable) (createChange: =>DataChange) {   
-    val change = remoteChange.take() getOrElse createChange
-    Observers.notify(change)
-    if (!versioningDisabled.value) {
-    	syncable.version = change.versionChange.now
+    if (generateChanges.value) {
+      val change = remoteChange.take() getOrElse createChange
+      Observers.notify(change)
+      if (!versioningDisabled.value) {
+      	syncable.version = change.versionChange.now
+      }
+      trace2("updated() changeNotify(%s) versioning(%s:%s) change: %s", 
+        !Observers.noticeDisabled, !versioningDisabled.value, syncable.version, change)
+    } else {
+      trace2("updated() change generation disabled for: %s", syncable)
     }
-    trace2("updated() changeNotify(%s) versioning(%s:%s) change: %s", 
-      !Observers.noticeDisabled, !versioningDisabled.value, syncable.version, change)
   }
   
   /** utility for fetching an object and running a function with the fetched object */
