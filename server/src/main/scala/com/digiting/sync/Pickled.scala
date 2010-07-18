@@ -15,7 +15,7 @@
 package com.digiting.sync
 import scala.collection.mutable.HashMap
 import SyncableInfo.isReserved
-import SyncManager.newBlankSyncable
+import SyncManager.newSyncableQuiet
 import com.digiting.util._
 import java.io.Serializable
 import scala.collection.{mutable,immutable}
@@ -72,16 +72,18 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
   implicit private val log = logger("Pickled")
   
   def unpickle():Syncable = {
-    val syncable:Syncable = newBlankSyncable(id)
-    syncable.version = instanceVersion
-    val classAccessor = SyncableAccessor.get(syncable.getClass)
-    Observers.withNoNotice {  
-      App.app.withNoVersioning {
-        for ((propName, value) <- properties) {
-          classAccessor.set(syncable, propName, unpickleValue(value.value))
+    val syncable = 
+      Observers.withNoNotice {  
+        val syncable = newSyncableQuiet(id)
+        syncable.version = instanceVersion
+        val classAccessor = SyncableAccessor.get(syncable.getClass)
+        App.app.withNoVersioning {
+          for ((propName, value) <- properties) {
+            classAccessor.set(syncable, propName, unpickleValue(value.value))
+          }
         }
+        syncable
       }
-    }
   	
     val latest = migrateToLatest(syncable)
     trace2("unpickled %s", latest)

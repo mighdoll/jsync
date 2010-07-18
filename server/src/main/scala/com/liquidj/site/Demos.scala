@@ -42,7 +42,7 @@ object Demos {
     case("demo" :: "sync" :: Nil, message, connection) =>
       new DemoContext(connection)
   }
-  SyncManager.registerKindsInPackage(classOf[Settings])
+  SyncManager.kinds.registerKindsInPackage(classOf[Settings])
   
   def blankSettings = {
     val settings = new Settings

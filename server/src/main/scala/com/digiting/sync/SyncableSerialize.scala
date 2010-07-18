@@ -18,9 +18,11 @@ import net.lag.logging.Logger
 import scala.collection.mutable.ListBuffer
 import SyncableInfo.isReserved
 
+import SyncableKinds.Kind
+
 /** utilities to serialize/deserialize a syncable to from a map of key,value strings */
 object SyncableSerialize extends LogHelper {
-  case class Reference(val partition:String, id:String, kind:SyncManager.Kind)
+  case class Reference(val partition:String, id:String, kind:Kind)
   val log = Logger("SyncableSerialize")
   
   def syncableAttributes(syncable:Syncable):Map[String, String] = {
@@ -47,7 +49,7 @@ object SyncableSerialize extends LogHelper {
         err("createFromAttributes() no kind found for atributes %s", attributes.toString)
       kindVersion <- attributes get "kindVersion" orElse Some("0")    
       versionedId = new KindVersionedId(partition.id, InstanceId(instanceId), kind, kindVersion)      
-      syncable = SyncManager.newBlankSyncable(versionedId)  
+      syncable = SyncManager.newSyncableQuiet(versionedId)  
     } yield {
       Observers.withNoNotice {
         applyAttributes(syncable, attributes)

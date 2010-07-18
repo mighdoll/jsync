@@ -38,7 +38,7 @@ object JavascriptModels {
       
     val lines = 
       for {
-        (kind, accessor) <- SyncManager.metaAccessors
+        (kind, accessor) <- SyncManager.kinds.kinds
         if !(classOf[LocalOnly].isAssignableFrom(accessor.clazz))
         ignored = saveNameSpace(kind)
       }

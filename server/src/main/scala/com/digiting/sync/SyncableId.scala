@@ -1,6 +1,7 @@
 package com.digiting.sync
 import collection.immutable
 
+import SyncableKinds.Kind
 
 object CompositeId {
   val compositeIdRegex = """([a-zA-Z0-9_\.]+)/(.*)""".r
@@ -45,7 +46,7 @@ class SyncableId(val partitionId:PartitionId, val instanceId:InstanceId) {
 
 /** a persistent reference to a syncable */
 object SyncableReference {
-  def apply(partitionId:String, instanceId:String, kind:SyncManager.Kind) = 
+  def apply(partitionId:String, instanceId:String, kind:Kind) = 
     new SyncableReference(PartitionId(partitionId), InstanceId(instanceId), kind)    
   
   
@@ -60,7 +61,6 @@ object SyncableReference {
   }
 }
 
-import SyncManager.Kind
 class SyncableReference(partitionId:PartitionId, instanceId:InstanceId, val kind:Kind) extends 
   SyncableId(partitionId, instanceId) {
   override def toString = super.toString + "[" + kind + "]"
@@ -76,6 +76,7 @@ object KindVersionedId {
 class KindVersionedId(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
 	extends SyncableReference(partitionId, instanceId, kind) {
    override def toString = toCompositeIdString +  "[" + kind + "-" + kindVersion + "]"
+  def id = SyncableId(partitionId, instanceId)
 } 
  
 

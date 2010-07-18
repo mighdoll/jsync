@@ -22,6 +22,7 @@ import com.digiting.util._
 import scala.util.DynamicVariable
 import net.lag.logging.Logger
 import scala.collection.mutable.Buffer
+import SyncableKinds.Kind
 
 /**
  * Some handy interfaces for creating and fetching syncable objects
@@ -29,20 +30,10 @@ import scala.collection.mutable.Buffer
  * SOON some more cleanup here, it's kind of a grab bag of functionality
  */
 object SyncManager extends LogHelper {
-  type Kind = String	// buys a little documentation benefit.. CONSIDER conversion to case class?
-  
-  case class VersionedKind (val kind:Kind, val version:String)
   case class NextVersion(syncable:Syncable, version:String)
   
   val log = Logger("SyncManager")
   
-  
-  // prebuilt reflection tools, one for each $kind of Syncable
-  val metaAccessors = mutable.Map.empty[Kind, ClassAccessor]
-  
-  // prebuilt reflection tools, one for each $kind of old Syncable (Migration)
-  val migrations = mutable.Map.empty[VersionedKind, ClassAccessor]
-
   // to force the id of the next created object (to instantiate remotely created objects)
   val setNextId = new DynamicOnce[SyncableId]
   
@@ -61,102 +52,45 @@ object SyncManager extends LogHelper {
   // dummy partition for fake objects
   private val fakePartition = new FakePartition("fake")
   
+  var kinds:SyncableKinds = null
+  
   reset()
 
   
   /** For testing, reset as if we'd just rebooted.  */
   def reset() {
     currentPartition.value = null
-    metaAccessors.clear
-    registerSyncableKinds()
+    kinds  = new SyncableKinds()
     setNextId.set(None)
   }
   
   /** construct a new syncable instance in the specified partition with the specified class */
-  def newSyncable(kind:Kind, ids:SyncableId):Syncable = {
-    metaAccessors.get(kind) match {
-      case Some(meta) => 
-        constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], ids)
-      case None =>
-        log.error("no server class found for kind: " + kind)
-        NYI()
-    }
+  def newSyncable(kind:Kind, id:SyncableId):Syncable = {
+    val access = kinds.accessor(kind)
+    constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], id)
   }
     
   /** construct a new blank syncable instance.
    * does not send a creation notification to observers.
    * if the requested kindVersion is obsolete (due to Migration), returns the obsolete type
    */
-  def newBlankSyncable(id:KindVersionedId):Syncable = {
+  def newSyncableQuiet(kindedId:KindVersionedId):Syncable = {
     quietCreate.withValue(Some(true)) {
-      migrations get VersionedKind(id.kind, id.kindVersion) match {
-        case Some(meta) =>
-          constructSyncable(meta.clazz.asInstanceOf[Class[Syncable]], id)
-        case _ =>  
-          newSyncable(id.kind, id)
-      }
+      val access = kinds.accessor(kindedId)
+      constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], kindedId.id)
     }
   }
-  
-  /** construct a new blank syncable instance.
-   * does not send a creation notification to observers.
-   */
-  def newBlankSyncable[T <: Syncable](kind:Kind, id:SyncableId):T = {
-    quietCreate.withValue(Some(true)) {
-      newSyncable(kind, id).asInstanceOf[T]
-    }
-  }
-  
   
   /** build a syncable with a specified class, and instance Id */
-  private def constructSyncable[T <: Syncable](clazz:Class[T], ids:SyncableId):T = {
-    withNextNewId(ids) {
+  private def constructSyncable[T <: Syncable](clazz:Class[T], id:SyncableId):T = {
+    withNextNewId(id) {
       clazz.newInstance
     }
   }
 
   // TODO -- we have too many construction routines, clean this up.
-  
-  /** reflection access to this kind of syncable */
-  def propertyAccessor(syncable:Syncable):ClassAccessor = {
-    propertyAccessor(syncable.kind)
-  }
-  
-  /** reflection access to this kind of syncable */
-  def propertyAccessor(kind:Kind):ClassAccessor = {
-    metaAccessors.get(kind) getOrElse {
-      log.error("accessor not found for kind: %s", kind)
-      throw new ImplementationError
-    }
-  }
 
-  
-  /** register kind to class mapping, so we can receive and instantiate objects of this kind */
-  def registerKind(clazz:Class[_ <: Syncable]) = {
-    withFakeObject {  
-      val syncable:Syncable = clazz.newInstance  // make a fake object to read the kind field
-      val accessor = SyncableAccessor.get(clazz)
-      val kind = syncable.kind
-      syncable match {
-        case migration:MigrateTo[_] =>
-          migrations += (VersionedKind(kind, migration.kindVersion) -> accessor)
-        case _ =>
-          metaAccessors += (kind -> accessor)          
-      }
-    }
-  }
-  
-  /** register kind to class mappings, so we can receive and instantiate objects of those kinds
-    * uses reflection to find all classes in the same package as the provided class */
-  def registerKindsInPackage(clazz:Class[_ <: Syncable]) {
-    val classes = ClassReflection.collectClasses(clazz, classOf[Syncable])
-    classes foreach {syncClass =>
-      if (!syncClass.isInterface) {
-        log.trace("registering class %s", syncClass.getName)
-        registerKind(syncClass)
-      }
-    }
-  }
+
   
   /** run a function with the current partition temporarily set.  Handy for creating objects
     * in a specified partition */
@@ -181,12 +115,6 @@ object SyncManager extends LogHelper {
     }
   }
   
-  private def registerSyncableKinds() {
-    /* one class from each package, package search finds the rest */
-    SyncManager.registerKindsInPackage(classOf[Subscription])    
-    SyncManager.registerKindsInPackage(classOf[TestNameObj])
-    SyncManager.registerKindsInPackage(classOf[SyncableSet[_]])
-  }
   
   /** copy a set of properities to a target syncable instance */
   def copyFields(srcFields:Iterable[(String, Any)], target:Syncable) = {    

@@ -15,7 +15,7 @@
 package com.digiting.sync
 import SyncManager.{newSyncable, withPartition}
 import com.digiting.util._
-import Log2._ 
+import Log2._
 
 
 /** a syncable of an old kind version that is migrated to a new class as it's read */

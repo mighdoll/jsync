@@ -68,7 +68,7 @@ object ProcessMessage extends LogHelper {
   private def patchReferences(references:Seq[ReferencePatch]) {
     for {
       patch <- references
-      access = SyncManager.propertyAccessor(patch.referer)
+      access = SyncManager.kinds.propertyAccessor(patch.referer)
       target <- App.app.get(patch.targetId)
     } {
       log.trace("patching reference: %s.%s = %s", patch.referer, patch.field, target)
