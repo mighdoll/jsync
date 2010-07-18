@@ -64,7 +64,7 @@ object Observers extends LogHelper {
             val targetId = syncable.id
         	  val versionChange = syncable.newVersion()
             PropertyChange(targetId, property, SyncableValue.convert(newValue), 
-            SyncableValue.convert(oldValue), versionChange)
+              SyncableValue.convert(oldValue), versionChange)
           }
         }
       }

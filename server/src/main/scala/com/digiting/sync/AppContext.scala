@@ -119,7 +119,11 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   /** after a syncable has been changed, update the version and trigger notification */
   def updated(syncable:Syncable) (createChange: =>DataChange) {   
     if (generateChanges.value) {
-      val change = remoteChange.take() getOrElse createChange
+      val proposed = createChange 
+      val change = remoteChange.take() map {remote =>
+        assert(remote.getClass == proposed.getClass) 
+        remote
+      } getOrElse createChange
       Observers.notify(change)
       if (!versioningDisabled.value) {
       	syncable.version = change.versionChange.now
