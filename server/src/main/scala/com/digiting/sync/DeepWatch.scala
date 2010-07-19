@@ -144,7 +144,9 @@ class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val 
       case Some(count) if count > 1 => connectedSet + (target -> (count -1))
       case Some(count) if count == 1 => removeObj(target)
       case Some(count) => err("BUG? count of ref: " + target+ " is: " + count)
-      case None => err("BUG? removeDeep" + target + "not found in connectedSet")
+      case None => 
+        err("BUG? removeDeep" + target + "not found in connectedSet")
+        1
     }    
   }
   
@@ -179,13 +181,6 @@ class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val 
     Observers.watch(obj, this, handleChanged)   
     
     watchFn(BeginWatch(root.id, obj.id, this))
-    obj match {
-      case collection:SyncableCollection =>
-        val elements = collection.syncableElementIds
-        if (!elements.isEmpty)
-          watchFn(BaseMembership(collection.id, elements, this))  // CONSIDER this is probably better done in ActiveSubscriptions..
-      case _ =>                                           
-    }
     
     for (ref <- observableReferences(obj)) 
       addedRef(ref)

@@ -104,14 +104,14 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
     	  app.connection.debugId, change)
       case begin:BeginWatch =>  
         // client cares about this object, so watch it in the backing store too
-        app.observeInPartition(begin.target)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
+        app.observeInPartition(begin.observee)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
         
-      // We want to send the client all new objects added to the subscription
-      // except the root subscription object.
+      // We send the client all new objects added to the subscription tree
+      // except the root subscription object (which came from the client)
         App.app.get(begin.observee) match {
           case Some(sub:Subscription) => 
-          case Some(obj) =>            
-            queueChange(ResyncChange(Pickled(obj)))
+          case Some(obj) => 
+            addedToSubscription(obj, begin.watcher)
           case x =>
             abort2("#%s treeChanged() observee not found: %s", begin)
         }
@@ -123,6 +123,18 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
   private def queueChange(change:ChangeDescription) {
     trace2("#%s change queued: %s", app.debugId, change)
     this ! change
+  }
+  
+  private def addedToSubscription(obj:Syncable, watcher:DeepWatch) {
+    queueChange(ResyncChange(Pickled(obj)))
+    
+    obj match {
+      case collection:SyncableCollection =>
+        val elements = collection.syncableElementIds
+        if (!elements.isEmpty)
+          queueChange(BaseMembership(collection.id, elements, watcher))  
+      case _ =>                                           
+    }            
   }
 
   

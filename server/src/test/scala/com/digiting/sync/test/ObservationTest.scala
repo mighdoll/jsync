@@ -120,18 +120,6 @@ class ObservationTest extends Spec with ShouldMatchers with SyncFixture {
         two.name = "two"  // no chagne (should be outside the tree now)
         changes.size should be (11)
       }
-    }
-
-    it("should find members referenced from a collection") {
-      withTestFixture {
-        val set = new SyncableSet[Syncable]
-        val name = new TestNameObj 
-        set + name
-        Observers.watchDeep(set, changed, changed, "test")	// two watch changes, one BaseMembership
-        name.name = "Ben"	// one property change
-        changes.size should be (4)
-      }
-    }
-    
+    }    
   }
 }

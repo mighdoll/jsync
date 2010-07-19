@@ -80,7 +80,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   private def sendPendingChanges(pending:Seq[ChangeDescription]) {
     if (!pending.isEmpty) {
       var message = Message.makeMessage(pending)
-      trace2("#%s sendPendingChanges: queueing Pending Change: %s", connection.debugId, message.toJson)
+      trace2("#%s sendPendingChanges: queueing message: %s", connection.debugId, message.toJson)
       connection.putSendBuffer ! PutSendBuffer.Put(message)
     } else {
       trace2("#%s sendPendingChanges: nothing Pending", connection.debugId)

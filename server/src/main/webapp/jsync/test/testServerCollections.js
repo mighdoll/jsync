@@ -28,16 +28,16 @@ test("sync.serverSequence.insertClear", function() {
     seq.insert(elem);
   }
 
-  function seqChanged(change) {	
-  	var seq = change.target;
-  	var seq2;
-  	ok(seq.size() == 3);
-  	matchSequenceNames(seq, [,"val",uniqueName]);
-  	seq2 = seq.getAt(0);
-  	ok(seq2.$kind === '$sync.sequence');
-  	ok(seq2.size() == 3);
-  	matchSequenceNames(seq2, ["chris","anya","bryan"]);
-  }  
+  function seqChanged(change) {
+    var seq = change.target;
+    var seq2;
+    ok(seq.size() == 3);
+    matchSequenceNames(seq, [undefined, "val", uniqueName]);
+    seq2 = seq.getAt(0);
+    ok(seq2.$kind === '$sync.sequence');
+    ok(seq2.size() == 3);
+    matchSequenceNames(seq2, ["chris", "anya", "bryan"]);
+  }
 });
 
 /** moves some sequence elements on both client and sever */
