@@ -106,8 +106,8 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
       // the client, which we don't want to do for the subscription object itself
       // since it came from the client.  
       //  (someday SOON we should untwist this mechanism)
-      	app.observeInPartition(begin.target)
-        App.app.get(begin.newValue) match {
+      	app.observeInPartition(begin.target)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
+        App.app.get(begin.observee) match {
           case Some(sub:Subscription) => 
           case _ =>
             queueChange(change)

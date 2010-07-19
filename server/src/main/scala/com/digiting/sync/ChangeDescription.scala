@@ -130,10 +130,10 @@ case class EndObserveChange(val target:SyncableId, val watcher:PickledWatch) ext
 sealed abstract class DeepWatchChange(val watcher:DeepWatch) extends ChangeDescription 
 
 /** added to the DeepWatch  */
-case class BeginWatch(val target:SyncableId, val newValue:SyncableId, 
+case class BeginWatch(val target:SyncableId, val observee:SyncableId, 
     val watch:DeepWatch) extends DeepWatchChange(watch) {
-  override def toString = {this.getClass.getSimpleName + " root: " + target + "mutator: " + source + " newWatch: " + newValue + "  watcher: " + watcher}  
-  override def references = newValue :: super.references
+  override def toString = {this.getClass.getSimpleName + " root: " + target + "mutator: " + source + " newWatch: " + observee + "  watcher: " + watcher}  
+  override def references = observee :: super.references
 }
 
 /** dropped from the DeepWatch  */

@@ -15,6 +15,8 @@ trait ContextPartitionGateway  {
   /**  Watch for changes made by others to an object in the partition store.
    */  
   def observeInPartition(id:SyncableId) {
+    trace2("#%s observeInPartition %s", debugId, id)
+    
     val pickledWatchFn = watchFns get id.partitionId getOrElse 
       makePartitionWatchFn(id.partitionId)
     

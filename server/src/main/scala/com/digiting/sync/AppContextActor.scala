@@ -16,13 +16,13 @@ trait AppContextActor extends Actor {
     loop {
     	react {
         case message:Message => 
-          trace2("message received: %s", message.toJson)
+          trace2("#%s message received: %s", debugId, message.toJson)
           clientChanges(message)
         case (source:SyncNode, changes:Seq[_]) =>
-          trace2("changes received from %s:  %s", source, changes mkString("\n"))
+          trace2("#%s changes received from %s:  %s", debugId, source, changes mkString("\n"))
           applyChanges(source, changes.asInstanceOf[Seq[DataChange]])
         case Flush() => // for tests, allows synchronous wait that prior messages have been processed
-        	trace2("flush")
+        	trace2("#%s flush", debugId)
           reply("flushed")
         case x =>
           abort2("unexpected message received %s", x.asInstanceOf[AnyRef])
@@ -63,7 +63,7 @@ trait AppContextActor extends Actor {
         // don't resend partition changes back to the partition
         val toss = instanceCache.drainChanges()         
         ifTrace2 {
-          format("partitionChanged() tossing %s partition changes: %s", 
+          format("#%s partitionChanged() tossing %s partition changes: %s", debugId.toString,
         		toss.length.toString, StringUtil.indent(toss) )
         }
       case _ => NYI()      

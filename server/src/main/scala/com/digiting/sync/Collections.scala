@@ -73,7 +73,9 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
       	insert(insertAt.at, elem.asInstanceOf[T])
       case removeAt:RemoveAtChange =>
         remove(removeAt.at)
-      case _ => NYI()
+      case c:ClearChange =>
+        clear()
+      case x => abort2("unexpected change: %s", x)
     }
   }
   
@@ -129,11 +131,24 @@ class SyncableSeq[T <: Syncable] extends SyncableCollection {
 }
 
 class SyncableSet[T <: Syncable] extends mutable.Set[T] with SyncableCollection {
-  val log = Logger("SyncableSet")
+  implicit private val log = logger("SyncableSet")
   def kind = "$sync.set"  
   val set = new mutable.HashSet[T] 
 
-  override def revise(change:CollectionChange) = NYI()
+  override def revise(change:CollectionChange) {  
+    trace2("revise: %s", change)
+    change match {
+      case put:PutChange =>
+        val elem = App.app.get(put.newValue) getOrElse abort2("revise() can't find find newVal %s", change)
+        this += elem.asInstanceOf[T]
+      case remove:RemoveChange =>
+        val elem = App.app.get(remove.newValue) getOrElse abort2("revise() can't find find newVal %s", change)
+        this -= elem.asInstanceOf[T]
+      case c:ClearChange =>
+        clear()
+      case x => abort2("unexpected change: %s", x)
+    }
+  }
 
   def -=(elem:T) = {
     set -= elem

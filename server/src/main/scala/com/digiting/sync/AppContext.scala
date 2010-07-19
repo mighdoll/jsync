@@ -80,10 +80,10 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   private def sendPendingChanges(pending:Seq[ChangeDescription]) {
     if (!pending.isEmpty) {
       var message = Message.makeMessage(pending)
-      log.trace("sendPendingChanges #%s: queueing Pending Change: %s", connection.debugId, message.toJson)
+      trace2("#%s sendPendingChanges: queueing Pending Change: %s", connection.debugId, message.toJson)
       connection.putSendBuffer ! PutSendBuffer.Put(message)
     } else {
-      log.trace("sendPendingChanges #%s: nothing Pending", connection.debugId)
+      trace2("#%s sendPendingChanges: nothing Pending", connection.debugId)
     }
   }
   
@@ -129,10 +129,10 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
       if (!versioningDisabled.value) {
       	syncable.version = change.versionChange.now
       }
-      trace2("updated() changeNotify(%s) versioning(%s:%s) change: %s", 
+      trace2("#%s updated() changeNotify(%s) versioning(%s:%s) change: %s", debugId,
         !Observers.noticeDisabled, !versioningDisabled.value, syncable.version, change)
     } else {
-      trace2("updated() change generation disabled for: %s", syncable)
+      trace2("#%s updated() change generation disabled for: %s", debugId, syncable)
     }
   }
   
@@ -159,7 +159,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
         change <- changes
         storableChange <- matchStorableChange(change)
         partition <- Partitions.get(change.target.partitionId.id) orElse 
-          err2("partition not found for change: %s", change.toString)
+          err2("#%s partition not found for change: %s", debugId, change.toString)
       } yield {
         (storableChange, partition)
       }
@@ -175,7 +175,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     partitions foreach { case (partition, changes) =>
       partition.withTransaction {
         changes foreach {change =>
-          log.trace("commitToPartitions modify: %s", change)
+          trace2("#%s commitToPartitions modify: %s", debugId, change)
           partition.modify(change)
         }
       }

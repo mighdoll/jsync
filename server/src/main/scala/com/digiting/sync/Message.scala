@@ -90,7 +90,7 @@ object Message extends LogHelper {
         case propChange:PropertyChange => 
           syncs + propertyChange(propChange)
         case watch:BeginWatch=> 
-          App.app.withGetId(watch.newValue) { target =>
+          App.app.withGetId(watch.observee) { target =>
             syncs + toJsonMap(target)
           }
         case base:BaseMembership =>
