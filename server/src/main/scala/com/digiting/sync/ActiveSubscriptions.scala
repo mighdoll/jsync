@@ -101,7 +101,7 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
       case _ if change.source == app.connection.connectionId =>
         log.trace("#%s not queueing change: originated from client: %s", 
     	  app.connection.debugId, change)
-      case begin:BeginWatch if begin.watcher.watchClass == this =>  
+      case begin:BeginWatch =>  
       // The game here is that makeMessage converts BeginWatch into a Sync send to
       // the client, which we don't want to do for the subscription object itself
       // since it came from the client.  
@@ -112,14 +112,8 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
           case _ =>
             queueChange(change)
         }
-      // This code and the test above assumes that BeginWatch messages are 
-      // sent to completely other DeepWatch subscribers, and we need to filter them out.
-      // I don't think that's actually the case though, SOON try removing it.
-      case watch:DeepWatchChange if watch.watcher.watchClass == this =>
-        queueChange(change)
       case watch:DeepWatchChange =>
-        log.trace("#%s not queueing watch change from another watch or deepwatch: #%s.  change: %s", 
-                  app.debugId, watch.watcher.debugId, change)
+        queueChange(change)
       case _ =>  
         queueChange(change)
       }

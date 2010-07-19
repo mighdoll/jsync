@@ -125,7 +125,7 @@ sealed abstract class ObserveChange extends StorableChange
 case class BeginObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObserveChange
 case class EndObserveChange(val target:SyncableId, val watcher:PickledWatch) extends ObserveChange
 
-//       -----------------  deepw watch set changes --------------------  
+//       -----------------  deep watch set changes --------------------  
 
 sealed abstract class DeepWatchChange(val watcher:DeepWatch) extends ChangeDescription 
 
