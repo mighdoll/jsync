@@ -168,7 +168,7 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
           watches = getWatches(targetId, tx) 
           invalid = watches filter(System.currentTimeMillis > _.expiration)
           validWatches = (watches -- invalid)
-          outgoing = validWatches filter(_.watcherId != change.source)          
+          outgoing = validWatches filter(_.watcher != tx.sender)          
         } yield {          
           // remove invalid watches
           invalid foreach (unwatch(change.target, _))

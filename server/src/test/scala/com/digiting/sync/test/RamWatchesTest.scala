@@ -32,8 +32,8 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
     }
     it("should expire a change") {
       withTestFixture {
-        val nameObj = withTestPartition {TestNameObj("jerome")}
         import testPartition._
+        val nameObj = withTestPartition {TestNameObj("jerome")}
         var found = false
         withTempContext { // register watch from a separate context so that it will receive notifies 
           App.app.customObservePartition(nameObj.id, 1) {_=>
@@ -53,6 +53,28 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
           pickled.watches.size should be (0)
         }
         found should be (false)
+      }
+    }
+    
+    it("shouldn't reflect changes back to itself") {
+      withTestFixture {
+        var reflected = false
+        var forwarded = true
+        
+        val nameObj = withTestPartition {TestNameObj("Phillip")}
+        testApp.withApp {
+          App.app.customObservePartition(nameObj.id) { _ =>
+            reflected = true;
+          }
+        }
+        
+        withTempContext {
+          App.app.customObservePartition(nameObj.id) { _ =>
+            forwarded = true;
+          }          
+        }
+        forwarded should be (true)
+        reflected should be (false)        
       }
     }
   }
