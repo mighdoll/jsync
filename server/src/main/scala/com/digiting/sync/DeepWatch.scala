@@ -144,9 +144,7 @@ class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val 
       case Some(count) if count > 1 => connectedSet + (target -> (count -1))
       case Some(count) if count == 1 => removeObj(target)
       case Some(count) => err("BUG? count of ref: " + target+ " is: " + count)
-      case None => 
-        err("BUG? removeDeep" + target + "not found in connectedSet")
-        1
+      case None => err("BUG? removeDeep" + target + "not found in connectedSet")
     }    
   }
   
