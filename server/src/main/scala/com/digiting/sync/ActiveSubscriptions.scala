@@ -125,6 +125,7 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
     this ! change
   }
   
+  /** called when a new object has been added to one of the client subscriptions */
   private def addedToSubscription(obj:Syncable, watcher:DeepWatch) {
     queueChange(ResyncChange(Pickled(obj)))
     
@@ -134,7 +135,9 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
         if (!elements.isEmpty)
           queueChange(BaseMembership(collection.id, elements, watcher))  
       case _ =>                                           
-    }            
+    }
+    // LATER consider optimizing this so that the we don't send queue changes twice
+    // if an object is modified in two subscriptions..
   }
 
   

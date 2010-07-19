@@ -35,8 +35,8 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
   private[sync] val published = new PublishedRoots(this)
   
   /** all get,modify,watch operations should be called within a transaction */
-  def withTransaction[T](fn: =>T):T = {
-    val tx = new Transaction
+  def withTransaction[T](sender:SyncNode)(fn: =>T):T = {
+    val tx = new Transaction(sender)
     currentTransaction.withValue(Some(tx)) {
       val result = fn
       commit(tx) && {notifyChanges(tx); true}
@@ -44,19 +44,20 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
     }
   }
   
-  def withDebugTransaction[T](fn: (Transaction)=>T):T = {
-    withTransaction {
+  def withDebugTransaction[T](sender:SyncNode)(fn: (Transaction)=>T):T = {
+    withTransaction(sender:SyncNode) {
       currentTransaction.value map {tx =>
         fn(tx)
       } getOrElse abort2("")
     }
   }
 
+  val fakeSender = AppId("autoGet")
   /** Fetch an object or a collection.  
    * (Creates an implicit transaction if none is currently active) */
   def get(instanceId:InstanceId):Option[Syncable] = {
     val syncable = 
-      autoTransaction { tx =>
+      autoTransaction(fakeSender) { tx =>
         for {
           pickled <- get(instanceId, tx)
           syncable:Syncable = pickled.unpickle // loads referenced objects too
@@ -76,23 +77,23 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
   }
 
   
-  /** 
-   * Observe an object for changes.
-   * 
-   * After the specified duration in milliseconds, the watch is discarded.
-   */
-  def watch(id:InstanceId, pickledWatch:PickledWatch) {
-    expectTransaction {tx =>
-      watch(id, pickledWatch, tx)
-    }
-  }
-  
-  /** unregister a previously registered watch */
-  def unwatch(id:InstanceId, pickledWatch:PickledWatch) {
-    expectTransaction {tx =>
-      unwatch(id, pickledWatch, tx)
-    }    
-  }
+//  /** 
+//   * Observe an object for changes.
+//   * 
+//   * After the specified duration in milliseconds, the watch is discarded.
+//   */
+//  def watch(id:InstanceId, pickledWatch:PickledWatch) {
+//    expectTransaction {tx =>
+//      watch(id, pickledWatch, tx)
+//    }
+//  }
+//  
+//  /** unregister a previously registered watch */
+//  def unwatch(id:InstanceId, pickledWatch:PickledWatch) {
+//    expectTransaction {tx =>
+//      unwatch(id, pickledWatch, tx)
+//    }    
+//  }
   
   /** name to object mapping of for well known objects in the partition.  The published
    * roots are persistent, so clients of the partition can use well known names to get
@@ -130,12 +131,12 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
   }
     
   /** create a single operation transaction if necessary */
-  private def autoTransaction[T](fn:(Transaction) =>T):T = {
+  private def autoTransaction[T](sender:SyncNode)(fn:(Transaction) =>T):T = {
     currentTransaction value match {
       case Some(tx) => 
         fn(tx)
       case None =>
-        withTransaction {
+        withTransaction(sender) {
           expectTransaction(fn)
         }
     }
@@ -170,7 +171,7 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
           outgoing = validWatches filter(_.watcherId != change.source)          
         } yield {          
           // remove invalid watches
-          invalid foreach (unwatch(targetId, _))
+          invalid foreach (unwatch(change.target, _))
  
           // return watches that need notification
           (watchable, outgoing) 
@@ -190,26 +191,36 @@ abstract class Partition(val partitionId:String) extends ConcretePartition {
     }
   }
   
-  /** try putting this back into a trait after SCALA 2.8 (trying to work around spurious verify errors in eclipse)*/
+  private def unwatch(id:SyncableId, pickledWatch:PickledWatch) {
+    // we're in the midst of completing a transaction as this is called.
+    // so we can just apply the change directly to the store w/o creating a new tx..
+	  modify(EndObserveChange(id, pickledWatch))    
+  }
+  
+  protected def withPickled[T](instanceId:InstanceId, tx:Transaction)(fn:(Pickled)=>T):T = {
+    get(instanceId, tx) match {
+      case Some(pickled) => 
+        fn(pickled)
+      case _ =>
+        abort2("watch() can't find instance %s", instanceId)
+    }
+  }  
+
+  /** SOON- this should be refactored.  It's on the client side when we support remote partitions, and
+   * most of Partition is on the server side.  Regardless it should be in a separate trait, 
+   * (moved here trying to work around spurious verify errors in eclipse.  retry after SCALA 2.8) */
   import RandomIds.randomUriString  
   import java.util.concurrent.ConcurrentHashMap
-  type PartitionWatchFn = (Seq[DataChange])=>Unit
-
+  import RamWatches.PartitionWatchFn
+  
   val watchFns = new ConcurrentHashMap[RequestId, PartitionWatchFn]
   
   def pickleWatch(duration:Int)(fn:PartitionWatchFn):PickledWatch = {
     val requestId = RequestId(randomUriString(8))
     watchFns.put(requestId, fn)
-    val watcherId = AppId(Observers.currentMutator.value)
-    new PickledWatch(watcherId, requestId, System.currentTimeMillis + duration)
+    new PickledWatch(App.app.appId, requestId, System.currentTimeMillis + duration)
   }
-  
-  def watch(id:InstanceId, duration:Int)(fn:PartitionWatchFn):PickledWatch = {
-    val pickledWatch = pickleWatch(duration)(fn)
-    watch(id, pickledWatch)
-    pickledWatch
-  }
-    
+      
   protected[sync] def notify(pickledWatch:PickledWatch, changes:Seq[DataChange]) {
     val fn = watchFns get(pickledWatch.requestId)
     if (fn != null) {

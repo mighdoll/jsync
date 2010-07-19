@@ -31,7 +31,7 @@ class MigrationTest extends Spec with ShouldMatchers with SyncFixture {
     
     it("should migrate a simple object from an old to a new schema") {
       def expectTestPartitionVersion(id:SyncableId, version:String) {
-        testPartition.withDebugTransaction {tx =>     // verify that partition has the updated versio now
+        testPartition.withDebugTransaction(App.app.appId) {tx =>     // verify that partition has the updated versio now
           testPartition.get(id.instanceId, tx) match {
             case Some(pickled:Pickled) => 
               pickled.id.kindVersion should be (version)          

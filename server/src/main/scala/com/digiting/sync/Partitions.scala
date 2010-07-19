@@ -35,7 +35,7 @@ object Partitions extends LogHelper {
 
 object Partition extends LogHelper {
   lazy val log = logger("Partition(Obj)")
-  class Transaction { // LATER move this so each partition subclass can implement their own
+  class Transaction(val sender:SyncNode) { 
     val id = randomUriString(8)
     val changes = new mutable.ListBuffer[StorableChange]
   }

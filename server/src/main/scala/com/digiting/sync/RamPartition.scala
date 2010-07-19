@@ -72,37 +72,21 @@ class RamPartition(partId:String) extends Partition(partId) {
           store(instanceId) = pickledCollection.revise(collectionChange)
         }
       case observe:BeginObserveChange =>
-      	watch(observe.target.instanceId, observe.watcher, tx)
-      case endObserve:EndObserveChange =>
-        unwatch(endObserve.target.instanceId, endObserve.watcher, tx)        
+        withPickled(observe.target.instanceId, tx) { pickled =>
+          put(pickled + observe.watcher)
+        }
+      case observe:EndObserveChange =>
+        withPickled(observe.target.instanceId, tx) { pickled =>
+          put(pickled - observe.watcher)
+        }
     }
   }
   
-  def watch(instanceId:InstanceId, watch:PickledWatch, tx:Transaction) {
-    withPickled(instanceId, tx) { pickled =>
-      put(pickled + watch)
-    }
-  }
-
-  def unwatch(instanceId:InstanceId, watch:PickledWatch, tx:Transaction) {
-    withPickled(instanceId, tx) { pickled =>
-      put(pickled - watch)
-    }
-  }
-
   private[this] def put[T <: Syncable](pickled:Pickled) = synchronized {
     trace2("put %s ", pickled)
     store += (pickled.id.instanceId -> pickled)
   }
   
-  private def withPickled[T](instanceId:InstanceId, tx:Transaction)(fn:(Pickled)=>T):T = {
-    get(instanceId, tx) match {
-      case Some(pickled) => 
-        fn(pickled)
-      case _ =>
-        abort2("watch() can't find instance %s", instanceId)
-    }
-  }  
   
 
   def deleteContents() = synchronized {

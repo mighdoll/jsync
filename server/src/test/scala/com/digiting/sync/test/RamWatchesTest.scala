@@ -10,52 +10,42 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
   describe("RamWatches") {
     it("should observe a change via watch()") {
       withTestFixture {
-        val nameObj = new TestNameObj("jerome")
-        App.app.commit()
         var found = false
-        import testPartition._
-        withTransaction {
-          Observers.withMutator("testWatch") {
-            watch(nameObj.id.instanceId, 10000) {changes:Seq[DataChange] =>
-              changes match {
-                case Seq(PropertyChange(target, property, newValue, oldValue, versions)) =>
-                  found = true
-                  property should be ("name")
-                  oldValue.value should be ("jerome")
-                  newValue.value should be ("murph")
-                  target should be (nameObj.id)
-                case _ =>
-              }
+        
+        val nameObj = withTestPartition {TestNameObj("jerome")}
+        withTempContext { // register watch from a separate context so that it will receive notifies 
+          App.app.customObservePartition(nameObj.id) {changes:Seq[DataChange] =>
+            changes match {
+              case Seq(PropertyChange(target, property, newValue, oldValue, versions)) =>
+                found = true
+                property should be ("name")
+                oldValue.value should be ("jerome")
+                newValue.value should be ("murph")
+                target should be (nameObj.id)
+              case _ =>
             }
           }
-        }
-        App.app.commit()
-        nameObj.name = "murph"
-        App.app.commit()
+        }      
+        testApp.withApp {nameObj.name = "murph"}
         found should be (true)
       }
     }
     it("should expire a change") {
       withTestFixture {
-        val nameObj = new TestNameObj("jerome")
-        App.app.commit()
+        val nameObj = withTestPartition {TestNameObj("jerome")}
         import testPartition._
         var found = false
-        withTransaction {
-          Observers.withMutator("testWatch") {
-            watch(nameObj.id.instanceId, 1) {_=>
-              found = true
-            }
+        withTempContext { // register watch from a separate context so that it will receive notifies 
+          App.app.customObservePartition(nameObj.id, 1) {_=>
+            found = true
           }
         }
-        App.app.commit()
         withTempTx {tx =>
           val pickled = get(nameObj.id.instanceId, tx) getOrElse fail 
           pickled.watches.size should be (1)
         }
-        Thread.sleep(2)
-        nameObj.name = "murph"
-        App.app.commit()
+        Thread.sleep(2)   // watch should timeout 
+        withTestPartition {nameObj.name = "murph"}
         
         // expired watch should be cleaned out
         withTempTx {tx =>
@@ -63,13 +53,12 @@ class RamWatchesTest extends Spec with ShouldMatchers with SyncFixture {
           pickled.watches.size should be (0)
         }
         found should be (false)
-        App.app.commit()
       }
     }
   }
-  import Partition.Transaction
+  import com.digiting.sync.Partition.Transaction
   def withTempTx[T](fn:(Transaction)=>T):T = {
-    val tx = new Transaction
+    val tx = new Transaction(App.app.appId)
     fn(tx)
   }
 }

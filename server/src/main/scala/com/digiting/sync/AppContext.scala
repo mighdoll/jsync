@@ -17,6 +17,7 @@ import scala.util.DynamicVariable
 import Receiver.ReceiveMessage
 import scala.collection.mutable
 import util._
+import RandomIds.randomId
 import Log2._
 
 
@@ -29,6 +30,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   def appName:String
   val remoteChange = new DynamicOnce[DataChange]
   val versioningDisabled = new DynamicVariable[Boolean](false)
+  val appId = new AppId("a"+randomId(10))
 
   override val transientPartition = new RamPartition(connection.connectionId)
   
@@ -173,7 +175,7 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
   
     // transaction boundary within each partition
     partitions foreach { case (partition, changes) =>
-      partition.withTransaction {
+      partition.withTransaction(appId) {
         changes foreach {change =>
           trace2("#%s commitToPartitions modify: %s", debugId, change)
           partition.modify(change)

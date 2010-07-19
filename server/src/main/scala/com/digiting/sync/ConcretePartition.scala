@@ -6,13 +6,7 @@ trait ConcretePartition {
   private[sync] def modify(change:StorableChange, tx:Transaction):Unit 
   private[sync] def get(id:InstanceId, tx:Transaction):Option[Pickled]
   private[sync] def commit(tx:Transaction):Boolean 
-  
-  /** register for observation of an object */
-  private[sync] def watch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit  
-  
-  /** remove an observation */
-  private[sync] def unwatch(id:InstanceId, watch:PickledWatch, tx:Transaction):Unit    
-  
+    
   /** get a registered observation */
   private[sync] def getWatches(id:InstanceId, tx:Transaction):Set[PickledWatch]
 

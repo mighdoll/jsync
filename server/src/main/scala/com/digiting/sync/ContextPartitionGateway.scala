@@ -20,19 +20,34 @@ trait ContextPartitionGateway  {
     val pickledWatchFn = watchFns get id.partitionId getOrElse 
       makePartitionWatchFn(id.partitionId)
     
-    // queue a BeginObserve change to the partition
-    val partitionWatch = new BeginObserveChange(id, pickledWatchFn)
-    App.app.instanceCache.changeNoticed(partitionWatch)
+    queueWatch(id, pickledWatchFn)    
   }
   
   /** make a new pickled watch function for a given partition */
   private def makePartitionWatchFn(partitionId:PartitionId):PickledWatch = {
-	  val partition = Partitions(partitionId)
-    val pickled = partition.pickleWatch(partitionWatchTimeout) {change=>
-      this ! (partitionId, change)
+    val partition = Partitions(partitionId)
+    val pickled = partition.pickleWatch(partitionWatchTimeout) {changes =>
+      this ! (partitionId, changes)
     }
     watchFns(partitionId) = pickled
     pickled
+  }
+  
+  private def queueWatch(id:SyncableId, pickledWatch:PickledWatch) {
+    // queue a BeginObserve change to be sent to the partition
+    instanceCache.changeNoticed(BeginObserveChange(id, pickledWatch))    
+  } 
+  
+  import RamWatches.PartitionWatchFn
+  def customObservePartition(id:SyncableId)(changeFn: PartitionWatchFn) {
+    customObservePartition(id, partitionWatchTimeout)(changeFn)
+  }
+  
+  def customObservePartition(id:SyncableId, timeout:Int)(changeFn: PartitionWatchFn) {
+    val partition = Partitions(id.partitionId)
+    val pickledWatch = partition.pickleWatch(timeout)(changeFn)
+    
+    queueWatch(id, pickledWatch)
   }
 
     // SOON Add timeout re-registration 
