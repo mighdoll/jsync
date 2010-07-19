@@ -9,6 +9,10 @@ object Log2 {
     log.trace(message, params:_*)
     None
   }
+  def ifTrace2[T](fn: =>Object)(implicit log:Logger):Option[T] = {
+    log.ifTrace(fn)
+    None
+  }
   /** Level 500 logging wrapper.  Returns None so it can be used in for comprehensions */ 
   def debug2[T](message:String, params:Any*)(implicit log:Logger):Option[T] = {
     log.debug(message, params:_*)
@@ -18,7 +22,7 @@ object Log2 {
   def info2[T](message:String, params:Any*)(implicit log:Logger):Option[T] = {
     log.info(message, params:_*)
     None
-  }  
+  }
   /** Level 900 logging wrapper.  Returns None so it can be used in for comprehensions */ 
   def warn2[T](message:String, params:Any*)(implicit log:Logger):Option[T] = {
     log.warning(message, params:_*)

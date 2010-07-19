@@ -50,9 +50,7 @@ class WatchedPool(name:String)  {
   def put(syncable:Syncable) {
     trace2("#%s put: %s", debugId, syncable)   
     localObjects get (key(syncable)) map {found =>
-      abort2("#%s put() but it's already in map: %s %s", debugId, found, syncable)
-      
-      localObjects put (key(syncable), syncable) // might be a revised instance..
+      abort2("#%s put() but it's already in map: %s %s", debugId, found, syncable)      
     } orElse {
       localObjects put (key(syncable), syncable) // might be a revised instance..
       Observers.watch(syncable, this, changeNoticed)
@@ -62,7 +60,7 @@ class WatchedPool(name:String)  {
 
   /** called when any object in the pool is change */
   def changeNoticed(change:ChangeDescription) = {
-    trace2({"changeNoticed: " + change})
+    ifTrace2({"changeNoticed: " + change})
     changes add change
   }
 
@@ -74,10 +72,11 @@ class WatchedPool(name:String)  {
   /** print entire pool for debugging porpoises */
   def printLocal {
     info2("local objects: ")
-    info2({localObjects mkString("  ", "  ", "")})
+    info2(localObjects mkString("  ", "  ", ""))
   }
 
   def drainChanges():Seq[ChangeDescription] = {
+    import String.format
     val drained = new ListBuffer[ChangeDescription]()
     synchronized {
       var taken = changes.poll
@@ -86,7 +85,9 @@ class WatchedPool(name:String)  {
         taken = changes.poll
       }
     }
-    trace2({drained map {"drainChanges: " + _.toString} mkString("\n")})
+    ifTrace2({ format("drained %s changes:  %s", drained.length.toString, 
+    		StringUtil.indent(drained)) })
+      
     drained
   }
     

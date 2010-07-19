@@ -23,6 +23,7 @@ import com.digiting.sync.aspects.ObserveListener
 import scala.util.DynamicVariable
 import scala.collection._
 import scala.util.matching.Regex
+import Log2._
 
 /**
  * Change tracking utility for Observable objects and collections.
@@ -37,8 +38,8 @@ import scala.util.matching.Regex
  * alternately CONSIDER decentralizing observation to go onto the objects instead
  * SCALA -- consider api observation.  e.g. should watch() send an actor message or provide a callback?
  */
-object Observers extends LogHelper { 
-  val log = Logger("Observers")
+object Observers { 
+  implicit private val log = logger("Observers")
   /** called when a change happens */
   type DataChangeFn = (DataChange)=>Unit   // Consider a listener object...
   type DeepWatchChangeFn = (DeepWatchChange)=>Unit   // Consider a listener object...
@@ -57,6 +58,7 @@ object Observers extends LogHelper {
   // listen for model object modifications found from the AspectJ enhanced Observable objects 
   private object AspectListener extends ObserveListener {    
     def change(target:Any, property:String, newValue:Any, oldValue:Any) = {
+      trace2("raw change received %s.%s = %s (was: %s)", target, property, newValue, oldValue)
       if (!SyncableInfo.isReserved(property)) {
         if (newValue != oldValue) {
           val syncable = target.asInstanceOf[Syncable]
@@ -82,23 +84,26 @@ object Observers extends LogHelper {
   /** notify observers of the change */
   def notify(change:DataChange):Unit = {
     for {
-      app <- App.current.value orElse warn("notify() dropped can't find current app for %s", change)
+      app <- App.current.value orElse warn2("notify() dropped can't find current app for %s", change)
     } {
       app get(change.target) orElse {
-        err("can't find target of change: %s", change.toString) 
+        err2("can't find target of change: %s", change.toString) 
       } foreach { target =>      
         holdNotify.value match {
           case Some(paused) => 
             watchers.foreachValue(target) {watch =>  
               val notify = Notification(watch, change)
-              log.trace("notify() queueing: %s", notify)
+              trace2("notify() queueing: %s", notify)
               paused += notify
             }
           case _ =>
+            if (watchers.get(target).size == 0) {
+              warn2("Unusual: no watchers for %s", change)
+            }
       	    watchers.foreachValue(target) {watch =>  
-              log.trace("notify() to: %s %s", watch.watchClass, change)
+              trace2("notify() to: %s %s", watch.watchClass, change)
       	      watch.changed(change)
-            }        
+            } 
         }
       }
     }
@@ -108,12 +113,12 @@ object Observers extends LogHelper {
   def withNoNotice[T](fn: => T):T = {
     // just use a pause buffer and throw away the contents 
     holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
-      log.trace("notices disabled")
+      trace2("notices disabled")
       val oldNoticeDisabled = noticeDisabled
       noticeDisabled = true
       val result = fn
       noticeDisabled = oldNoticeDisabled
-      log.trace("notices re-enabled")
+      trace2("notices re-enabled")
       result
     }
   }
@@ -121,7 +126,7 @@ object Observers extends LogHelper {
     
   /* Register a function to be called when an object is changed.  */
   def watch(obj:Syncable, watchClass:Any, fn:DataChangeFn) {
-    log.trace("watch: %s by %s", obj, watchClass)
+    trace2("watch: %s by %s", obj, watchClass)
     watchers + (obj, Watcher(fn, watchClass))
   }
   
@@ -167,7 +172,7 @@ object Observers extends LogHelper {
   }
   
   def pauseNotification[T](fn: =>T):T = {    
-    log.trace("pausing notification")    
+    trace2("pausing notification")    
     
     val (result, pauseBuffer) =
       holdNotify.withValue(Some(new mutable.ListBuffer[Notification])) {
@@ -175,17 +180,17 @@ object Observers extends LogHelper {
          holdNotify.value)  // fn may have changed holdNotify.value (via releasePaused), so refetch    
       }
     
-    log.trace("releasing paused notifications")    
+    trace2("releasing paused notifications")    
     pauseBuffer match {	    
       case Some(paused) => 
         paused foreach { notification =>
-          log.trace("pauseNotification, releasing to: %s %s", notification.watcher.watchClass, notification.change)
+          trace2("pauseNotification, releasing to: %s %s", notification.watcher.watchClass, notification.change)
           notification.watcher.changed(notification.change)
         }
       case _ =>
         log.warning("pauseNotification, that's odd.  where'd the pause buffer go?")
     }
-    log.trace("all paused notifications released")
+    trace2("all paused notifications released")
     result
   }
   
@@ -202,7 +207,7 @@ object Observers extends LogHelper {
         }
       
       releasing foreach {notification =>
-        log.trace("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
+        trace2("releasePaused, releasing: %s : %s", notification.watcher.watchClass, notification.change)
         notification.watcher.changed(notification.change)
       }
       

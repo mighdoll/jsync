@@ -54,3 +54,25 @@ class ServiceCall[T <: Syncable] extends Syncable {
     }
   }
 }
+
+/** SOON these are for the demo site and belong in a separate package */
+class Settings extends Syncable {
+  def kind = "com.liquidj.site.settings"
+  var user:User = _
+  var reminders:SyncableSeq[Reminder] = _
+  var currentDemo:String = ""
+}
+
+class Reminder extends Syncable {
+  def kind = "com.liquidj.site.Reminder"
+  var note = ""
+  var done = false
+}
+
+
+class User extends Syncable {
+  def kind = "com.liquidj.site.user"
+  var firstName = ""
+  var lastName = ""
+  var email = ""
+}

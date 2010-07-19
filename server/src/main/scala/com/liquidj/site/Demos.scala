@@ -20,9 +20,11 @@ import com.digiting.sync.Syncable
 import com.digiting.sync.RamPartition
 import com.digiting.sync.SyncManager
 import com.digiting.sync.SyncableSeq
-import com.digiting.sync.syncable.SyncString
 import SyncManager.withPartition
 import com.digiting.sync.TempAppContext
+import com.digiting.sync.syncable.Settings
+import com.digiting.sync.syncable.User
+import com.digiting.sync.syncable.Reminder
 
   
 object Demos {
@@ -57,24 +59,5 @@ class DemoContext(connection:Connection) extends RichAppContext(connection) {
   val appName = "Demos"  
 }
 
-class Settings extends Syncable {
-  def kind = "com.liquidj.site.settings"
-  var user:User = _
-  var reminders:SyncableSeq[Reminder] = _
-  var currentDemo:String = ""
-}
 
-class Reminder extends Syncable {
-  def kind = "com.liquidj.site.Reminder"
-  var note = ""
-  var done = false
-}
-
-
-class User extends Syncable {
-  def kind = "com.liquidj.site.user"
-  var firstName = ""
-  var lastName = ""
-  var email = ""
-}
 

@@ -233,7 +233,7 @@ $sync.manager = function() {
   /** register an existing sync channel */
   self.registerConnection = function(conn, id) {
     connection = conn;
-    clientId = "*" + id;
+    clientId = "c" + id;
     self.transientPartition = id;
   };
 

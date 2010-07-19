@@ -58,7 +58,8 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
     }
   }
   
-  def commit() {      
+  def commit() {     
+    trace2("#%s commit()", debugId)
     notifyWatchers() // notify internal apps, possibly generating more changes
     val pending = subscriptionService.active.takePending()
     val changes = instanceCache.drainChanges()

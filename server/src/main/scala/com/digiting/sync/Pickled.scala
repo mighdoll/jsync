@@ -143,7 +143,8 @@ class Pickled(val id:KindVersionedId, val instanceVersion:String,
   }
   
   override def toString:String = {
-    val props = properties map Function.tupled {(k,v) => k + "=" + v.toString}
+    import Function.tupled
+    val props = properties map tupled {(k,v) => k + "=" + v.toString} mkString("(", ",", ")")
     
     String.format("<%s %s %s>", id, instanceVersion, props)
   }

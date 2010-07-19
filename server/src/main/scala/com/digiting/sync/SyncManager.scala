@@ -23,16 +23,17 @@ import scala.util.DynamicVariable
 import net.lag.logging.Logger
 import scala.collection.mutable.Buffer
 import SyncableKinds.Kind
+import Log2._
 
 /**
  * Some handy interfaces for creating and fetching syncable objects
  * 
  * SOON some more cleanup here, it's kind of a grab bag of functionality
  */
-object SyncManager extends LogHelper {
+object SyncManager {
   case class NextVersion(syncable:Syncable, version:String)
   
-  val log = Logger("SyncManager")
+  implicit private val log = logger("SyncManager")
   
   // to force the id of the next created object (to instantiate remotely created objects)
   val setNextId = new DynamicOnce[SyncableId]
@@ -111,7 +112,7 @@ object SyncManager extends LogHelper {
   def copyFields(srcFields:Iterable[(String, Any)], target:Syncable) = {    
     val classAccessor = SyncableAccessor.get(target.getClass)
     for ((propName, value) <- srcFields) {
-      
+      trace2("copyFields %s.%s=%s", target, propName, value)
       val adaptedValue = convertJsType(value, classAccessor.propertyAccessors(propName))
       classAccessor.set(target, propName, adaptedValue)
     }
@@ -158,14 +159,14 @@ object SyncManager extends LogHelper {
       case None =>
         SyncableId(currentPartition.value.id, randomInstanceId())
     }
-    log.trace("creating(): %s", identity)
+    trace2("creating(): %s", identity)
     identity
   }
   
 
   /** called when a new instance is created, after the id is assigned */
   def created(syncable:Syncable) {
-    trace("created(): %s", syncable)
+    trace2("created(): %s", syncable)
     assert(syncable.partition != null)
     creatingFake.take orElse {
       val app = App.app

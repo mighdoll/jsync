@@ -18,7 +18,6 @@ import collection._
 import actors.Actor._
 import actors.Actor
 import net.lag.logging.Logger
-import RandomIds.randomUriString
 import com.digiting.util._
 
 /**
@@ -64,8 +63,9 @@ object ActiveConnections extends Actor {
 
   /** create a new active connection */  
   private def create:Connection = {
+    import com.digiting.util.RandomIds.randomId
     // LATER make this more unique across reboots.  e.g. serverForThisParititionCount-createdCount-randomId
-    val id = createdCount + "-" + randomUriString(10) 
+    val id = createdCount + "-" + randomId(10) 
     createdCount += 1
     
     val connection = new Connection(id); 

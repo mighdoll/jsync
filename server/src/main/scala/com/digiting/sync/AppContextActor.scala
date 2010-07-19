@@ -16,7 +16,7 @@ trait AppContextActor extends Actor {
     loop {
     	react {
         case message:Message => 
-          trace2("message received: %s", message)
+          trace2("message received: %s", message.toJson)
           clientChanges(message)
         case (source:SyncNode, changes:Seq[_]) =>
           trace2("changes received from %s:  %s", source, changes mkString("\n"))
@@ -55,12 +55,17 @@ trait AppContextActor extends Actor {
   
   /** don't send changes back to the partition or client that sent them here */
   private def tossReflectedChanges(source: SyncNode) {
+    import StringUtil.indent
+    import String.format
+    
 	  source match {
       case p:PartitionId =>
         // don't resend partition changes back to the partition
         val toss = instanceCache.drainChanges()         
-        trace2({"partitionChanged() tossing partition changes: " +
-                (toss mkString("\n\ttoss: ", "\n\ttoss: ", ""))})
+        ifTrace2 {
+          format("partitionChanged() tossing %s partition changes: %s", 
+        		toss.length.toString, StringUtil.indent(toss) )
+        }
       case _ => NYI()      
     }
   }

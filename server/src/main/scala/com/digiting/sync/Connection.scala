@@ -17,18 +17,16 @@ package com.digiting.sync
 import com.digiting.sync.aspects.Observable
 import net.lag.logging.Logger
 import com.digiting.sync.ResponseManager.AwaitResponse
+import com.digiting.util.UniqueId
 
-object ConnectionDebug {
-  var nextId = -1
-  def nextDebugId():Int = {nextId += 1; nextId}
-}
+object ConnectionDebug extends UniqueId 
 
 /**
  * Manages a connection to a client using the json sync protocol.
  */
 class Connection(val connectionId:String) {
   val log = Logger("Connection")
-  val debugId = ConnectionDebug.nextDebugId()
+  val debugId = ConnectionDebug.makeId()
   val putSendBuffer = new PutSendBuffer(debugId)		// put interface to buffer messages to go to the client
   val takeSendBuffer = putSendBuffer.take				// take interface for messages to go to the client
   val receiver = new Receiver(this)					 	// processes messages from the client     

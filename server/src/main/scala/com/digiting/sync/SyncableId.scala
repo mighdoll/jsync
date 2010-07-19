@@ -77,7 +77,7 @@ object KindVersionedId {
 /** a syncable id that includes a kind and a kindVersion */
 class KindVersionedId(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
 	extends SyncableReference(partitionId, instanceId, kind) {
-   override def toString = toCompositeIdString +  "[" + kind + "-" + kindVersion + "]"
+   override def toString = toCompositeIdString +  "[" + kind + ":" + kindVersion + "]"
   def id = SyncableId(partitionId, instanceId)
 } 
  

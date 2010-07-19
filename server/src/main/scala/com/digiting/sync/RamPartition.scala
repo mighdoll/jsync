@@ -36,7 +36,7 @@ class RamPartition(partId:String) extends Partition(partId) {
   
   def get(instanceId:InstanceId, tx:Transaction):Option[Pickled] = synchronized {    
     val result = store get instanceId     
-    trace2("get #%s %s, found: %s", partId, instanceId, result getOrElse "")
+    trace2("get %s/%s, found: %s", partId, instanceId, result getOrElse "None")
     result
   }
 
