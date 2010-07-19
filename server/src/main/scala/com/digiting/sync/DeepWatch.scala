@@ -183,7 +183,7 @@ class DeepWatch(val root:Syncable, val app:AppContext, val fn:DataChangeFn, val 
       case collection:SyncableCollection =>
         val elements = collection.syncableElementIds
         if (!elements.isEmpty)
-          watchFn(BaseMembership(collection.id, elements, this))
+          watchFn(BaseMembership(collection.id, elements, this))  // CONSIDER this is probably better done in ActiveSubscriptions..
       case _ =>                                           
     }
     

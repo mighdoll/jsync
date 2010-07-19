@@ -89,10 +89,10 @@ object Message extends LogHelper {
       change match {
         case propChange:PropertyChange => 
           syncs + propertyChange(propChange)
-        case watch:BeginWatch=> 
-          App.app.withGetId(watch.observee) { target =>
-            syncs + toJsonMap(target)
-          }
+        case watch:BeginWatch => 
+          abort("makeMessage() unexpected change: %s", watch)
+        case resync:ResyncChange =>
+          syncs + toJsonMap(resync.pickled)
         case base:BaseMembership =>
           base.target.target match {
             case Some(set:SyncableSet[_]) =>
@@ -124,7 +124,9 @@ object Message extends LogHelper {
         case x:CreatedChange =>
           err("not yet implemented")
         case observing:ObserveChange =>
-        case change => log.error("Message.makeMessage() unhandled change: " + change)
+        case change => 
+          // SCALA can't happen, I think.
+          log.error("Message.makeMessage() unhandled change: " + change)
       }
     }
      
@@ -225,6 +227,25 @@ object Message extends LogHelper {
       props + (name -> toJsonMapValue(value))
     } 
     props
+  }
+  
+  def toJsonMap(pickled:Pickled):JsonMap = {
+    val props = new MutableJsonMap
+    props + ("$id" -> pickled.id.instanceId.id)
+    props + ("$kind" -> pickled.id.kind)
+    props + ("$partition" -> pickled.id.partitionId.id)
+    for ((name, value) <- pickled.properties) {
+      props + (name -> syncableValuetoJsonMapValue(value))
+    } 
+    props    
+  }
+  
+  private def syncableValuetoJsonMapValue(syncableValue:SyncableValue):Any = {
+    syncableValue.value match {
+      case ref:SyncableReference =>
+        new JsonRef(ref)
+      case any => any      
+    }
   }
 
   /** convert objects intended for json values into a json std forms

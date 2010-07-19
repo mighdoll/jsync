@@ -17,8 +17,8 @@ import actors.Actor._
 import actors.Actor
 import collection._
 import com.digiting.sync.syncable.Subscription
-import net.lag.logging.Logger
-import com.digiting.util.LogHelper
+import com.digiting.util._
+import Log2._
 
 /**
  * Maintains a set of observations on the syncable object trees referenced by a given
@@ -27,15 +27,16 @@ import com.digiting.util.LogHelper
  * The changes to subscribed objects are queued.  Clients of this class can retrieve 
  * the queued changes via takePending().
  */
-class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
-  val log = Logger("ActiveSubscriptions")
+class ActiveSubscriptions(app:AppContext) extends Actor {
+  implicit private val log = logger("ActiveSubscriptions")
+  
   val subscriptions = new mutable.HashSet[Syncable] 		 // active subscription roots
   val deepWatches = new mutable.HashSet[DeepWatch] 		 	 // active subscription root deep watches
   val pendingChanges = new mutable.Queue[ChangeDescription]  // model changes waiting for a commit.  
   
   start
   
-  log.trace("#%s created", app.debugId)
+  trace2("#%s created", app.debugId)
   
   /** watch the set of objects referenced in the subscription request.  Modify the client's 
    * subscription request object by seeing its root field.  The change to the request object
@@ -45,16 +46,16 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
       case Some(partition) =>
         partition.published find sub.name match {
           case Some(root) => 
-            log.trace("#%s subscribe to: %s,  root: %s", app.debugId, sub.name, root)
+            trace2("#%s subscribe to: %s,  root: %s", app.debugId, sub.name, root)
             subscriptions += root
             subscribeRoot(sub)
             Observers.currentMutator.withValue("ActiveSubscriptions") {
               sub.root = root;	// update will propogate to client
             }
           case _ =>
-            log.error("can't find subscription name: " + sub.name + ", subscription: " + sub)          
+            error2("can't find subscription name: " + sub.name + ", subscription: " + sub)          
         }
-      case None => log.error("subscribe: partition not found: " + sub.inPartition)
+      case None => error2("subscribe: partition not found: " + sub.inPartition)
     }
   }
 
@@ -65,11 +66,11 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
   
   def unsubscribeRoot(root:Syncable) {
     deepWatches find {deep:DeepWatch => deep.root == root} map {deep =>
-      log.trace("unsubscribe deepwatch: %s", deep)
+      trace2("unsubscribe deepwatch: %s", deep)
       deepWatches -= deep
       deep disable
     } orElse {
-      err("deepWatch not found for root: " + root)
+      err2("deepWatch not found for root: " + root)
     }    
   }
   
@@ -77,7 +78,7 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
   def subscribeRoot(root:Syncable) {
     val deep = Observers.watchDeep(root, treeChanged, treeChanged, this)
     deepWatches += deep
-    log.trace("#%s, subscribeRoot() subscribed %s deepwatch: %s", app.debugId, root, deep)
+    trace2("#%s, subscribeRoot() subscribed %s deepwatch: %s", app.debugId, root, deep)
   }
     
   /** temporarily subscribe to a root object so that changes to that an objects 
@@ -99,28 +100,28 @@ class ActiveSubscriptions(app:AppContext) extends Actor with LogHelper {
   private def treeChanged(change:ChangeDescription):Unit = {      
     change match {
       case _ if change.source == app.connection.connectionId =>
-        log.trace("#%s not queueing change: originated from client: %s", 
+        trace2("#%s not queueing change: originated from client: %s", 
     	  app.connection.debugId, change)
       case begin:BeginWatch =>  
-      // The game here is that makeMessage converts BeginWatch into a Sync send to
-      // the client, which we don't want to do for the subscription object itself
-      // since it came from the client.  
-      //  (someday SOON we should untwist this mechanism)
-      	app.observeInPartition(begin.target)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
+        // client cares about this object, so watch it in the backing store too
+        app.observeInPartition(begin.target)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
+        
+      // We want to send the client all new objects added to the subscription
+      // except the root subscription object.
         App.app.get(begin.observee) match {
           case Some(sub:Subscription) => 
-          case _ =>
-            queueChange(change)
+          case Some(obj) =>            
+            queueChange(ResyncChange(Pickled(obj)))
+          case x =>
+            abort2("#%s treeChanged() observee not found: %s", begin)
         }
-      case watch:DeepWatchChange =>
-        queueChange(change)
       case _ =>  
         queueChange(change)
       }
   }
   
   private def queueChange(change:ChangeDescription) {
-    log.trace("#%s change queued: %s", app.debugId, change)
+    trace2("#%s change queued: %s", app.debugId, change)
     this ! change
   }
 

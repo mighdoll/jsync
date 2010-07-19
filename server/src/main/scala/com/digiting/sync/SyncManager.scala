@@ -72,7 +72,7 @@ object SyncManager {
    * (this variant of newSyncable works for registered obsolete kindVersions too) */
   def newSyncable(kindedId:KindVersionedId):Syncable = {
     val access = kinds.accessor(kindedId)
-    constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], kindedId.id)
+    constructSyncable(access.clazz.asInstanceOf[Class[Syncable]], kindedId)
   }
   
   /** build a syncable with a specified instance Id */

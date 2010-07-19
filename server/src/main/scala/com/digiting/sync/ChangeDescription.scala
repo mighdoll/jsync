@@ -57,7 +57,7 @@ case class PropertyChange(val target:SyncableId, property:String, val newValue:S
   override def toString = (super.toString + " ." + property + " = " + newValue + " was:" + oldValue)
   override def references = super.references ++ newValue.reference.toList
 }  
-      
+
 /** create a new object.  */  
 case class CreatedChange(val target:SyncableReference,  
     pickled:Pickled, versions:VersionChange) extends DataChange(versions)
@@ -66,6 +66,10 @@ case class CreatedChange(val target:SyncableReference,
 case class DeletedChange(val target:SyncableReference, 
     versions:VersionChange) extends DataChange(versions)
 
+/** receiver should replace their current copy with this one */
+case class ResyncChange(val pickled:Pickled) extends ChangeDescription {
+  val target = pickled.id
+}
  
 //       -----------------  collection Data changes --------------------  
 

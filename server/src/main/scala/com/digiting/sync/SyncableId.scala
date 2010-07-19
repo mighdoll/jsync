@@ -65,7 +65,7 @@ object SyncableReference {
 
 class SyncableReference(partitionId:PartitionId, instanceId:InstanceId, val kind:Kind) extends 
   SyncableId(partitionId, instanceId) {
-  override def toString = super.toString + "[" + kind + "]"
+  override def toString = super.toString + "[" + kind + "]"  
 }
 
 object KindVersionedId {
@@ -78,7 +78,6 @@ object KindVersionedId {
 class KindVersionedId(partitionId:PartitionId, instanceId:InstanceId, kind:Kind, val kindVersion:String) 
 	extends SyncableReference(partitionId, instanceId, kind) {
    override def toString = toCompositeIdString +  "[" + kind + ":" + kindVersion + "]"
-  def id = SyncableId(partitionId, instanceId)
 } 
  
 

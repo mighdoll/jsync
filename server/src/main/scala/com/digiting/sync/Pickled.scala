@@ -48,19 +48,15 @@ object Pickled {
       case collection:SyncableCollection => 
         collection match {
           case seq:SyncableSeq[_]=>
-            assert (seq.list == null || seq.length == 0)
             PickledSeq(pickledObj, PickledSeq.emptyMembers)
           case set:SyncableSet[_] =>
-            assert (set.set == null || set.size == 0)
             PickledSet(pickledObj, PickledSet.emptyMembers)
           case map:SyncableMap[_,_] =>
-            assert (map.size == 0)
             PickledMap(pickledObj, PickledMap.emptyMembers)
         }
       case _ => pickledObj
     }    
-  }
-  
+  }  
 }
 
 case class RequestId (val id:String)
