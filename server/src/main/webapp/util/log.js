@@ -125,7 +125,7 @@ var $log = (function() {
   }
 
   function createLogger(parent, name, enabled) {
-    var level = 1;
+    var level = 1;  // default level is 'debug'
     var override = document.location.search.match(
       RegExp('\\blog[_-]?' + name + '(?:=([^&]*))?\\b', 'i'));
     if (override) {

@@ -91,3 +91,9 @@ class KindVersion0 extends Syncable with MigrateTo[KindVersion] {
     otherVersion.obj = TestRefObj(obj)
   }
 }
+
+class TwoBrowsers extends Syncable {
+	val kind = "$sync.test.twoWindows"
+  var obj:Syncable = _
+  var cmd:String = _
+}

@@ -1,4 +1,4 @@
-#Sun Jul 18 22:25:41 PDT 2010
+#Mon Jul 19 22:47:27 PDT 2010
 eclipse.preferences.version=1
 org.eclipse.wst.jsdt.core.compiler.codegen.inlineJsrBytecode=disabled
 org.eclipse.wst.jsdt.core.compiler.codegen.targetPlatform=1.2
@@ -190,7 +190,7 @@ org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_conditional=ins
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_default=do not insert
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_for=insert
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_labeled_statement=do not insert
-org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_object_initializer=insert
+org.eclipse.wst.jsdt.core.formatter.insert_space_before_colon_in_object_initializer=do not insert
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_comma_in_allocation_expression=do not insert
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_comma_in_annotation=do not insert
 org.eclipse.wst.jsdt.core.formatter.insert_space_before_comma_in_array_initializer=do not insert

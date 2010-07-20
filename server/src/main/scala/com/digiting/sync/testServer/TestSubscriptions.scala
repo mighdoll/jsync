@@ -40,6 +40,7 @@ object TestSubscriptions extends LogHelper {
       removeSequence()
       addReferencedSequence()
       primitivesRoundTrip()
+      twoBrowsers()
     }
   }
   
@@ -62,6 +63,11 @@ object TestSubscriptions extends LogHelper {
   /** client modifies a simple object */
   def modifyOneName() {
     testPartition.publish("modifyOneName", new TestNameObj)
+  }
+  
+  /** client modifies an object between two browsers */
+  def twoBrowsers() {
+    testPartition.publish("twoBrowsers", new TwoBrowsers)    
   }
 
   /** client and server modify objects that refer to each other.

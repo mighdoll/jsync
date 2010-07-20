@@ -41,11 +41,11 @@ $sync.observation = function() {
   var self = {
 
     /** reset back to initial state */
-    reset : function() {
+    reset: function() {
       deferred = [];
       watchers = {};
       everyWatchers = [];
-      mutators = [ "local" ];
+      mutators = ["local"];
     },
 
     /** return the current mutator, (currently either "server" or "local" */

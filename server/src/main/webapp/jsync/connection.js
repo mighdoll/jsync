@@ -221,7 +221,7 @@ $sync.connect = function(feedUrl, params) {
 
     return sub;
     
- // LATER delete items from the subscriptions list to unsubscribe
+ // LATER support unsubscribe by deleting items from the subscriptions list 
   };
         
   /** start connection to the server */
@@ -365,6 +365,15 @@ $sync.connect = function(feedUrl, params) {
   return self;
 };
 
+/** convenience function that creates a new connection and starts one subscription */
+$sync.subscribe = function(url, subscription, fn) {
+  $sync.connect(url, {connected: connected});
+  
+  function connected(connection) {
+    connection.subscribe(subscription, $sync.manager.defaultPartition(), fn);
+    $sync.manager.commit();
+  }
+};
 
 /*
  * LATER support websocket if available

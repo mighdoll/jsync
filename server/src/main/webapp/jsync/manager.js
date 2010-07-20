@@ -339,6 +339,11 @@ $sync.manager = function() {
     defaultPartition = partitionId;
   };
 
+  /** return the current default partition */
+  self.defaultPartition = function() {
+    return defaultPartition;
+  };
+
   /** set the default partition temporarily while running a function.
    * (handy for creating objects in a certain partition)
    *
