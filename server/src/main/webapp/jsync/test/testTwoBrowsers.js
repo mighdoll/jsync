@@ -11,10 +11,19 @@ test("twoBrowsers.changeName", function() {
   function verify(change) {
     var named= change.target;
     ok(named.name === 'fred');
+    
+    unloadIFrame();
   }
 });
 
+function loadIframe() {
+  $('<iframe/>', {
+    id:'separateFrame',
+    'class':'offscreen', 
+    src:'testFrame.html'
+  }).appendTo('body');
+}
 
-function loadIframe() {  
-  $('#separateFrame').attr('src', 'testFrame.html');
-}   
+function unloadIFrame() {
+  $('#separateFrame').html("");
+}

@@ -47,7 +47,6 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
     if (watchedFn) {
       var refs = deepReferences(root);
       $.each(refs, function(key, value) {
-        $log.log("watching: ", value);
         $sync.observation.watch(value, changed); // wait for more changes
       });
       $sync.manager.commit();
