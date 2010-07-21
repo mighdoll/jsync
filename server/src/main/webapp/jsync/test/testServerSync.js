@@ -1,6 +1,6 @@
 
 /** connects to the server */
-test("sync.connect", function() {
+loggedTest("sync.connect", function() {
   var connection;
   function begin() {
     connection = $sync.connect("/test/sync", {
@@ -11,8 +11,7 @@ test("sync.connect", function() {
   
   function connected() {
     ok(connection.isConnected());
-    $sync.manager.reset();
-    start();
+    testComplete();
   };
   
   expect(1);
@@ -31,7 +30,7 @@ test("sync.subscribe.oneName", function() {
 });
 
 /** downloads a set from the server */
-test("sync.subscribe.oneSet", function() {
+loggedTest("sync.subscribe.oneSet", function() {
   var connection;
   var foundMercer = false;
 
@@ -50,8 +49,7 @@ test("sync.subscribe.oneSet", function() {
           foundMercer = true;
       });
       ok(foundMercer);
-      $sync.manager.reset();
-      start();
+      testComplete();
     });
     $sync.manager.commit();
   }
@@ -64,7 +62,7 @@ test("sync.subscribe.oneSet", function() {
  * Downloads an object from the server, modifies it locally, 
  * then subscribes from a separate connection to see that it's changed
  */
-test("sync.modifyOneName", function() {
+loggedTest("sync.modifyOneName", function() {
   var uniqueName = "time-" + $sync.util.now();
 
   expect(1);
@@ -83,7 +81,7 @@ test("sync.modifyOneName", function() {
 
 /** subscribe and then modify a server set, server makes modification too, 
  * client sees both client and server objects in the set. */
-test("sync.duplicatingSet", function() {
+loggedTest("sync.duplicatingSet", function() {
   var uniqueName = "time-" + $sync.util.now();
   var connection, connection2;  
   var ourName;
@@ -119,7 +117,7 @@ test("sync.duplicatingSet", function() {
 
 /** modify an object reference and add a new object containing a reference
  *  on both client and server */
-test("sync.modifyReference", function() {
+loggedTest("sync.modifyReference", function() {
   var root, newRef;
   expect(2);
 
@@ -170,44 +168,45 @@ function testWrongVersion(withVersionFn) {
   
   function connected() {
     ok(false);
-    start();
+    testComplete();
   }
   
   function failed(conn, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
     ok(xmlHttpRequest.status === 400);
     ok(connection.isClosed);
-    start();
+    testComplete();
   }    
 }
 
-test("sync.protocolVersion", function() {
+loggedTest("sync.protocolVersion", function() {
   testWrongVersion(withProtocolVersion);
 });
 
-test("sync.appVersion", function() {
+loggedTest("sync.appVersion", function() {
   testWrongVersion(withAppVersion);  
 });
 
-test("sync.ajaxTimeout", function() {
-  expect(2);
-  $sync.connect("/test/sync", {
-    requestTimeout : 1, // we want it to timeout
-    connected : connected,
-    failFn : failed
-  });    
-  stop();
-  
-  function connected() {
-    ok(false);
-    start();
-  }
-  
-  function failed(connection, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
-    ok(!connection.isClosed);
-    ok(connection.requestsActive() == 0);
-    start();
-  }  
-});
+// this test isn't reliable, if the browser runs slowly it will fail.
+//loggedTest("sync.ajaxTimeout", function() {
+//  expect(2);
+//  $sync.connect("/test/sync", {
+//    requestTimeout : 1, // we want it to timeout
+//    connected : connected,
+//    failFn : failed
+//  });    
+//  stop();
+//  
+//  function connected() {
+//    ok(false, "shouldn't have time to connect");
+//    testComplete();
+//  }
+//  
+//  function failed(connection, ajaxRequest, xmlHttpRequest, textStatus, errorThrown) {
+//    ok(!connection.isClosed);
+//    ok(connection.requestsActive() == 0);
+//    testComplete();
+//  }  
+//});
 
 /** send a raw message to the sync test server */
 function sendRawTest(msgOrObj, connected, failed) {
@@ -222,7 +221,6 @@ function sendRawTest(msgOrObj, connected, failed) {
   $.ajax({
     url: "/test/sync",
     type: "POST",
-    dataType: "json",
     data:data,
     contentType: "application/json",
     success : connected,
@@ -230,7 +228,7 @@ function sendRawTest(msgOrObj, connected, failed) {
   });      
 }
 
-test("sync.oldToken", function() {
+loggedTest("sync.oldToken", function() {
   expect(1);  
 
   var message = [
@@ -243,16 +241,16 @@ test("sync.oldToken", function() {
   
   function connected(xmlHttpRequest, textStatus, errorThrown) {
     ok(false);
-    start();
+    testComplete();
   }
   
   function failed(xmlHttpRequest, textStatus, errorThrown) {
     ok(xmlHttpRequest.status === 404, "expected 404");
-    start();
+    testComplete();
   }  
 });
 
-test("sync.primitivesRoundTrip", function() {
+loggedTest("sync.primitivesRoundTrip", function() {
   expect(8);
 
   withTestSubscription("primitivesRoundTrip", startValues, verify);

@@ -4,12 +4,12 @@
   setup();
   
   function setup() {
-    log.debug("setup()");
     $sync.manager.setDefaultPartition("test");
     $sync.subscribe('/test/sync', 'twoBrowsers', subscribed);
     function subscribed(two) {
+      log.detail('subscribed');
       two.cmdChanges().watch(function(change) {
-        log.debug("change arrived:", change);
+        log.detail("change arrived:", change);
         runCmd(two);
       });
     }
@@ -22,7 +22,7 @@
   
   var cmds = {
     namedFred: function(two) {
-      log.debug("making change on: ", two.obj);
+      log.detail("namedFred change on: ", two.obj);
       two.obj.name_('fred');
     }
   };

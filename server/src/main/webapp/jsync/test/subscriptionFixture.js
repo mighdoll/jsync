@@ -50,26 +50,28 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
         $sync.observation.watch(value, changed); // wait for more changes
       });
       $sync.manager.commit();
-    } else if (subscribedAgainFn) {
-      subscribeAgain();
     } else {
-      finish();
+      againOrFinish();
     }
   }
   
   var changeNoticed = false;
   
   function changed(change) {
-    if (changeNoticed) // we're called for each change
+    if (changeNoticed) // we're called for each change, but only report the first one
       return;
     changeNoticed = true;
     watchedFn(change);
+    againOrFinish();
+  }
+  
+  function againOrFinish() {
     if (subscribedAgainFn) {
       subscribeAgain();
     } else {
-      finish();
+      testComplete();
     }
-  }
+  }    
   
   function subscribeAgain() {
     // reconnect to simulate a new client
@@ -91,12 +93,7 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   function subscribed2(root) {  	
     $sync.manager.setDefaultPartition("test");
     subscribedAgainFn(root);
-    finish();
-  }
-  
-  function finish() {
-    $sync.manager.reset();
-    start();  	
+    testComplete();
   }
   
   function deepReferences(obj) {
@@ -122,3 +119,16 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   begin();
 }
 
+/** announce the name of the test in the log file if ?logTests=0 is part of the url */
+function loggedTest(name, fn) {
+  var log = $log.logger("tests");
+  test(name, function() {
+    log.detail(name);
+    fn();
+  });
+}
+
+function testComplete() {
+  $sync.manager.reset();
+  start();
+}

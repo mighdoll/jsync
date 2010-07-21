@@ -220,8 +220,7 @@ test("json-sync.$ref", function() {
     ok(obj6.ref[1] === obj7);
     ok(obj7.ref.nest.deep.deeper === obj4);
     
-    $sync.manager.reset();
-    start();
+    testComplete();
   }
   
   expect(5);

@@ -14,7 +14,7 @@
  */
 
 /** inserts into a sequence on both client and server.  Also verifies a client sequence.clear() */
-test("sync.serverSequence.insertClear", function() {
+loggedTest("sync.serverSequence.insertClear", function() {
   var uniqueName = "seqTestTime-" + $sync.util.now();
 
   expect(8);
@@ -41,7 +41,7 @@ test("sync.serverSequence.insertClear", function() {
 });
 
 /** moves some sequence elements on both client and sever */
-test("sync.serverSequence.move", function() {
+loggedTest("sync.serverSequence.move", function() {
   expect(10);
   withTestSubscription("moveSequence", moveElements, verify);	
   
@@ -59,7 +59,7 @@ test("sync.serverSequence.move", function() {
   }   
 });
 
-test("sync.serverSequence.remove", function() {
+loggedTest("sync.serverSequence.remove", function() {
   withTestSubscription("removeSequence", removeElement, verify);
   
   function removeElement(seq) {
@@ -88,7 +88,7 @@ function matchSequenceNames(seq, matchArray) {
   }		
 }
 
-test("sync.serverSequence.addReferencedSequence", function() {
+loggedTest("sync.serverSequence.addReferencedSequence", function() {
   withTestSubscription("addReferencedSequence", addElement, verify);
   
   function addElement(ref) {

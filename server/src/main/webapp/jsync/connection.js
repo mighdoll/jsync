@@ -311,7 +311,7 @@ $sync.connect = function(feedUrl, params) {
       xact.push({"#token": self.connectionToken});
     }
     
-    log.debug("sendNow(): ", xact);
+    log.detail("sendNow(): ", xact);
     var xactStr = JSON.stringify(xact);
     requestsActive += 1;
     $.ajax({
