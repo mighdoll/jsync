@@ -33,6 +33,7 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
   val subscriptions = new mutable.HashSet[Syncable] 		 // active subscription roots
   val deepWatches = new mutable.HashSet[DeepWatch] 		 	 // active subscription root deep watches
   val pendingChanges = new mutable.Queue[ChangeDescription]  // model changes waiting for a commit.  
+  def debugId = app.debugId
   
   start
   
@@ -96,25 +97,35 @@ class ActiveSubscriptions(app:AppContext) extends Actor {
   }
   
  
-  /** remember a change that we'll later send to the client */
+  /** This routine is called when an object in a subscribed tree is changed
+   * and when a new object is added to the set of objects referenced in the subscribed tree.  
+   * 
+   * Based on what was changed and who changed it, this routines queues changes destined 
+   * to be sent to the client, and sets watches on the underlying partition.
+   */
   private def treeChanged(change:ChangeDescription):Unit = {      
     change match {
-      case _ if change.source == app.connection.connectionId =>
-        trace2("#%s not queueing change: originated from client: %s", 
-    	  app.connection.debugId, change)
       case begin:BeginWatch =>  
         // client cares about this object, so watch it in the backing store too
-        app.observeInPartition(begin.observee)  // TODO should be observee, I think, but breaks .js tests... but not server tests?
+        app.observeInPartition(begin.observee)  
         
-      // We send the client all new objects added to the subscription tree
-      // except the root subscription object (which came from the client)
-        App.app.get(begin.observee) match {
-          case Some(sub:Subscription) => 
-          case Some(obj) => 
-            addedToSubscription(obj, begin.watcher)
-          case x =>
-            abort2("#%s treeChanged() observee not found: %s", begin)
+        // We send the client all new objects added to the subscription tree
+        // except the root subscription object (which came from the client)
+        if (change.source != app.connection.connectionId) {
+          App.app.get(begin.observee) match {
+            case Some(sub:Subscription) => 
+            case Some(obj) => 
+              addedToSubscription(obj, begin.watcher)
+            case x =>
+              abort2("#%s treeChanged() observee not found: %s", begin)
+          }
+        } else {
+          trace2("#%s not queueing BeginWatch change: originated from client: %s", debugId, change)
         }
+        
+      case _ if change.source == app.connection.connectionId =>
+        trace2("#%s not queueing change: originated from client: %s", debugId, change)
+        
       case _ =>  
         queueChange(change)
       }

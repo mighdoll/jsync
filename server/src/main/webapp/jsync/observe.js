@@ -170,7 +170,7 @@ $sync.observation = function() {
       /** call fn right away, or queue fn if notification is globally stopped */
       function notifyCall(fn) {        
         function call() {
-//          log.trace("notifying: ", change);
+//          log.debug("notifying: ", change);
           fn(change);
         }
         

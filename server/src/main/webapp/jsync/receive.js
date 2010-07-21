@@ -103,7 +103,7 @@ $sync.receive = function(connection) {
   function parseMessage(message) {
     var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
-    log.detail("parseMessage: ", message);
+//    log.detail("parseMessage: ", message);
     if (message.length === 0) 
       return;
     

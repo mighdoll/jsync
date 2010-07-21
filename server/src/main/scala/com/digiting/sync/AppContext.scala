@@ -128,11 +128,9 @@ abstract class AppContext(val connection:Connection) extends HasTransientPartiti
         remote
       } getOrElse createChange
       Observers.notify(change)
-      if (!versioningDisabled.value) {
-      	syncable.version = change.versionChange.now
-      }
-      trace2("#%s updated() changeNotify(%s) versioning(%s:%s) change: %s", debugId,
-        !Observers.noticeDisabled, !versioningDisabled.value, syncable.version, change)
+      syncable.version = change.versionChange.now
+      trace2("#%s updated() changeNotify(%s) change: %s", debugId,
+        !Observers.noticeDisabled, change)
     } else {
       trace2("#%s updated() change generation disabled for: %s", debugId, syncable)
     }

@@ -45,6 +45,9 @@ $sync.connect = function(feedUrl, params) {
   var backoffDelay =                    // exponential backoff rate for server requests
     [100,500,1000,10000,30000,120000,600000];
   var receive = $sync.receive(self);    // handle incoming messages
+  
+  self.isClosed = false;                 // true or object if this connection has been closed
+  self.connectionToken = undefined;      // password for this connection 
 
   /** open a connection to the server */
   function init() {
@@ -67,9 +70,6 @@ $sync.connect = function(feedUrl, params) {
   self.requestsActive = function() { 
     return requestsActive;
   };
-  
-  self.isClosed = false;                 // true or object if this connection has been closed
-  self.connectionToken = undefined;      // password for this connection 
 
   /** @return true if we've an active sync connection to the server */
   self.isConnected = function() {
@@ -242,11 +242,13 @@ $sync.connect = function(feedUrl, params) {
   /** called when the sync connection to the server is opened
    * -- we've heard a response from the server in response to our initial connection attempt */
   function connected(data) {
-    log.detail("connected");
+//    log.detail("connected");
     
     receive.receiveMessages(data); // parse any data the server has waiting for us
     $debug.assert(self.connectionToken !== undefined);
     $sync.manager.registerConnection(self, self.connectionToken);
+    
+    $log.globalPrefix = "#" + self.connectionToken;
     
     $sync.manager.withNewIdentity({
       partition: ".implicit",   
@@ -309,8 +311,8 @@ $sync.connect = function(feedUrl, params) {
       xact.push({"#token": self.connectionToken});
     }
     
+    log.debug("sendNow(): ", xact);
     var xactStr = JSON.stringify(xact);
-//    log.trace("sending xact to server: ", xactStr);
     requestsActive += 1;
     $.ajax({
       url: feedUrl,

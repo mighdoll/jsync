@@ -17,7 +17,7 @@ package com.digiting.sync.syncable
 import com.digiting.sync.Syncable
 
 class TestNameObj(var name:String) extends Syncable {
-  def this() = this("")
+  def this() = this(null)
   val kind = "$sync.test.nameObj"
 }
 
@@ -48,7 +48,7 @@ class TestTwoRefsObj extends Syncable {
 }
 
 class TestParagraph(var text:String) extends Syncable {
-  def this() = this("")
+  def this() = this(null)
   val kind = "$sync.test.paragraph"
 }
 

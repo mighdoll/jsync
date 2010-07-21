@@ -120,12 +120,13 @@ test("sync.duplicatingSet", function() {
 /** modify an object reference and add a new object containing a reference
  *  on both client and server */
 test("sync.modifyReference", function() {
-  var newRef;
+  var root, newRef;
   expect(2);
 
   withTestSubscription("modifyReference", modify, changed);
   
-  function modify(root) {
+  function modify(serverRoot) {
+    root = serverRoot;
   	newRef = $sync.test.refObj();
     newRef.ref_(root);
   	root.ref_(newRef);
@@ -133,7 +134,6 @@ test("sync.modifyReference", function() {
   }
   
   function changed(changed) {
-  	var root = changed.target;
     // verify that server inserts an element
   	ok(root.ref.ref === newRef);
   	ok(root.ref.ref.ref === root);

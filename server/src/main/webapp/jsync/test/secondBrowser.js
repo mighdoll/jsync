@@ -1,9 +1,10 @@
 
 (function() {
-  setup();
   var log = $log.logger('secondBrowser');
+  setup();
   
   function setup() {
+    log.debug("setup()");
     $sync.manager.setDefaultPartition("test");
     $sync.subscribe('/test/sync', 'twoBrowsers', subscribed);
     function subscribed(two) {
@@ -21,7 +22,7 @@
   
   var cmds = {
     namedFred: function(two) {
-      log.debug("making change");
+      log.debug("making change on: ", two.obj);
       two.obj.name_('fred');
     }
   };

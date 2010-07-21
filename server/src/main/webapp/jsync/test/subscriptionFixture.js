@@ -45,7 +45,11 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
     subscribedFn(root);
     
     if (watchedFn) {
-      $sync.observation.watch(root, changed); // wait for more changes
+      var refs = deepReferences(root);
+      $.each(refs, function(key, value) {
+        $log.log("watching: ", value);
+        $sync.observation.watch(value, changed); // wait for more changes
+      });
       $sync.manager.commit();
     } else if (subscribedAgainFn) {
       subscribeAgain();
@@ -94,6 +98,26 @@ function withTestSubscription(subscription, subscribedFn, watchedFn, subscribedA
   function finish() {
     $sync.manager.reset();
     start();  	
+  }
+  
+  function deepReferences(obj) {
+    return recurseReferences(obj, {});
+  }
+  
+  function recurseReferences(root, found) {
+    found[id(root)] = root;
+    $.each(root, function(property, value) {
+      if (value && $sync.manager.isSyncable(value)) {
+        if (!found[id(value)]) {
+          recurseReferences(value, found);
+        }
+      }
+    });
+    return found;
+  }
+  
+  function id(obj) {
+    return obj.$partition + "/" + obj.$id;
   }
   
   begin();

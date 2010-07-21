@@ -91,7 +91,6 @@ object ParseMessage {
     var reconnecting = false  // if the client is continuing a sync session (otherwise we reset to a fresh state)
 
     // parse the json string into json objects, separating out control messages e.g. #transaction
-  	// SOON (scala) -- change this to use ProtocolComponent subclasses e.g. TransactionProtocolComponent, EditProtocolComponent.  Use unapply and pattern matching..
     elems foreach {json => processJson(json)
       {jsonArray => jsonArray}
       {jsonObj => jsonObj match {

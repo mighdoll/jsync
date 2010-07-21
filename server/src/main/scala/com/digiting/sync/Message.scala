@@ -42,6 +42,19 @@ class Message(var xactNumber: Int, val controls:List[JsonMap], val edits:List[Js
     jsons.mkString("[", ",\n", "]\n")
   }
   
+//  /** (incomplete) convert a message to change descriptions */
+//  def toChanges:Seq[ChangeDescription] = {
+//    import JsonMapParser._    
+//    val changes = new mutable.ListBuffer[ChangeDescription]()
+//    syncs map { sync =>
+//    	val JsonSyncableId(id) = sync
+//      val ref = new SyncableReference(id.partitionId, id.instanceId, kind)
+//      CreatedChange(ref, pickled, versions)
+//    }
+//    changes
+//  }
+
+  
   /** search for a json property among the control json objects */
   def findControlProperty(controlName:String):Option[Any] = {
     var found:Option[Any] = None

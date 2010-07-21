@@ -60,6 +60,7 @@ var $log = (function() {
     _listeners: listeners,
     _level: 0,
     logger: logger,
+    globalPrefix: undefined,
     setLevel: function(level) { this._level = logLevels[level]; return this; }
   };
 
@@ -120,11 +121,11 @@ var $log = (function() {
 
   function logger(name, enabled) {
     var log = instances[name] =
-      instances[name] || createLogger(this, name, enabled !== undefined ? enabled : true);
+      instances[name] || createLogger(this, name, enabled !== undefined ? enabled : true, true);
     return log;
   }
 
-  function createLogger(parent, name, enabled) {
+  function createLogger(parent, name, enabled, prefix) {
     var level = 1;  // default level is 'debug'
     var override = document.location.search.match(
       RegExp('\\blog[_-]?' + name + '(?:=([^&]*))?\\b', 'i'));
@@ -139,7 +140,6 @@ var $log = (function() {
       }
       $log.info("logger " + name + (enabled ? " to level: " + level : "off"));
     }
-    var prefix = false;
 
     var instance = {
       enable:function() { enabled=true; return this; },
@@ -154,10 +154,12 @@ var $log = (function() {
       instance[methodName] = (function(methodName){
           return function() {
             if (enabled && logLevels[methodName] >= this._level) {
-              var args = arguments;
+              args = Array.prototype.slice.call(arguments, 0);
               if (prefix) {
-                args = Array.prototype.slice.call(arguments, 0);
                 args.unshift(prefix === true ? name + ':' : prefix);
+              }
+              if ($log.globalPrefix) {
+                args.unshift($log.globalPrefix);
               }
               parent[methodName].apply(parent, args);
             }

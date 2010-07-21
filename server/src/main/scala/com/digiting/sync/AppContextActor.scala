@@ -38,8 +38,6 @@ trait AppContextActor extends Actor {
   /** called when we receive a transactions worth of changes from the partition */
   private def applyChanges(source:SyncNode, changes:Seq[DataChange]) {
     withApp {
-      trace2("#%s Changes received from %s %s", app.debugId, source, changes mkString("\n"))
-
       // preload all of the objects referenced by the changes.  
       // (e.g. a property change may reference an object we don't have yet)
       changes flatMap {_.references} foreach {get(_)}

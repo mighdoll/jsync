@@ -107,6 +107,7 @@ case class InsertAtChange(val target:SyncableId, newVal:SyncableReference, at:In
   override def toString = (super.toString + " at:" + at)
   override def references = newVal :: super.references 
 }  
+  
 /** rearrange a seq */
 case class MoveChange(val target:SyncableId, fromDex:Int, toDex:Int, 
     versions:VersionChange) extends CollectionChange(versions) {

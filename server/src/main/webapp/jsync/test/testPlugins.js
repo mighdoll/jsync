@@ -55,27 +55,6 @@ test("dataContents.$all", function() {
 });
 
 
-// //render via dataContents plugin and toHTML() in the model object
-// test("dataContents.toHtml", function() {
-// nameRenderTest(function(performer) {
-// perfomer.toHtml = function() { return this.name;} ;
-// $("#dataContents").dataContents(performer);
-// });
-// });
-//
-//
-// // render via dataContents plugin, watching $all and using provided render
-// function
-// test("dataContents.$all", function() {
-// function render(obj) {
-// return "<div>" + obj.name + "</div";
-// };
-// nameRenderTest(function(performer) {
-// $("#dataContents").dataContents(performer.$allChanged, {render:render});
-// }, "<div>Donald</div>");
-// $("dataContents").
-// });
-
 // support function that runs the tests
 function nameRenderTest(fn, expected1, expected2) {
   expect(2);
@@ -84,5 +63,6 @@ function nameRenderTest(fn, expected1, expected2) {
   ok($("#dataContents").html() === (expected1 || "Goofy"));
   performer.name_("Donald");
   ok($("#dataContents").html() === (expected2 || "Donald"));
+  $sync.manager.reset();
   return result;
 }
