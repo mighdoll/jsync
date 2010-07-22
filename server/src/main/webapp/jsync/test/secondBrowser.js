@@ -1,6 +1,10 @@
 
 (function() {
   var log = $log.logger('secondBrowser');
+//  log.setLevel('detail');
+//  $log.logger('manager').setLevel(0);
+//  $log.logger('receive').setLevel(0);
+//  $log.logger('connection').setLevel(0);
   setup();
   
   function setup() {
@@ -22,8 +26,12 @@
   
   var cmds = {
     namedFred: function(two) {
-      log.detail("namedFred change on: ", two.obj);
+      log.detail("namedFred changing: ", two.obj);
       two.obj.name_('fred');
+    },
+    removeFromSeq: function(two) {
+      log.detail("removeFromSeq changing: ", two.obj);
+      two.obj.removeAt(0);
     }
   };
   

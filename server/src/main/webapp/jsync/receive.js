@@ -101,17 +101,25 @@ $sync.receive = function(connection) {
    * @param message -- array of jsync javascript objects received in a jsync message
    */
   function parseMessage(message) {
-    var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
 //    log.detail("parseMessage: ", message);
     if (message.length === 0) 
       return;
     
     // queue outgoing notifications until we're done processing
-    $sync.observation.pause();
-    $sync.observation.serverMutator();
+    $sync.observation.pause(function() {
+      $sync.observation.withMutator("server", function() {
+        applyMessage(message);
+      });
+    });  
+    // transaction is complete.  Notifications released to tell client code
+    // and server code what has been changed
+  }
+  
+  function applyMessage(message) {
+    var i, obj, toUpdate = [], toEdit = [], incomingTransaction;
     
-    // 1st pass through through the contents of the entire transaction
+      // 1st pass through through the contents of the entire transaction
     for (i = 0; i < message.length; i++) {
       obj = message[i];
       if (obj === undefined) {
@@ -160,11 +168,7 @@ $sync.receive = function(connection) {
     for (i = 0; i < toEdit.length; i++) {
       obj = toEdit[i];
       $sync.update.updateCollection(obj);
-    }
-    
-    // transaction is complete:  tell everyone what we've done
-    $sync.observation.popMutator();
-    $sync.observation.endPause();
+    }    
   }
 
   /** @return true if an object contains a property starting with '#'.

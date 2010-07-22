@@ -27,52 +27,37 @@ var $sync = $sync || {};
  * description object. See below for examples.
  */
 $sync.observation = function() {
-  var log = $log.logger("$sync.observation");
-  var deferred;
-  var watchers; // map of watching functions, indexed by the
-  // $id field of syncable objects, where each item
-  // is an array of watch entries:
-  // {func:callBack, owner:"callerSpecifiedToken"}
-  var everyWatchers; // array of watch entries
-  // that trigger on _all_ changes
-  var defer = false;
-  var enabled = true;
-  var mutators;
+  var log = $log.logger("observe");
+  
+    // map of watching functions, indexed by the
+    // $id field of syncable objects, where each item
+    // is an array of watch entries:
+    // {func:callBack, owner:"callerSpecifiedToken"}
+  var watchers; 
+  
+  var everyWatchers; // array of watch entries that trigger on _all_ changes
+  var defer;         // true if notifications are temporarily queued
+  var deferred;      // array of queued notifications
+  var enabled;       // true if notifications are disabled
+  var mutators;      // stack to support nesting of currentMutator, e.g. a dynamic variable
+  
   var self = {
-
-    /** reset back to initial state */
+    /** reset back to initial state for testing */
     reset: function() {
       deferred = [];
       watchers = {};
       everyWatchers = [];
       mutators = ["local"];
+      defer = false;
+      enabled = true;
     },
 
     /** return the current mutator, (currently either "server" or "local" */
     currentMutator : function() {
+//      log.debug('currentMutator: ', mutators[mutators.length - 1]);
       return mutators[mutators.length - 1];
     },
-
-    /**
-     * all mutuations until the next pop() will be attributed to the server SOON
-     * get rid of this, just use withMutator()
-     */
-    serverMutator : function() {
-      mutators.push("server");
-    },
-
-    /**
-     * return to previous mutator. currently we never get more than 1 deep
-     * anyway SOON get rid of this, just use withMutator()
-     */
-    popMutator : function() {
-      if (mutators.length <= 1) {
-        $debug.fail("popMutator() too many times");
-      } else {
-        mutators.pop();
-      }
-    },
-
+    
     /**
      * call a function, all changes will be marked as originating from the
      * mutator
@@ -182,28 +167,12 @@ $sync.observation = function() {
       }
       
     },
-  
-    /** defer all change notifications until endPause() is called */
-    pause : function() {
+    
+    pause: function(fn) {
       defer = true;
-    },
-    
-    /**
-     * fire off all pending change notifications and deliver subsequent
-     * notifications immediately
-     */
-    endPause : function() {
-      var deferDex;
-      var toCall = deferred.concat();
-    
-      defer = false;
-      deferred = [];
-    
-      if (toCall.length) {
-        for (deferDex = 0; deferDex < toCall.length; deferDex++) {
-          toCall[deferDex]();
-        }
-      }
+      var result = fn();
+      endPause();
+      return result;
     },
     
     /** execute fn() without sending any notifications */
@@ -269,6 +238,26 @@ $sync.observation = function() {
       });
     }
   }
+  
+  
+  /**
+   * fire off all pending change notifications and deliver subsequent
+   * notifications immediately
+   */
+  function endPause() {
+    var deferDex;
+    var toCall = deferred.concat();
+  
+    defer = false;
+    deferred = [];
+  
+    if (toCall.length) {
+      for (deferDex = 0; deferDex < toCall.length; deferDex++) {
+        toCall[deferDex]();
+      }
+    }
+  }
+
 
   self.reset();
   return self;

@@ -61,7 +61,14 @@ var $log = (function() {
     _level: 0,
     logger: logger,
     globalPrefix: undefined,
-    setLevel: function(level) { this._level = logLevels[level]; return this; }
+    setLevel: function(level) { 
+      if (typeof(level) === 'number') {
+        this._level = level;
+      } else {
+        this._level = logLevels[level]; 
+      }
+      return this; 
+    }
   };
 
   createLogFunctions();

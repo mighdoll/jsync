@@ -66,12 +66,11 @@ test("observe.pause", function() {
     fired = true;
   });
   
-  $sync.observation.pause();
-  syncable.value_("sam");
-  ok(fired === false);
-  $sync.observation.endPause();
+  $sync.observation.pause(function() {
+    syncable.value_("sam");
+    ok(fired === false);
+  });
   ok(fired === true);
-  
   $sync.manager.reset();
 });
 
