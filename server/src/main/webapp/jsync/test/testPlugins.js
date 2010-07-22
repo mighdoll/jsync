@@ -1,5 +1,5 @@
 // render by manually watching property changes
-test("propertyToHTML", function() {
+loggedTest("propertyToHTML", function() {
   nameRenderTest(function(performer) {
     $("#dataContents").html(performer.name);
     return performer.nameChanges().watch(function(change) { // return so we can .destroy()
@@ -9,19 +9,15 @@ test("propertyToHTML", function() {
 });
 
 // render via dataContents plugin, watching a property
-test("dataContents.property", function() {
+loggedTest("dataContents.property", function() {
   nameRenderTest(function(performer) {
     $("#dataContents").dataContents({data : performer.nameChanges()});
   });
   $("#dataContents").dataContents('destroy');
 });
 
-function renderInDiv(performer) {
-  return '<div>' + performer.name + '</div>';
-}
-
 // render via dataContents plugin, via custom renderFn
-test("dataContents.renderFn", function() {  
+loggedTest("dataContents.renderFn", function() {  
   nameRenderTest(function(performer) {
     $("#dataContents").dataContents( {
       data : performer.nameChanges(),
@@ -32,7 +28,7 @@ test("dataContents.renderFn", function() {
 });
 
 // render via dataContents plugin, via renderFn map
-test("dataContents.renderFnMap", function() {
+loggedTest("dataContents.renderFnMap", function() {
   nameRenderTest(function(performer) {
     var renderMap = {string:renderInDiv};
     $("#dataContents").dataContents( {
@@ -44,7 +40,7 @@ test("dataContents.renderFnMap", function() {
 });
 
 //render via dataContents plugin, via renderFn map
-test("dataContents.$all", function() {
+loggedTest("dataContents.$all", function() {
   nameRenderTest(function(performer) {
     $("#dataContents").dataContents( {
       data : performer.$allChanges(),
@@ -54,6 +50,10 @@ test("dataContents.$all", function() {
   $("#dataContents").dataContents('destroy');
 });
 
+
+function renderInDiv(performer) {
+  return '<div>' + performer.name + '</div>';
+}
 
 // support function that runs the tests
 function nameRenderTest(fn, expected1, expected2) {
