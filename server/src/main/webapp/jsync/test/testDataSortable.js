@@ -24,11 +24,30 @@ sortableTest('rename', function(seq, $div) {
   ok($children.first().html() === 'ambika');
 });
 
+(function() {
+  var usedMap = false;
+
+  var renderMap = {
+    '$sync.test.nameObj': function (model) {
+        usedMap = true;
+        return renderName(model);
+      }
+  };
+  
+  sortableTest('renderFnMap', function(seq, $div) {
+    var $children = $div.children();
+    ok($children.size() === 3);    
+    ok(usedMap);
+  }, renderMap);
+  
+})();
+
+
 sortableTest('ui.move', function(seq, $div) {
   // TODO implement me
 });
 
-function sortableTest(testName, fn) {
+function sortableTest(testName, fn, renderFn) {
   loggedTest('dataSortable.' + testName, function() {
     $sync.manager.withPartition('test', function() {
       var seq = $sync.sequence();
@@ -41,7 +60,7 @@ function sortableTest(testName, fn) {
           id:'dataSortable'
 //          'class': 'offscreen'
           }).appendTo('body');
-      $div.dataSortable({model:seq, render:renderName});
+      $div.dataSortable({model:seq, render:renderFn ? renderFn : renderName});
       fn(seq, $div);
       // TODO cleanup $div and dataSortable..      
       $div.remove();
