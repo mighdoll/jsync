@@ -17,12 +17,12 @@ sortableTest('move', function(seq, $div) {
   ok($children.last().html() === 'jon');
 });
 
-//sortableTest('rename', function(seq, $div) {
-//  seq.getAt(0).name_('ambika');
-//  
-//  var $children = $div.children();
-//  ok($children.first().html() === 'ambika');
-//});
+sortableTest('rename', function(seq, $div) {
+  seq.getAt(0).name_('ambika');
+  
+  var $children = $div.children();
+  ok($children.first().html() === 'ambika');
+});
 
 function sortableTest(testName, fn) {
   loggedTest('dataSortable.' + testName, function() {
@@ -35,7 +35,7 @@ function sortableTest(testName, fn) {
       var $div = 
         $('<div/>', {
           id:'dataSortable'
-  //        'class': 'offscreen'
+//          'class': 'offscreen'
           }).appendTo('body');
       $div.dataSortable({model:seq, render:renderName});
       fn(seq, $div);

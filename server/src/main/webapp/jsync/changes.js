@@ -4,7 +4,7 @@ var $sync = $sync || {};
 $sync.changes = function() {
   var self = {
     _watchers: [],
-    // TODO record the taget object
+    // TODO record the target object
     watch : function(fn) {
       self._watchers.push(fn);
       return self;

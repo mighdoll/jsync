@@ -239,14 +239,26 @@
       return map;
     }
 
+    function defaultRender(model) { // dry with 
+      return '<div>' + String(model) + '</div>';
+    }
+    
     // Create the DOM HTML or HTML string with which to render
     // the sequence element `model`.
     function render(model) {
-      var renderfn =
-        typeof(renderers) === 'function'  ? renderers : renderers[model.$kind];
-      return renderfn
-        ? $(renderfn(model))
-        : $('<div/>').text(String(model));
+      var renderFn;
+      if (typeof(renderers) === 'function') {
+        renderFn = renderers;
+      } else if (renderers[model.$kind]) {
+        renderFn = renderers[model.$kind];
+      } else {
+        renderFn = defaultRender;   // TODO necessary? -- see options.renderer above
+      }
+      var $rendered = $('<div/>');
+      model.$allChanges().watch(function(change) {
+        $rendered = $rendered.replaceWith(renderFn(model));
+      });
+      return $rendered;
     }
 
     // `model` is a sequence element, and $view is the jQuery element

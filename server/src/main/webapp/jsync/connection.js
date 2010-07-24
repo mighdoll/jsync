@@ -163,7 +163,7 @@ $sync.connect = function(feedUrl, params) {
     var value;
     
     for (var property in syncable) {
-      if (property[0] != '_') {
+      if (property[0] != '_' && property.indexOf('Changes') === -1) {
         value = syncable[property];
         if (typeof value !== 'function' &&
             value !== null &&
@@ -312,6 +312,7 @@ $sync.connect = function(feedUrl, params) {
     }
     
     log.detail("sendNow(): ", xact);
+//    console.dir(xact);
     var xactStr = JSON.stringify(xact);
     requestsActive += 1;
     $.ajax({
