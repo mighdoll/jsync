@@ -24,6 +24,10 @@ sortableTest('rename', function(seq, $div) {
   ok($children.first().html() === 'ambika');
 });
 
+sortableTest('ui.move', function(seq, $div) {
+  // TODO implement me
+});
+
 function sortableTest(testName, fn) {
   loggedTest('dataSortable.' + testName, function() {
     $sync.manager.withPartition('test', function() {
@@ -40,8 +44,9 @@ function sortableTest(testName, fn) {
       $div.dataSortable({model:seq, render:renderName});
       fn(seq, $div);
       // TODO cleanup $div and dataSortable..      
-//      $div.remove();
+      $div.remove();
     });  
+    $sync.manager.reset();
   });
 }
 
