@@ -30,7 +30,7 @@ $sync.observation = function() {
   var log = $log.logger("observe");
   
     // map of watching functions, indexed by the
-    // $id field of syncable objects, where each item
+    // composite id of syncable objects, where each item
     // is an array of watch entries:
     // {func:callBack, owner:"callerSpecifiedToken"}
   var watchers; 
@@ -70,7 +70,7 @@ $sync.observation = function() {
 
     /**
      * watch for property changes on an object or an array of objects
-     * fn(changedObj, changeDescription) where changedObj is the object that's
+     * fn(changeDescription) where changedObj is the object that's
      * been changed. See changeDescription to see a description of the changes.
      */
     watch : function(objOrArray, fn, owner) {
@@ -123,7 +123,7 @@ $sync.observation = function() {
         // log.debug("notify(): ", target, changeType, changeParams);
       if (!enabled)
         return;
-      var callBacks = watchers[target.$id];
+      var callBacks = watchers[$sync.manager.instanceKey(target)];
       var change = $sync.changeDescription(changeType, target, changeParams);
       var propChangeFns;
   
@@ -216,10 +216,10 @@ $sync.observation = function() {
 
   function watchOne(obj, fn, owner) {
     // log.debug("watchOne: " + obj + " watcher: " + owner);
-
-    var watcherArray = watchers[obj.$id];
+    var id = $sync.manager.instanceKey(obj);
+    var watcherArray = watchers[id];
     if (!watcherArray) {
-      watcherArray = watchers[obj.$id] = [];
+      watcherArray = watchers[id] = [];
     }
     watcherArray.push( {
       func : fn,
@@ -228,9 +228,10 @@ $sync.observation = function() {
   }
 
   function ignoreOne(obj, fnOrOwner) {
-    var watcherArray = watchers[obj.$id];
+    var id = $sync.manager.instanceKey(obj);
+    var watcherArray = watchers[id];
     if (watcherArray) {
-      watchers[obj.$id] = watcherArray.filter(function(entry) {
+      watchers[id] = watcherArray.filter(function(entry) {
         if (entry.func === fnOrOwner || entry.owner === fnOrOwner) {
           return false; // matched, so remove from array
         }

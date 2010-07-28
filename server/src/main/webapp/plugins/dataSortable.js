@@ -239,7 +239,7 @@
       return map;
     }
 
-    function defaultRender(model) { // dry with 
+    function defaultRender(model) { // dry with options.render
       return '<div>' + String(model) + '</div>';
     }
     
@@ -254,9 +254,12 @@
       } else {
         renderFn = defaultRender;   // TODO necessary? -- see options.renderer above
       }
-      var $rendered = $('<div/>');
+      var $rendered;
       model.$allChanges().watch(function(change) {
-        $rendered = $rendered.replaceWith(renderFn(model));
+        // guaranteed to be called with initial value
+        $rendered = $rendered 
+          ? $rendered.replaceWith(renderFn(model)) 
+          : $(renderFn(model));
       });
       return $rendered;
     }

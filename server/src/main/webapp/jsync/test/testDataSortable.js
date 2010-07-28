@@ -44,7 +44,10 @@ sortableTest('rename', function(seq, $div) {
 
 
 sortableTest('ui.move', function(seq, $div) {
-  // TODO implement me
+  ok(seq.getAt(0).name == 'albert');
+  $sync.observation.watch(seq, function(change) {
+    console.log('seq: ', change); 
+  });
 });
 
 function sortableTest(testName, fn, renderFn) {
@@ -62,8 +65,8 @@ function sortableTest(testName, fn, renderFn) {
           }).appendTo('body');
       $div.dataSortable({model:seq, render:renderFn ? renderFn : renderName});
       fn(seq, $div);
-      // TODO cleanup $div and dataSortable..      
-      $div.remove();
+//      $div.dataSortable('destroy');
+//      $div.remove();
     });  
     $sync.manager.reset();
   });
@@ -77,5 +80,6 @@ function testSortable() {
 
 
 function renderName(named) {
-  return '<div>' + named.name + '</div>';  
+  return $('<div>' + named.name + '</div>');  // can, but needn't be a jquery object
 }
+
