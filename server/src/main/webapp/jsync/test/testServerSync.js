@@ -137,7 +137,6 @@ loggedTest("sync.modifyReference", function() {
   	ok(root.ref.ref.ref === root);
     // root -> serverNew -> clientNew -> root
   }
-  
 });
 
 function withProtocolVersion(version, fn) {

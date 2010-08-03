@@ -1,11 +1,3 @@
-sortableTest('ui.move', function(seq, $div) {
-  ok(seq.getAt(0).name == 'albert');
-  var $first = $div.children().first();
-  var $second = $first.next();
-  simulateDrag($first, $second);
-  ok(seq.getAt(0).name == 'jon');
-});
-
 
 sortableTest('render', function(seq, $div) {
   var $children = $div.children();
@@ -51,8 +43,20 @@ sortableTest('rename', function(seq, $div) {
   
 })();
 
-sortableTest('ui.remove', function(seq, $div) {
-  withTempWidget('sortable2', 'sortable', {}, function($div2) {
+sortableTest('ui.move', function(seq, $div) {
+  ok(seq.getAt(0).name == 'albert');
+  var $first = $div.children().first();
+  var $second = $first.next();
+  simulateDrag($first, $second);
+  ok(seq.getAt(0).name == 'jon');
+});
+
+
+sortableTest('ui.addremove', function(seq, $div) {
+  var seq2 = $sync.sequence();
+
+  withTempWidget('sortable2', 'dataSortable', {model:seq2, render:renderName}, 
+      function($div2) {
     $div2.css({
       minHeight:'10px',
       border: 'solid red 2px'
@@ -64,8 +68,11 @@ sortableTest('ui.remove', function(seq, $div) {
     simulateDrag($first, $div2);
     ok(seq.getAt(0).name === 'jon');
     ok(seq.size() === 2);
+    ok(seq2.size() === 1);    
+    ok($div2.children().first().html() === 'albert');    
   });  
 });
+
 
 /** simulate a drag between jquery elements */
 function simulateDrag($start, $end) {
@@ -135,6 +142,6 @@ function testSortable() {
 
 
 function renderName(named) {
-  return $('<div>' + named.name + '</div>');  // can, but needn't be a jquery object
+  return $('<div>' + named.name + '</div>');  // the renderFn can (but needn't) return a jquery object
 }
 
