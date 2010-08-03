@@ -1,3 +1,12 @@
+sortableTest('ui.move', function(seq, $div) {
+  ok(seq.getAt(0).name == 'albert');
+  var $first = $div.children().first();
+  var $second = $first.next();
+  simulateDrag($first, $second);
+  ok(seq.getAt(0).name == 'jon');
+});
+
+
 sortableTest('render', function(seq, $div) {
   var $children = $div.children();
   ok($children.size() === 3);
@@ -42,13 +51,63 @@ sortableTest('rename', function(seq, $div) {
   
 })();
 
-
-sortableTest('ui.move', function(seq, $div) {
-  ok(seq.getAt(0).name == 'albert');
-  $sync.observation.watch(seq, function(change) {
-    console.log('seq: ', change); 
-  });
+sortableTest('ui.remove', function(seq, $div) {
+  withTempWidget('sortable2', 'sortable', {}, function($div2) {
+    $div2.css({
+      minHeight:'10px',
+      border: 'solid red 2px'
+    });
+    $div.sortable("option", "connectWith", '#sortable2');
+    
+    // drag first element to a linked sortable
+    var $first = $div.children().first();  
+    simulateDrag($first, $div2);
+    ok(seq.getAt(0).name === 'jon');
+    ok(seq.size() === 2);
+  });  
 });
+
+/** simulate a drag between jquery elements */
+function simulateDrag($start, $end) {
+  var from = eventPosition($start);
+  var to = eventPosition($end);
+  $start.simulate('mousedown', from);       
+  $(document).simulate('mousemove', to);
+  $end.simulate('mouseup', to);
+  
+  // JS - why doesn't .simulate work if we send all the events to document (instead of just mousemove)?  
+}
+
+/** return a {clientX,clientY} for the lower right quadrant of the given jquery DOM element */
+function eventPosition($spot) {
+  var offset = $spot.offset();
+  return {
+    clientX: offset.left + Math.round(($spot.width() * 2 / 3)),
+    clientY: offset.top + Math.round(($spot.height() * 2 / 3)) - $(window).scrollTop()
+  };
+}
+
+/** insert a div into the ui test area and return it */
+function insertDiv(id) {
+  return $('<div/>', {id:id}).appendTo(testBox());
+}
+
+
+/** run a function with a temporary widget inserted into the ui test area */
+function withTempWidget(id, widgetFn, opts, fn) {
+  var $div = insertDiv(id);  
+  $div[widgetFn](opts);
+  fn($div);
+  $div.remove();
+  $div[widgetFn]('destroy');
+}
+
+function testBox() {
+  if ($('#testBox').size() == 0) {
+    var $div = $('<div/>', {id:'testBox'}).appendTo('body');    
+  }
+  return $('#testBox');
+}
 
 function sortableTest(testName, fn, renderFn) {
   loggedTest('dataSortable.' + testName, function() {
@@ -58,15 +117,11 @@ function sortableTest(testName, fn, renderFn) {
       seq.append($sync.test.nameObj({name:"jon"}));
       seq.append($sync.test.nameObj({name:"christine"}));
       
-      var $div = 
-        $('<div/>', {
-          id:'dataSortable'
-//          'class': 'offscreen'
-          }).appendTo('body');
-      $div.dataSortable({model:seq, render:renderFn ? renderFn : renderName});
-      fn(seq, $div);
-//      $div.dataSortable('destroy');
-//      $div.remove();
+      withTempWidget('dataSortable1', 'dataSortable', 
+          {model:seq, render:renderFn ? renderFn : renderName}, 
+          function($div) {
+        fn(seq, $div);
+      });
     });  
     $sync.manager.reset();
   });
